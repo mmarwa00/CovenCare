@@ -6,16 +6,36 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 // Import all necessary screens
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import DashboardScreen from './src/screens/DashboardScreen'; // Placeholder
+import DashboardScreen from './src/screens/DashboardScreen'; 
+import ProfileScreen from './src/screens/ProfileScreen'; // Required for navigation
+// You will need to create placeholder files for these two:
+import CalendarScreen from './src/screens/CalendarScreen'; 
+import CircleScreen from './src/screens/CircleScreen';
 
 // --- Simple Navigation Logic (The App Switcher) ---
 
 function AppNavigator() {
-  // Get global state from AuthContext
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // State to handle screen switching when logged out (Login/Register)
+  const [currentUnauthScreen, setCurrentUnauthScreen] = React.useState('Login'); 
+  // State to handle screen switching when logged in (Dashboard/Profile/etc.)
+  const [currentAuthScreen, setCurrentAuthScreen] = React.useState('Dashboard'); 
+
+  // Unified navigate function
+  const navigate = (screenName) => {
+    if (isAuthenticated) {
+        setCurrentAuthScreen(screenName);
+    } else {
+        setCurrentUnauthScreen(screenName);
+    }
+  };
+  
+  const navigationProps = {
+    navigation: { navigate }, 
+  };
 
   if (isLoading) {
-    // Show a global loading indicator while Firebase checks initial auth status
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6a1b9a" />
@@ -24,32 +44,29 @@ function AppNavigator() {
     );
   }
 
-  // We use a local state to toggle between Login and Register views when logged out.
-  const [currentScreen, setCurrentScreen] = React.useState('Login');
-
-  // Define simple navigate function for our mock navigation
-  const navigate = (screenName) => {
-    setCurrentScreen(screenName);
-  };
-  
-  const navigationProps = {
-    // Pass a simplified 'navigation' object to screens
-    navigation: { navigate }, 
-  };
-
-  // 1. If Authenticated, show the main dashboard
+  // --- Authenticated Screens ---
   if (isAuthenticated) {
-    return <DashboardScreen {...navigationProps} />;
+    switch (currentAuthScreen) {
+        case 'ProfileScreen':
+            return <ProfileScreen {...navigationProps} />;
+        case 'CalendarScreen':
+            return <CalendarScreen {...navigationProps} />;
+        case 'CircleScreen':
+            return <CircleScreen {...navigationProps} />;
+        case 'Dashboard':
+        default:
+            return <DashboardScreen {...navigationProps} />;
+    }
   } 
   
-  // 2. If Not Authenticated, determine if they want to Login or Register
+  // --- Unauthenticated Screens ---
   else {
-    if (currentScreen === 'Register') {
-        // Render Register screen, passing navigation props
-        return <RegisterScreen {...navigationProps} />;
-    } else {
-        // Render Login screen (default), passing navigation props
-        return <LoginScreen {...navigationProps} />;
+    switch (currentUnauthScreen) {
+        case 'Register':
+            return <RegisterScreen {...navigationProps} />;
+        case 'Login':
+        default:
+            return <LoginScreen {...navigationProps} />;
     }
   }
 }
@@ -71,7 +88,7 @@ export default function App() {
 const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
-    paddingTop: 40, // Add padding for status bar visibility
+    paddingTop: 40,
   },
   loadingContainer: {
     flex: 1,
