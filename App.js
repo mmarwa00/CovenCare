@@ -8,7 +8,6 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen'; 
 import ProfileScreen from './src/screens/ProfileScreen'; // Required for navigation
-// You will need to create placeholder files for these two:
 import CalendarScreen from './src/screens/CalendarScreen'; 
 import CircleScreen from './src/screens/CircleScreen';
 
