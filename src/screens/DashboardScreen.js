@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image,TouchableOpacity } from 'react-native';
 import { Button, Card, Title, Paragraph } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
@@ -27,10 +27,14 @@ export default function DashboardScreen({ navigation }) {
             <View style={styles.cardContainer}>
 
                 {/* 1. Profile/Account Management: DIRECT NAVIGATION TO ProfileScreen */}
-                <View style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ProfileScreen')}>
+                    <Image
+                        source={require('../../assets/icons/hat.png')}
+                        style={styles.bigMenuIcon}
+                    />
                     <Title style={styles.menuTitle}>My Profile</Title>
                     <Paragraph style={styles.menuSubtitle}>View stats, update details, manage account.</Paragraph>
-                </View>
+                </TouchableOpacity>
 
                 {/* 2. Period/Health Tracking: DIRECT NAVIGATION */}
                 <View style={styles.menuItem} onTouchEnd={() => navigation.navigate('CalendarScreen')}>
@@ -72,16 +76,17 @@ const styles = StyleSheet.create({
     menuContainer: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 3,
 },
 menuItem: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 3,
 },
 bigMenuIcon: {
     width: 120,
-    height: 120,
-    marginBottom: 10,
+    height: 80,
+    marginBottom: 5,
+    marginTop: 5,
     resizeMode: 'contain',
 },
 menuTitle: {
@@ -91,7 +96,7 @@ menuTitle: {
     textAlign: 'center',
 },
 menuSubtitle: {
-    fontSize: 14,
+    fontSize: 10,
     color: '#6a1b9a',
     textAlign: 'center',
 },
@@ -102,14 +107,14 @@ container: {
         alignItems: 'center',
     },
     title: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#4a148c',
-        marginTop: 30,
+        marginTop: 10,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#6a1b9a',
         marginBottom: 30,
         textAlign: 'center',
@@ -125,7 +130,7 @@ container: {
     },
     menuIcon: {
     width: 120,
-    height: 120,
+    height: 80,
     marginBottom: 10,
     resizeMode: 'contain',
     }

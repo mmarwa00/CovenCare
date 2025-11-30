@@ -33,7 +33,7 @@ export default function Header({ navigation }) {
 const styles = StyleSheet.create({
     header: {
         width: '100%',
-        height: 80,
+        height: 60,
         backgroundColor: '#d4a5ff',
         flexDirection: 'row',
         alignItems: 'center',
