@@ -86,7 +86,7 @@ bigMenuIcon: {
     width: 120,
     height: 80,
     marginBottom: 5,
-    marginTop: 5,
+    marginTop: 10,
     resizeMode: 'contain',
 },
 menuTitle: {

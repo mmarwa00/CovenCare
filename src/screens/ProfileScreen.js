@@ -36,6 +36,18 @@ export default function ProfileScreen({ navigation }) {
       setFirestoreData(result.user);
       setDisplayName(result.user.displayName || '');
       setProfileEmail(result.user.email || '');
+  
+      // Load saved photo
+      if (result.user.profilePhoto) {
+        const photoMap = {
+          'witch1': witch1,
+          'witch2': witch2,
+          'witch3': witch3,
+          'witch4': witch4,
+        };
+        setSelectedPhoto(photoMap[result.user.profilePhoto]);
+      }
+      
       setSuccess('');
     } else {
       setError(`Failed to load profile: ${result.error}`);
@@ -79,9 +91,17 @@ export default function ProfileScreen({ navigation }) {
     setLoading(false);
   };
 
-  const handlePhotoSelect = (photoSource) => {
+  const handlePhotoSelect = async (photoSource, photoName) => {
     setSelectedPhoto(photoSource);
     setShowPhotoPicker(false);
+  
+    // Save to Firestore immediately
+    try {
+      await updateUserProfile(user.uid, { profilePhoto: photoName });
+      setSuccess('Avatar updated!');
+    } catch (e) {
+      setError('Failed to save avatar');
+    }
   };
 
   const renderAvatar = () => {
@@ -220,32 +240,32 @@ export default function ProfileScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.photoPickerModal}>
-            <PaperTitle style={styles.modalTitle}>Choose Your Witch Avatar</PaperTitle>
+            <PaperTitle style={styles.modalTitle}>Choose Your Witch</PaperTitle>
             
             <View style={styles.photoGrid}>
               <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch1)}
+                onPress={() => handlePhotoSelect(witch1, 'witch1')}
                 style={styles.photoOption}
               >
                 <Image source={witch1} style={styles.photoOptionImage} />
               </TouchableOpacity>
 
               <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch2)}
+                onPress={() => handlePhotoSelect(witch2, 'witch2')}
                 style={styles.photoOption}
               >
                 <Image source={witch2} style={styles.photoOptionImage} />
               </TouchableOpacity>
 
               <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch3)}
+                onPress={() => handlePhotoSelect(witch3, 'witch3')}
                 style={styles.photoOption}
               >
                 <Image source={witch3} style={styles.photoOptionImage} />
               </TouchableOpacity>
 
               <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch4)}
+                onPress={() => handlePhotoSelect(witch4, 'witch4')}
                 style={styles.photoOption}
               >
                 <Image source={witch4} style={styles.photoOptionImage} />
@@ -385,9 +405,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   photoOptionImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
   },
   cancelButton: {
     marginTop: 10,
