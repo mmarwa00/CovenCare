@@ -1,41 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { createCircle, joinCircle, getUserCircles } from '../services/circleService';
 import Header from '../components/Header';
 
+// Firebase
+import { auth, db } from '../config/firebaseConfig';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
+
 export default function CircleScreen({ navigation }) {
     const { user } = useAuth();
-    
+    const userId = user?.uid;
+
     const [circleName, setCircleName] = useState('');
     const [inviteCode, setInviteCode] = useState('');
     const [circles, setCircles] = useState([]);
+    const [activeCircleId, setActiveCircleId] = useState(null);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    const userId = user?.uid;
-
-    // --- Data Fetching ---
+    // Fetch circles
     const fetchCircles = async () => {
         if (!userId) return;
         setLoading(true);
         setError('');
+
         const result = await getUserCircles(userId);
         if (result.success) {
-            setCircles(result.circles);
+            setCircles(result.circles || []);
         } else {
             setError(`Failed to fetch circles: ${result.error}`);
         }
+
         setLoading(false);
+    };
+
+    // Fetch active circle
+    const fetchActiveCircle = async () => {
+        if (!userId) return;
+
+        try {
+            const userRef = doc(db, 'users', userId);
+            const snap = await getDoc(userRef);
+
+            if (snap.exists()) {
+                setActiveCircleId(snap.data().activeCircleId || null);
+            }
+        } catch (err) {
+            console.log('Error fetching active circle:', err);
+        }
     };
 
     useEffect(() => {
         fetchCircles();
+        fetchActiveCircle();
     }, [userId]);
 
-    // --- Create Circle Handler ---
+    // Create circle
     const handleCreateCircle = async () => {
         setLoading(true);
         setError('');
@@ -52,14 +76,32 @@ export default function CircleScreen({ navigation }) {
         if (result.success) {
             setSuccess(`Circle created! Invite Code: ${result.inviteCode}`);
             setCircleName('');
-            fetchCircles(); // Refresh the list
+            fetchCircles();
         } else {
             setError(result.error);
         }
+
         setLoading(false);
     };
 
-    // --- Join Circle Handler ---
+    // Set active circle
+    const handleSetActiveCircle = async (circleId) => {
+        try {
+            const currentUser = auth.currentUser;
+            if (!currentUser) return;
+
+            await updateDoc(doc(db, 'users', currentUser.uid), {
+                activeCircleId: circleId,
+            });
+
+            setActiveCircleId(circleId);
+            alert('Active circle updated!');
+        } catch (error) {
+            console.log('Error setting active circle:', error);
+        }
+    };
+
+    // Join circle
     const handleJoinCircle = async () => {
         setLoading(true);
         setError('');
@@ -76,10 +118,11 @@ export default function CircleScreen({ navigation }) {
         if (result.success) {
             setSuccess(`Successfully joined '${result.circleName}'!`);
             setInviteCode('');
-            fetchCircles(); // Refresh the list
+            fetchCircles();
         } else {
             setError(result.error);
         }
+
         setLoading(false);
     };
 
@@ -97,20 +140,19 @@ export default function CircleScreen({ navigation }) {
 
             <Title style={styles.title}>Coven Circles 🫂</Title>
             <Paragraph style={styles.subtitle}>
-                Test your `circleService` functions below.
+                Manage your circles and choose your active one.
             </Paragraph>
 
             {loading && <ActivityIndicator animating={true} color="#4a148c" size="small" />}
             {error && <HelperText type="error" visible={!!error} style={{ textAlign: 'center' }}>{error}</HelperText>}
             {success && <HelperText type="info" visible={!!success} style={styles.successText}>{success}</HelperText>}
-            
-            
-            {/* --- 1. Create Circle --- */}
+
+            {/* Create Circle */}
             <Card style={styles.card}>
                 <Card.Content>
                     <Title style={styles.cardTitle}>Create New Circle</Title>
                     <TextInput
-                        label="Circle Name (e.g., The Midnight Trio)"
+                        label="Circle Name"
                         value={circleName}
                         onChangeText={setCircleName}
                         mode="outlined"
@@ -122,19 +164,18 @@ export default function CircleScreen({ navigation }) {
                         onPress={handleCreateCircle} 
                         disabled={loading || !circleName.trim()}
                         style={styles.actionButton}
-                        labelStyle={{ color: '#4a148c', fontSize: 14, fontWeight: 'bold' }}
                     >
                         Create Circle
                     </Button>
                 </Card.Content>
             </Card>
 
-            {/* --- 2. Join Circle --- */}
+            {/* Join Circle */}
             <Card style={styles.card}>
                 <Card.Content>
                     <Title style={styles.cardTitle}>Join Circle</Title>
                     <TextInput
-                        label="Invite Code (8 characters)"
+                        label="Invite Code"
                         value={inviteCode}
                         onChangeText={setInviteCode}
                         mode="outlined"
@@ -143,51 +184,73 @@ export default function CircleScreen({ navigation }) {
                         autoCapitalize="characters"
                         maxLength={8}
                     />
-                    <Button 
-                        mode="outlined" 
-                        onPress={handleJoinCircle} 
+                    <Button
+                        mode="outlined"
+                        onPress={handleJoinCircle}
                         disabled={loading || inviteCode.length !== 8}
                         style={styles.actionButton}
-                        labelStyle={{ color: '#4a148c', fontSize: 14, fontWeight: 'bold' }}
                     >
                         Join Circle
                     </Button>
                 </Card.Content>
             </Card>
 
-            {/* --- 3. View Circles --- */}
+            {/* Circles List */}
             <Card style={styles.card}>
                 <Card.Content>
                     <Title style={styles.cardTitle}>My Circles ({circles.length})</Title>
-                    {circles.length === 0 ? (
-                        <Paragraph>You are not currently in any circles.</Paragraph>
-                    ) : (
-                        circles.map((circle, index) => (
-                    <View key={circle.id} style={styles.circleItem}>
-                        <Image
-                            source={
-                                index % 3 === 0 ? require('../../assets/icons/circle_small1.png') :
-                                index % 3 === 1 ? require('../../assets/icons/circle_small2.png') :
-                                require('../../assets/icons/circle_small3.png')
-                            }
-                            style={styles.circleIcon}
-                        />    
+
+                    {circles.map((circle, index) => (
+                        <TouchableOpacity
+                            key={circle.id}
+                            style={[
+                                styles.circleItem,
+                                circle.id === activeCircleId && styles.activeCircle
+                            ]}
+                            onPress={() => navigation.navigate('CircleDetails', { circle })}
+                        >
+                            <Image
+                                source={
+                                    index % 3 === 0
+                                        ? require('../../assets/icons/circle_small1.png')
+                                        : index % 3 === 1
+                                        ? require('../../assets/icons/circle_small2.png')
+                                        : require('../../assets/icons/circle_small3.png')
+                                }
+                                style={styles.circleIcon}
+                            />
+
                             <View style={styles.circleInfo}>
                                 <Text style={styles.circleName}>{circle.name}</Text>
                                 <Text style={styles.circleDetail}>ID: {circle.id}</Text>
                                 <Text style={styles.circleDetail}>Code: {circle.inviteCode}</Text>
-                                <Text style={styles.circleDetail}>{circle.members.length} members</Text>
+                                <Text style={styles.circleDetail}>
+                                    {Array.isArray(circle.members)
+                                        ? `${circle.members.length} members`
+                                        : '0 members'}
+                                </Text>
+
+                                <Button
+                                    mode="contained"
+                                    onPress={() => handleSetActiveCircle(circle.id)}
+                                    style={{ marginTop: 8, backgroundColor: '#6a1b9a' }}
+                                    labelStyle={{ fontSize: 12 }}
+                                >
+                                    ⭐ Set as Active
+                                </Button>
+
+                                {circle.id === activeCircleId && (
+                                    <Text style={styles.activeBadge}>⭐ Active Circle</Text>
+                                )}
                             </View>
-                        </View>    
-                        ))
-                    )}
-                    <Button mode="text" onPress={fetchCircles} style={{marginTop: 10}}
-                        labelStyle={{ color: '#4a148c', fontSize: 14, fontWeight: 'bold' }}>
+                        </TouchableOpacity>
+                    ))}
+
+                    <Button mode="text" onPress={fetchCircles} style={{ marginTop: 10 }}>
                         Refresh List
                     </Button>
                 </Card.Content>
             </Card>
-
         </ScrollView>
     );
 }
@@ -196,13 +259,12 @@ const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
         padding: 20,
-        backgroundColor: '#f0e6f5ff', // Very light green/lavender
+        backgroundColor: '#f0e6f5ff',
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
         color: '#4a148c',
-        marginBottom: 5,
         textAlign: 'center',
     },
     subtitle: {
@@ -211,17 +273,12 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 20,
     },
-    cardContainer: {
-        width: '100%',
-        marginBottom: 40,
-        gap: 15,
-    },
     card: {
         width: '100%',
         marginBottom: 20,
         borderRadius: 12,
-        elevation: 3,
         backgroundColor: '#d4a5ff',
+        paddingBottom: 10,
     },
     cardTitle: {
         fontSize: 20,
@@ -234,6 +291,7 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         marginTop: 10,
+        backgroundColor: '#b98ae5ff',
     },
     successText: {
         backgroundColor: '#c7a5cdff',
@@ -249,7 +307,16 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
-
+    activeCircle: {
+        backgroundColor: '#f3d9ff',
+        borderLeftWidth: 4,
+        borderLeftColor: '#6a1b9a',
+    },
+    activeBadge: {
+        marginTop: 5,
+        color: '#6a1b9a',
+        fontWeight: 'bold',
+    },
     circleIcon: {
         width: 50,
         height: 50,
@@ -259,7 +326,6 @@ const styles = StyleSheet.create({
     circleInfo: {
         flex: 1,
     },
-
     circleName: {
         fontSize: 16,
         fontWeight: 'bold',
@@ -273,16 +339,4 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         marginBottom: 10,
     },
-    actionButton: {
-    marginTop: 10,
-    backgroundColor: '#b98ae5ff',
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: '#4a148c',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    }
 });
