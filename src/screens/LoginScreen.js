@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>CovenCare Login 🦇</Text>
+      <Text style={styles.title}>CovenCare Login 🌒</Text>
       <Text style={styles.subtitle}>Enter your magical credentials.</Text>
 
       {/* Email Input */}
