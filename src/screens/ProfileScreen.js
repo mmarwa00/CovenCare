@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/userService'; // Your data services
 import { updateProfile } from 'firebase/auth'; // Needed to update Firebase Auth profile object
 import { auth } from '../config/firebaseConfig'; // Get the auth instance
+import Header from '../components/Header';
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();

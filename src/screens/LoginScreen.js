@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'reac
 // Note: You will need to install 'react-native-paper' for professional components
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
 import { useAuth } from '../context/AuthContext';
+import Header from '../components/Header';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('testuser@example.com');

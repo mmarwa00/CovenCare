@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { logPeriod, getUserPeriods, predictNextPeriod } from '../services/periodService';
+import Header from '../components/Header';
 
 // Helper function to format date objects
 const formatDate = (date) => {

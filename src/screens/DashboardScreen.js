@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Button, Card, Title, Paragraph } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
+import Header from '../components/Header';
 
 export default function DashboardScreen({ navigation }) {
     // Get user and signOut function from the global Auth Context
@@ -16,6 +17,7 @@ export default function DashboardScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
+            <Header />
             <Title style={styles.title}>Welcome to the Coven, {displayName}!</Title>
             <Paragraph style={styles.subtitle}>
                 Your home base for tracking, support, and care.
@@ -23,40 +25,32 @@ export default function DashboardScreen({ navigation }) {
 
             {/* --- Core Features --- */}
             <View style={styles.cardContainer}>
-                
+
                 {/* 1. Profile/Account Management: DIRECT NAVIGATION TO ProfileScreen */}
-                <Card 
-                    style={styles.card} 
-                    onPress={() => navigation.navigate('ProfileScreen')}
-                >
-                    <Card.Content>
-                        <Title style={styles.cardTitle}>My Profile</Title>
-                        <Paragraph>View stats, update details, manage account.</Paragraph>
-                    </Card.Content>
-                </Card>
+                <View style={styles.menuItem}>
+                    <Title style={styles.menuTitle}>My Profile</Title>
+                    <Paragraph style={styles.menuSubtitle}>View stats, update details, manage account.</Paragraph>
+                </View>
 
                 {/* 2. Period/Health Tracking: DIRECT NAVIGATION */}
-                <Card 
-                    style={styles.card} 
-                    onPress={() => navigation.navigate('CalendarScreen')}
-                >
-                    <Card.Content>
-                        <Title style={styles.cardTitle}>Log Period / Cycle</Title>
-                        <Paragraph>Input today's cycle data and symptoms.</Paragraph>
-                    </Card.Content>
-                </Card>
-                
-                {/* 3. Circle Management: DIRECT NAVIGATION */}
-                <Card 
-                    style={styles.card} 
-                    onPress={() => navigation.navigate('CircleScreen')}
-                >
-                    <Card.Content>
-                        <Title style={styles.cardTitle}>Create / Join Circle</Title>
-                        <Paragraph>Manage your trusted support group.</Paragraph>
-                    </Card.Content>
-                </Card>
+                <View style={styles.menuItem} onTouchEnd={() => navigation.navigate('CalendarScreen')}>
+                    <Image
+                        source={require('../../assets/icons/Log.png')}
+                        style={styles.bigMenuIcon}
+                    />
+                    <Title style={styles.menuTitle}>Log your period</Title>
+                    <Paragraph style={styles.menuSubtitle}>in the Grimoire</Paragraph>
+                </View>
 
+                {/* 3. Circle Management: DIRECT NAVIGATION */}
+                <View style={styles.menuItem} onTouchEnd={() => navigation.navigate('CircleScreen')}>
+                    <Image
+                        source={require('../../assets/icons/circles.png')}
+                        style={styles.bigMenuIcon}
+                    />
+                    <Title style={styles.menuTitle}>Create a circle</Title>
+                    <Paragraph style={styles.menuSubtitle}>and summon your coven</Paragraph>
+                </View>
             </View>
 
             {/* --- Log Out Button --- */}
@@ -75,9 +69,35 @@ export default function DashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
+    menuContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 15,
+},
+menuItem: {
+    alignItems: 'center',
+    marginBottom: 10,
+},
+bigMenuIcon: {
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+    resizeMode: 'contain',
+},
+menuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4a148c',
+    textAlign: 'center',
+},
+menuSubtitle: {
+    fontSize: 14,
+    color: '#6a1b9a',
+    textAlign: 'center',
+},
+container: {
         flex: 1,
-        padding: 20,
+        padding: 10,
         backgroundColor: '#f8f8ff', 
         alignItems: 'center',
     },
@@ -94,27 +114,19 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         textAlign: 'center',
     },
-    cardContainer: {
-        width: '100%',
-        marginBottom: 40,
-        gap: 15,
-    },
-    card: {
-        elevation: 4, 
-        borderRadius: 10,
-        backgroundColor: '#fff',
-    },
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#8e24aa', 
-    },
+    
     logoutButton: {
         marginTop: 20,
-        borderColor: '#ff9500',
+        borderColor: '#8c2abdff',
         borderWidth: 1,
     },
     logoutLabel: {
-        color: '#ff9500',
+        color: '#a91796ff',
+    },
+    menuIcon: {
+    width: 120,
+    height: 120,
+    marginBottom: 10,
+    resizeMode: 'contain',
     }
 });

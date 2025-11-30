@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
 import { registerUser } from '../services/authService'; // Direct call to service
+import Header from '../components/Header';
 
 export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
