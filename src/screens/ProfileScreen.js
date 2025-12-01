@@ -155,11 +155,12 @@ export default function ProfileScreen({ navigation }) {
       );
     }
   }
-
+  
   return (
     <View style={{ flex: 1 }}>
+      <Header />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Header />
+        
         <Button
           mode="text"
           onPress={() => navigation.navigate('Dashboard')}

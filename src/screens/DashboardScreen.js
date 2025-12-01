@@ -44,8 +44,8 @@ export default function DashboardScreen({ navigation }) {
     }, [userId]);
 
     return (
-        <View style={styles.container}>
-            <Header />
+    <View style={{ flex: 1 }}>
+      <Header />
 
             {/* --- Core Features --- */}
             <View style={styles.cardContainer}>
@@ -176,9 +176,16 @@ const styles = StyleSheet.create({
     logoutButton: {
         marginTop: 20,
         borderColor: '#8c2abdff',
-        borderWidth: 1,
+        borderWidth: 2,
+        width: 180,
+        alignSelf: 'center',
+        borderRadius: 25,
+        height: 45,
     },
+
     logoutLabel: {
-        color: '#a91796ff',
+        fontSize: 14,
+        color: '#8c2abdff',
+        fontWeight: 'bold',
     },
 });

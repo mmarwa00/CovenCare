@@ -9,6 +9,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CircleScreen from '../screens/CircleScreen';
 import CircleDetailsScreen from '../screens/CircleDetailsScreen';
+import VendingMachineMenu from '../screens/VendingMachineMenu';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +29,12 @@ export default function AppNavigator() {
             <Stack.Screen name="CalendarScreen" component={CalendarScreen} />
             <Stack.Screen name="CircleScreen" component={CircleScreen} />
             <Stack.Screen name="CircleDetails" component={CircleDetailsScreen} />
+
+            {/* ✅ Your new screen is correctly registered here */}
+            <Stack.Screen
+              name="VendingMachineMenu"
+              component={VendingMachineMenu}
+            />
           </>
         ) : (
           <>
