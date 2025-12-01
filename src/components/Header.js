@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Image, StyleSheet, Text } from 'react-native';
 import { Menu, IconButton } from 'react-native-paper';
 
-export default function Header({ navigation }) {
+export default function Header() {
     const [menuVisible, setMenuVisible] = useState(false);
 
     return (
         <View style={styles.header}>
-            <Image 
-                source={require('../../assets/Logo/logo_Main.png')}
-                style={styles.logo}
-            />
+            
+            {/* LEFT SIDE: Logo + Subtitle in a row */}
+            <View style={styles.leftRow}>
+                <Image 
+                    source={require('../../assets/Logo/logo_Main.png')}
+                    style={styles.logo}
+                />
+
+                <Text style={styles.subtitle}>
+                    Your home base for tracking, support, and care.
+                </Text>
+            </View>
+
+            {/* RIGHT SIDE: Menu */}
             <Menu
                 visible={menuVisible}
                 onDismiss={() => setMenuVisible(false)}
@@ -21,7 +31,8 @@ export default function Header({ navigation }) {
                         size={24}
                         onPress={() => setMenuVisible(true)}
                     />
-                }>
+                }
+            >
                 <Menu.Item onPress={() => {}} title="Settings" />
                 <Menu.Item onPress={() => {}} title="Privacy Policy" />
                 <Menu.Item onPress={() => {}} title="Terms of Service" />
@@ -29,21 +40,36 @@ export default function Header({ navigation }) {
         </View>
     );
 }
-
 const styles = StyleSheet.create({
     header: {
         width: '100%',
-        height: 60,
-        backgroundColor: '#d4a5ff',
+        paddingHorizontal: 5,
+        paddingTop: 5,
+        paddingBottom: 5,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between', // Space between logo and menu
-        paddingLeft: 15,
-        paddingRight: 5,
+        justifyContent: 'space-between',
+        backgroundColor: '#d4a5ff',
     },
+
+    leftRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+    },
+
     logo: {
         width: 120,
         height: 40,
         resizeMode: 'contain',
+        marginRight: 5,
+    },
+
+    subtitle: {
+        fontSize: 16,
+        color: '#4a148c',
+        flexShrink: 1,
+        flexWrap: 'wrap',
+        maxWidth: 200,
     },
 });

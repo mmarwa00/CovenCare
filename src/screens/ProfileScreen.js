@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/userService';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
@@ -155,141 +157,146 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <Button 
-        mode="text" 
-        onPress={() => navigation.navigate('Dashboard')} 
-        style={styles.backButton}
-        labelStyle={styles.backButtonLabel}
-      >
-        ← Back to Dashboard
-      </Button>
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Header />
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
+          labelStyle={styles.backButtonLabel}
+        >
+          ← Back to Dashboard
+        </Button>
 
-      <Card style={styles.profileCard}>
-        <View style={styles.header}>
-          {renderAvatar()}
-          <PaperTitle style={styles.cardTitle}>Your Coven Profile</PaperTitle>
-        </View>
+        <Card style={styles.profileCard}>
+          <View style={styles.header}>
+            {renderAvatar()}
+            <PaperTitle style={styles.cardTitle}>Your Coven Profile</PaperTitle>
+          </View>
 
-        {success ? (
-          <HelperText type="info" visible={!!success} style={styles.successText}>
-            {success}
-          </HelperText>
-        ) : null}
-        {error && <HelperText type="error" visible={!!error}>{error}</HelperText>}
-        
-        <TextInput
-          label="Email (Read Only)"
-          value={profileEmail}
-          mode="outlined"
-          style={styles.input}
-          disabled={true} 
-        />
-        
-        <TextInput
-          label="Display Name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          mode="outlined"
-          style={styles.input}
-          disabled={!isEditing || loading}
-        />
-        
-        <Text style={styles.uidText}>UID: {user?.uid}</Text>
+          {success ? (
+            <HelperText type="info" visible={!!success} style={styles.successText}>
+              {success}
+            </HelperText>
+          ) : null}
+          {error && <HelperText type="error" visible={!!error}>{error}</HelperText>}
 
-        {isEditing ? (
-          <Button 
-            mode="contained" 
-            onPress={handleSave} 
-            loading={loading}
-            disabled={loading || displayName.length < 3}
-            style={styles.saveButton}
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </Button>
-        ) : (
-          <Button 
-            mode="outlined" 
-            onPress={() => setIsEditing(true)} 
-            style={styles.editButton}
-          >
-            Edit Profile
-          </Button>
-        )}
+          <TextInput
+            label="Email (Read Only)"
+            value={profileEmail}
+            mode="outlined"
+            style={styles.input}
+            disabled={true}
+          />
 
-        {isEditing && (
-          <Button 
-            mode="text" 
-            onPress={() => { 
-              setIsEditing(false); 
-              fetchProfile(); 
-            }} 
-            disabled={loading}
-            style={{ marginTop: 10 }}
-          >
-            Cancel
-          </Button>
-        )}
-      </Card>
+          <TextInput
+            label="Display Name"
+            value={displayName}
+            onChangeText={setDisplayName}
+            mode="outlined"
+            style={styles.input}
+            disabled={!isEditing || loading}
+          />
 
-      <Modal
-        visible={showPhotoPicker}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowPhotoPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.photoPickerModal}>
-            <PaperTitle style={styles.modalTitle}>Choose Your Witch</PaperTitle>
-            
-            <View style={styles.photoGrid}>
-              <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch1, 'witch1')}
-                style={styles.photoOption}
-              >
-                <Image source={witch1} style={styles.photoOptionImage} />
-              </TouchableOpacity>
+          <Text style={styles.uidText}>UID: {user?.uid}</Text>
 
-              <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch2, 'witch2')}
-                style={styles.photoOption}
-              >
-                <Image source={witch2} style={styles.photoOptionImage} />
-              </TouchableOpacity>
+          {isEditing ? (
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              loading={loading}
+              disabled={loading || displayName.length < 3}
+              style={styles.saveButton}
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          ) : (
+            <Button
+              mode="outlined"
+              onPress={() => setIsEditing(true)}
+              style={styles.editButton}
+            >
+              Edit Profile
+            </Button>
+          )}
 
-              <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch3, 'witch3')}
-                style={styles.photoOption}
-              >
-                <Image source={witch3} style={styles.photoOptionImage} />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                onPress={() => handlePhotoSelect(witch4, 'witch4')}
-                style={styles.photoOption}
-              >
-                <Image source={witch4} style={styles.photoOptionImage} />
-              </TouchableOpacity>
-            </View>
-
-            <Button 
-              mode="outlined" 
-              onPress={() => setShowPhotoPicker(false)}
-              style={styles.cancelButton}
+          {isEditing && (
+            <Button
+              mode="text"
+              onPress={() => {
+                setIsEditing(false);
+                fetchProfile();
+              }}
+              disabled={loading}
+              style={{ marginTop: 10 }}
             >
               Cancel
             </Button>
+          )}
+        </Card>
+
+        <Modal
+          visible={showPhotoPicker}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowPhotoPicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.photoPickerModal}>
+              <PaperTitle style={styles.modalTitle}>Choose Your Witch</PaperTitle>
+
+              <View style={styles.photoGrid}>
+                <TouchableOpacity
+                  onPress={() => handlePhotoSelect(witch1, 'witch1')}
+                  style={styles.photoOption}
+                >
+                  <Image source={witch1} style={styles.photoOptionImage} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handlePhotoSelect(witch2, 'witch2')}
+                  style={styles.photoOption}
+                >
+                  <Image source={witch2} style={styles.photoOptionImage} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handlePhotoSelect(witch3, 'witch3')}
+                  style={styles.photoOption}
+                >
+                  <Image source={witch3} style={styles.photoOptionImage} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handlePhotoSelect(witch4, 'witch4')}
+                  style={styles.photoOption}
+                >
+                  <Image source={witch4} style={styles.photoOptionImage} />
+                </TouchableOpacity>
+              </View>
+
+              <Button
+                mode="outlined"
+                onPress={() => setShowPhotoPicker(false)}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </Button>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
-  );
+        </Modal>
+      </ScrollView>
+      <Footer navigation={navigation} />
+      </View>
+      );
 }
 
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
+    paddingBottom: 100,
     backgroundColor: '#f3e5f5',
   },
   backButton: {

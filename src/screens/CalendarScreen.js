@@ -4,6 +4,7 @@ import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragrap
 import { useAuth } from '../context/AuthContext';
 import { logPeriod, getUserPeriods, predictNextPeriod } from '../services/periodService';
 import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 // Helper function to format date objects
 const formatDate = (date) => {

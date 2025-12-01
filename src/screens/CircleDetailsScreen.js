@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Card, Title, Paragraph, ActivityIndicator, Button } from 'react-native-paper';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 // NOTE: We rely on App.js to pass the circle object inside route.params.
 export default function CircleDetailsScreen({ route, navigation }) {
@@ -60,43 +62,47 @@ export default function CircleDetailsScreen({ route, navigation }) {
 
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton}>
-                ← Back to Dashboard
-            </Button>
+        <View style={{ flex: 1 }}>
+            <Header />
+            <ScrollView contentContainerStyle={styles.container}>
+                <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton}>
+                    ← Back to Dashboard
+                </Button>
 
-            <Title style={styles.title}>{circle.name}</Title>
-            <Paragraph style={styles.subtitle}>Invite Code: {circle.inviteCode}</Paragraph>
+                <Title style={styles.title}>{circle.name}</Title>
+                <Paragraph style={styles.subtitle}>Invite Code: {circle.inviteCode}</Paragraph>
 
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Title style={styles.sectionTitle}>
-                        Participants ({memberDetails.length})
-                    </Title>
+                <Card style={styles.card}>
+                    <Card.Content>
+                        <Title style={styles.sectionTitle}>
+                            Participants ({memberDetails.length})
+                        </Title>
 
-                    {loading ? (
-                        <ActivityIndicator animating={true} color="#4a148c" />
-                    ) : (
-                        memberDetails.map((member) => (
-                            // Use a unique key guaranteed to exist
-                            <View key={member.id} style={styles.memberItem}> 
-                                <Text style={styles.memberText}>
-                                    • {member.displayName} ({member.role})
-                                </Text>
-                                <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
-                            </View>
-                        ))
-                    )}
-                </Card.Content>
-            </Card>
-        </ScrollView>
+                        {loading ? (
+                            <ActivityIndicator animating={true} color="#4a148c" />
+                        ) : (
+                            memberDetails.map((member) => (
+                                // Use a unique key guaranteed to exist
+                                <View key={member.id} style={styles.memberItem}>
+                                    <Text style={styles.memberText}>
+                                        • {member.displayName} ({member.role})
+                                    </Text>
+                                    <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
+                                </View>
+                            ))
+                        )}
+                    </Card.Content>
+                </Card>
+            </ScrollView>
+            <Footer navigation={navigation} />
+        </View >
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#f0e6f5ff',
+        backgroundColor: '#e3d2f0ff',
     },
     backButton: {
         alignSelf: 'flex-start',
