@@ -1,191 +1,240 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Button, Card, Title, Paragraph, ActivityIndicator } from 'react-native-paper';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { Button, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import Header from '../components/Header';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export default function DashboardScreen({ navigation }) {
-    // Auth
-    const { signOutUser, user } = useAuth();
-    const displayName = user?.displayName || user?.email || 'Fellow Coven Member';
-    const userId = user?.uid;
+  const { signOutUser, user } = useAuth();
+  const userId = user?.uid;
 
-    // Active Circle State
-    const [activeCircle, setActiveCircle] = useState(null);
-    const [loadingCircle, setLoadingCircle] = useState(true);
+  const [activeCircle, setActiveCircle] = useState(null);
+  const [loadingCircle, setLoadingCircle] = useState(true);
+  const [alerts, setAlerts] = useState([]); // emergency alerts
+  const [vouchers, setVouchers] = useState([]); // vouchers sent
+  const [phaseName, setPhaseName] = useState('Follicular');
 
-    // Fetch Active Circle
-    useEffect(() => {
-        const fetchActiveCircle = async () => {
-            if (!userId) return;
+  useEffect(() => {
+    const fetchActiveCircle = async () => {
+      if (!userId) return;
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
 
-            const userRef = doc(db, "users", userId);
-            const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const activeId = userSnap.data().activeCircleId;
+        const iconId = userSnap.data().activeCircleIcon || 1; // fallback
 
-            if (userSnap.exists()) {
-                const activeId = userSnap.data().activeCircleId;
+        if (activeId) {
+          const circleRef = doc(db, "circles", activeId);
+          const circleSnap = await getDoc(circleRef);
 
-                if (activeId) {
-                    const circleRef = doc(db, "circles", activeId);
-                    const circleSnap = await getDoc(circleRef);
+          if (circleSnap.exists()) {
+            setActiveCircle({
+              id: activeId,
+              icon: iconId,
+              ...circleSnap.data()
+            });
+          }
+        }
+      }
+      setLoadingCircle(false);
+    };
 
-                    if (circleSnap.exists()) {
-                        setActiveCircle({ id: activeId, ...circleSnap.data() });
-                    }
-                }
-            }
+    fetchActiveCircle();
+  }, [userId]);
 
-            setLoadingCircle(false);
-        };
+    const getCircleIcon = (iconId) => {
+        switch (iconId) {
+            case 1:
+                return require('../../assets/icons/circle_small1.png');
+            case 2:
+                return require('../../assets/icons/circle_small2.png');
+            case 3:
+                return require('../../assets/icons/circle_small3.png');
+            default:
+                return require('../../assets/icons/circle_small2.png');
+        }
+    };
 
-        fetchActiveCircle();
-    }, [userId]);
+    const getPhaseIcon = (phaseName) => {
+        switch (phaseName) {
+            case 'Period':
+                return require('../../assets/phases/period.png');
+            case 'Ovulation':
+                return require('../../assets/phases/ovulation.png');
+            case 'Luteal':
+                return require('../../assets/phases/luteal.png');
+            case 'Follicular':
+                return require('../../assets/phases/follicular.png');
+            default:
+                return require('../../assets/icons/Log.png')
+        }
+    };
 
-    return (
+  return (
     <View style={{ flex: 1 }}>
-      <Header />
+      <Header navigation={navigation} />
 
-            {/* --- Core Features --- */}
-            <View style={styles.cardContainer}>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+              {/* --- Active Circle Box --- */}
+              <View style={styles.dashboardBox}>
+                  {loadingCircle ? (
+                      <ActivityIndicator animating={true} color="#4a148c" />
+                  ) : activeCircle ? (
+                      <View>
+                          {/* First row: icon + label */}
+                          <View style={styles.circleRow}>
+                              <Image
+                                  source={getCircleIcon(activeCircle.icon)}
+                                  style={styles.circleIcon}
+                              />
+                              <Text style={styles.boxTitle}>Active Circle</Text>
+                          </View>
 
-                {/* Profile */}
-                <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => navigation.navigate('ProfileScreen')}
-                >
-                    <Image
-                        source={require('../../assets/icons/hat.png')}
-                        style={styles.bigMenuIcon}
-                    />
-                    <Title style={styles.menuTitle}>My Profile</Title>
-                    <Paragraph style={styles.menuSubtitle}>
-                        View stats, update details, manage account.
-                    </Paragraph>
-                </TouchableOpacity>
-
-                {/* --- Active Circle Message --- */}
-                {loadingCircle ? (
-                    <ActivityIndicator animating={true} color="#4a148c" />
-                ) : activeCircle ? (
-                    <Text style={styles.activeCircleText}>
-                        Active Circle: {activeCircle.name} ({activeCircle.members?.length || 0} members)
-                    </Text>
-                ) : (
-                    <Text style={styles.activeCircleText}>
-                        No active circle selected.
-                    </Text>
-                )}
+                          {/* Second row: circle name + members */}
+                          <Text style={styles.circleName}>
+                              {activeCircle.name} ({activeCircle.members?.length || 0} members)
+                          </Text>
+                      </View>
+                  ) : (
+                      <Text style={styles.boxTitle}>No active circle selected.</Text>
+                  )}
+              </View>
 
 
-                {/* Period Logging */}
-                <View
-                    style={styles.menuItem}
-                    onTouchEnd={() => navigation.navigate('CalendarScreen')}
-                >
-                    <Image
-                        source={require('../../assets/icons/Log.png')}
-                        style={styles.bigMenuIcon}
-                    />
-                    <Title style={styles.menuTitle}>Log your period</Title>
-                    <Paragraph style={styles.menuSubtitle}>in the Grimoire</Paragraph>
-                </View>
-
-                {/* Circle Management */}
-                <View
-                    style={styles.menuItem}
-                    onTouchEnd={() => navigation.navigate('CircleScreen')}
-                >
-                    <Image
-                        source={require('../../assets/icons/circles.png')}
-                        style={styles.bigMenuIcon}
-                    />
-                    <Title style={styles.menuTitle}>Create a circle</Title>
-                    <Paragraph style={styles.menuSubtitle}>and summon your coven</Paragraph>
-                </View>
-            </View>
-
-            {/* --- Log Out Button --- */}
-            <Button
-                mode="outlined"
-                onPress={signOutUser}
-                icon="logout"
-                style={styles.logoutButton}
-                labelStyle={styles.logoutLabel}
-            >
-                Log Out
-            </Button>
+        {/* --- Menstrual Phase Box --- */}
+        <View style={styles.dashboardBox}>
+          <View style={styles.circleRow}>
+            <Image source={getPhaseIcon(phaseName)} style={styles.phaseIcon} />
+            <Text style={styles.boxTitle}>Current Phase: {phaseName}</Text>
+          </View>
         </View>
-    );
+
+        {/* --- Emergency Alerts Box --- */}
+        <View style={styles.dashboardBox}>
+          <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
+          {alerts.length === 0 ? (
+            <Text style={styles.boxSubtitle}>No alert received.</Text>
+          ) : (
+            alerts.map(alert => (
+              <View key={alert.id} style={styles.alertItem}>
+                <Text style={styles.boxSubtitle}>{alert.tarotCard} – {alert.message}</Text>
+                <Text style={styles.boxSubtitle}>From: {alert.sender}</Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* --- Vouchers Sent Box --- */}
+        <View style={styles.dashboardBox}>
+          <Text style={styles.boxTitle}>Sent Vouchers</Text>
+          {vouchers.length === 0 ? (
+            <Text style={styles.boxSubtitle}>No voucher sent yet</Text>
+          ) : (
+            vouchers.map(voucher => (
+              <View key={voucher.id} style={styles.voucherItem}>
+                <Text style={styles.boxSubtitle}>
+                  {voucher.name} → {voucher.recipient}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* --- Log Out Button --- */}
+        <Button
+          mode="outlined"
+          onPress={signOutUser}
+          icon="logout"
+          style={styles.logoutButton}
+          labelStyle={styles.logoutLabel}
+        >
+          Log Out
+        </Button>
+      </ScrollView>
+
+      <Footer navigation={navigation} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: '#f8f8ff',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4a148c',
-        marginTop: 10,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#6a1b9a',
-        marginBottom: 30,
-        textAlign: 'center',
-    },
-    cardContainer: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    menuItem: {
-        alignItems: 'center',
-        marginBottom: 3,
-    },
-    bigMenuIcon: {
-        width: 120,
-        height: 80,
-        marginBottom: 5,
-        marginTop: 10,
-        resizeMode: 'contain',
-    },
-    menuTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#4a148c',
-        textAlign: 'center',
-    },
-    menuSubtitle: {
-        fontSize: 10,
-        color: '#6a1b9a',
-        textAlign: 'center',
-    },
-    activeCircleText: {
+  scrollContainer: {
+    padding: 10,
+  },
+
+  dashboardBox: {
+    backgroundColor: '#d4a5ff',
+    padding: 15,
+    borderRadius: 18,
+    marginVertical: 10,
+    width: '90%',
+    alignSelf: 'center',
+    // shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    // elevation for Android
+    elevation: 6,
+  },
+
+  boxTitle: {
+    color: '#4a148c',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  boxSubtitle: {
+    color: '#4a148c',
+    fontSize: 12,
+  },
+
+  circleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  circleIcon: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
+    resizeMode: 'contain',
+  },
+
+  phaseIcon: {
+    width: 30,
+    height: 30,
+    marginRight: 10,
+    resizeMode: 'contain',
+  },
+
+  alertItem: {
+    marginTop: 8,
+  },
+
+  voucherItem: {
+    marginTop: 6,
+  },
+
+  logoutButton: {
+    marginTop: 20,
+    backgroundColor: '#f8f8ff',
+    borderColor: '#4a148c',
+    borderWidth: 2,
+    width: 200,
+    alignSelf: 'center',
+    borderRadius: 50,
+    height: 45,
+    justifyContent: 'center',
+  },
+
+  logoutLabel: {
     fontSize: 14,
     color: '#4a148c',
-    marginVertical: 10,
-    textAlign: 'center',
-    fontWeight: '600',
-    },
-    logoutButton: {
-        marginTop: 20,
-        borderColor: '#8c2abdff',
-        borderWidth: 2,
-        width: 180,
-        alignSelf: 'center',
-        borderRadius: 25,
-        height: 45,
-    },
-
-    logoutLabel: {
-        fontSize: 14,
-        color: '#8c2abdff',
-        fontWeight: 'bold',
-    },
+    fontWeight: 'bold',
+  },
 });

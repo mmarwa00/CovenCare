@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import {
-  Button,
-  Title,
-  Paragraph,
-  TextInput,
-  Card,
-  HelperText,
-  ActivityIndicator,
-} from 'react-native-paper';
+import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator, } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { createCircle, joinCircle, getUserCircles } from '../services/circleService';
 import Header from '../components/Header';
@@ -148,7 +140,7 @@ export default function CircleScreen({ navigation }) {
           ← Back to Dashboard
         </Button>
 
-        <Title style={styles.title}>Coven Circles 🫂</Title>
+        <Title style={styles.title}>Coven Circles 🔮</Title>
         <Paragraph style={styles.subtitle}>
           Manage your circles and choose your active one.
         </Paragraph>
