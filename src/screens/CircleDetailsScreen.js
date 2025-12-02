@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Card, Title, Paragraph, ActivityIndicator, Button } from 'react-native-paper';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
@@ -24,6 +24,18 @@ export default function CircleDetailsScreen({ route, navigation }) {
     const [memberDetails, setMemberDetails] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const witch1 = require('../../assets/Profile_pics/witch1.png');
+    const witch2 = require('../../assets/Profile_pics/witch2.png');
+    const witch3 = require('../../assets/Profile_pics/witch3.png');
+    const witch4 = require('../../assets/Profile_pics/witch4.png');
+
+    const photoMap = {
+        witch1,
+        witch2,
+        witch3,
+        witch4,
+    };
+
     // Fetch usernames and details for all members
     const fetchMemberDetails = async () => {
         const details = [];
@@ -40,7 +52,8 @@ export default function CircleDetailsScreen({ route, navigation }) {
                         displayName: userData.displayName || 'Unknown User',
                         email: userData.email,
                         privacyLevel: memberObject.privacyLevel,
-                        role: memberObject.role || 'member'
+                        role: memberObject.role || 'member',
+                        profilePhoto: userData.profilePhoto || null, 
                     });
                 } else {
                     details.push({ id: uid, displayName: 'User Deleted' });
@@ -60,6 +73,20 @@ export default function CircleDetailsScreen({ route, navigation }) {
         fetchMemberDetails();
     }, [circle.members]);
 
+    const renderMemberAvatar = (member) => {
+    // If the avatar's name is saved in the profile
+      if (member.profilePhoto && photoMap[member.profilePhoto]) {
+      return (
+        <Image
+          source={photoMap[member.profilePhoto]}
+          style={styles.memberAvatar}
+          resizeMode="cover"
+        />
+      );
+    }
+    // if no avatar is set, return null
+    return null;
+};
 
     return (
         <View style={{ flex: 1 }}>
@@ -82,14 +109,21 @@ export default function CircleDetailsScreen({ route, navigation }) {
                             <ActivityIndicator animating={true} color="#4a148c" />
                         ) : (
                             memberDetails.map((member) => (
-                                // Use a unique key guaranteed to exist
-                                <View key={member.id} style={styles.memberItem}>
-                                    <Text style={styles.memberText}>
-                                        • {member.displayName} ({member.role})
-                                    </Text>
-                                    <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
+                            <View key={member.id} style={styles.memberItem}>
+                                <View style={styles.memberRow}>
+                                    {renderMemberAvatar(member)}
+                                    <View style={styles.memberTextWrap}>
+                                        <Text style={styles.memberText}>
+                                            {member.displayName} <Text style={styles.memberRole}>({member.role})</Text>
+                                        </Text>
+                                        <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
+                                        {member.email ? (
+                                            <Text style={styles.memberSmall}>Email: {member.email}</Text>
+                                        ) : null}
+                                    </View>
                                 </View>
-                            ))
+                            </View>
+                        ))
                         )}
                     </Card.Content>
                 </Card>
@@ -146,5 +180,12 @@ const styles = StyleSheet.create({
     memberDetail: {
         fontSize: 12,
         color: '#6a1b9a',
+    },
+
+    memberAvatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        marginRight: 10,
     },
 });
