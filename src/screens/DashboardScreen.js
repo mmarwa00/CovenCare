@@ -115,7 +115,14 @@ export default function DashboardScreen({ navigation }) {
 
         {/* --- Emergency Alerts Box --- */}
         <View style={styles.dashboardBox}>
-          <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
+          <View style={styles.circleRow}>
+            <Image
+              source={require('../../assets/Emergency/alert.png')}
+              style={styles.emergencyIcon}
+            />
+            <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
+          </View>
+
           {alerts.length === 0 ? (
             <Text style={styles.boxSubtitle}>No alert received.</Text>
           ) : (
@@ -128,7 +135,8 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* --- Vouchers Sent Box --- */}
+
+        { }
         <View style={styles.dashboardBox}>
           <Text style={styles.boxTitle}>Sent Vouchers</Text>
           {vouchers.length === 0 ? (
@@ -218,6 +226,12 @@ const styles = StyleSheet.create({
 
   voucherItem: {
     marginTop: 6,
+  },
+  emergencyIcon: {
+  width: 30,
+  height: 30,
+  marginRight: 10,
+  resizeMode: 'contain',
   },
 
   logoutButton: {
