@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Header from './Header';
-import FooterNav from './FooterNav';
+import Footer from './Footer';
 
 export default function Layout({ children, subtitle, navigation, hideFooter }) {
     return (
@@ -13,7 +13,7 @@ export default function Layout({ children, subtitle, navigation, hideFooter }) {
             </View>
 
             {!hideFooter && (
-                <FooterNav navigation={navigation} />
+                <Footer navigation={navigation} />
             )}
         </View>
     );

@@ -30,12 +30,20 @@ export default function CircleDetailsScreen({ route, navigation }) {
     const witch2 = require('../../assets/Profile_pics/witch2.png');
     const witch3 = require('../../assets/Profile_pics/witch3.png');
     const witch4 = require('../../assets/Profile_pics/witch4.png');
+    const witch5 = require('../../assets/Profile_pics/witch5.png');
+    const wizz1 = require('../../assets/Profile_pics/wizz1.png');
+    const wizz2 = require('../../assets/Profile_pics/wizz2.png');
+    const wizz3 = require('../../assets/Profile_pics/wizz3.png');
 
     const photoMap = {
         witch1,
         witch2,
         witch3,
         witch4,
+        witch5,
+        wizz1,
+        wizz2,
+        wizz3,
     };
 
     // Fetch usernames and details for all members
