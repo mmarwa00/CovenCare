@@ -10,6 +10,7 @@ import CalendarScreen from '../screens/CalendarScreen';
 import CircleScreen from '../screens/CircleScreen';
 import CircleDetailsScreen from '../screens/CircleDetailsScreen';
 import VendingMachineMenu from '../screens/VendingMachineMenu';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -40,6 +41,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="Reset" component={ResetPasswordScreen}/>
           </>
         )}
 
