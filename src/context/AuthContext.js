@@ -6,7 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth'; // Only need this function h
 // We DO NOT import the Auth Service functions directly into the Context file 
 // to avoid circular dependency issues that cause re-initialization.
 import { auth } from '../config/firebaseConfig'; 
-import { loginUser, logoutUser } from '../services/authService'; // Use this for wrappers
+import { loginUser, logoutUser } from '../services/authService';
 
 // Create the context
 const AuthContext = createContext();
