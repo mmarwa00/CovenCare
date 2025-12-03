@@ -6,12 +6,12 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const voucherOptions = [
-  { name: 'THE TEA', image: require('../../assets/Vouchers/tea.png'), color: '#a8d5ba' },
-  { name: 'THE COFFEE', image: require('../../assets/Vouchers/coffee.png'), color: '#b0d4f1' },
-  { name: 'THE MASK', image: require('../../assets/Vouchers/mask.png'), color: '#f7c1dc' },
-  { name: 'THE CHIPS', image: require('../../assets/Vouchers/chips.png'), color: '#f9e29c' },
-  { name: 'THE LOVE', image: require('../../assets/Vouchers/Love.png'), color: '#f7b98d' },
-  { name: 'THE CHOCO', image: require('../../assets/Vouchers/choco.png'), color: '#d4a5ff' },
+  { image: require('../../assets/Vouchers/tea.png') },
+  { image: require('../../assets/Vouchers/coffee.png') },
+  { image: require('../../assets/Vouchers/mask.png') },
+  { image: require('../../assets/Vouchers/chips.png') },
+  { image: require('../../assets/Vouchers/Love.png') },
+  { image: require('../../assets/Vouchers/choco.png') },
 ];
 
 export default function Vouchers({ navigation }) {
@@ -41,7 +41,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4a148c',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
+    marginTop: 10,
   },
   grid: {
     flexDirection: 'row',
@@ -50,22 +51,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   card: {
-    width: 100,
-    height: 120,
-    borderRadius: 12,
+    width: 140,
+    height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    margin: 3,
   },
   cardImage: {
-    width: 40,
-    height: 40,
-    marginBottom: 8,
+    width: 140,
+    height: 140,
+    marginBottom: 3,
     resizeMode: 'contain',
   },
   cardText: {

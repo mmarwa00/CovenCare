@@ -12,7 +12,9 @@ import VendingMachineMenu from '../screens/VendingMachineMenu';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import Vouchers from '../screens/Vouchers';
 import SendVoucher from '../screens/SendVoucher';
-
+import EventsPlaceholder from '../screens/EventsPlaceholder';
+import StashPlaceholder from '../screens/StashPlaceholder';
+import Alerts from '../screens/Alerts';
 import { useAuth } from '../context/AuthContext';
 
 const Stack = createStackNavigator();
@@ -30,9 +32,12 @@ export default function AppNavigator() {
             <Stack.Screen name="CalendarScreen" component={CalendarScreen} />
             <Stack.Screen name="CircleScreen" component={CircleScreen} />
             <Stack.Screen name="CircleDetails" component={CircleDetailsScreen} />
+            <Stack.Screen name="VendingMachineMenu" component={VendingMachineMenu} />
             <Stack.Screen name="Vouchers" component={Vouchers} />
             <Stack.Screen name="SendVoucher" component={SendVoucher} />
-            <Stack.Screen name="VendingMachineMenu" component={VendingMachineMenu} />
+            <Stack.Screen name="Events" component={EventsPlaceholder} />
+            <Stack.Screen name="Stash" component={StashPlaceholder} />
+            <Stack.Screen name="Alerts" component={Alerts} />
           </>
         ) : (
           <>
