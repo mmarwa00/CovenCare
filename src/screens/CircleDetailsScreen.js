@@ -44,7 +44,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
             try {
                 const userRef = doc(db, 'users', uid);
                 const snap = await getDoc(userRef);
-                
+
                 if (snap.exists()) {
                     const userData = snap.data();
                     details.push({
@@ -53,7 +53,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
                         email: userData.email,
                         privacyLevel: memberObject.privacyLevel,
                         role: memberObject.role || 'member',
-                        profilePhoto: userData.profilePhoto || null, 
+                        profilePhoto: userData.profilePhoto || null,
                     });
                 } else {
                     details.push({ id: uid, displayName: 'User Deleted' });
@@ -74,24 +74,24 @@ export default function CircleDetailsScreen({ route, navigation }) {
     }, [circle.members]);
 
     const renderMemberAvatar = (member) => {
-    // If the avatar's name is saved in the profile
-      if (member.profilePhoto && photoMap[member.profilePhoto]) {
-      return (
-        <Image
-          source={photoMap[member.profilePhoto]}
-          style={styles.memberAvatar}
-          resizeMode="cover"
-        />
-      );
-    }
-    // if no avatar is set, return null
-    return null;
-};
+        // If the avatar's name is saved in the profile
+        if (member.profilePhoto && photoMap[member.profilePhoto]) {
+            return (
+                <Image
+                    source={photoMap[member.profilePhoto]}
+                    style={styles.memberAvatar}
+                    resizeMode="cover"
+                />
+            );
+        }
+        // if no avatar is set, return null
+        return null;
+    };
 
     return (
         <View style={{ flex: 1 }}>
             <Header />
-            <ScrollView contentContainerStyle={styles.container}>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton}>
                     ← Back to Dashboard
                 </Button>
@@ -109,35 +109,82 @@ export default function CircleDetailsScreen({ route, navigation }) {
                             <ActivityIndicator animating={true} color="#4a148c" />
                         ) : (
                             memberDetails.map((member) => (
-                            <View key={member.id} style={styles.memberItem}>
-                                <View style={styles.memberRow}>
-                                    {renderMemberAvatar(member)}
-                                    <View style={styles.memberTextWrap}>
-                                        <Text style={styles.memberText}>
-                                            {member.displayName} <Text style={styles.memberRole}>({member.role})</Text>
-                                        </Text>
-                                        <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
-                                        {member.email ? (
-                                            <Text style={styles.memberSmall}>Email: {member.email}</Text>
-                                        ) : null}
+                                <View key={member.id} style={styles.memberItem}>
+                                    <View style={styles.memberRow}>
+                                        {renderMemberAvatar(member)}
+                                        <View style={styles.memberTextWrap}>
+                                            <Text style={styles.memberText}>
+                                                {member.displayName} <Text style={styles.memberRole}>({member.role})</Text>
+                                            </Text>
+                                            <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
+                                            {member.email ? (
+                                                <Text style={styles.memberSmall}>Email: {member.email}</Text>
+                                            ) : null}
+                                        </View>
                                     </View>
                                 </View>
-                            </View>
-                        ))
+                            ))
                         )}
                     </Card.Content>
                 </Card>
+                {/* --- Leave Circle Button --- */}
+                <Button
+                    mode="outlined"
+                    onPress={async () => {
+                        try {
+                            // remove circle reference from user document
+                            const userRef = doc(db, 'users', userId);
+                            await updateDoc(userRef, { activeCircleId: null });
+
+                            // optionally also remove user from circle.members array
+                            const circleRef = doc(db, 'circles', circle.id);
+                            // you may need arrayRemove from firestore
+                            // await updateDoc(circleRef, { members: arrayRemove({ userId }) });
+
+                            navigation.navigate('Dashboard');
+                        } catch (e) {
+                            console.error('Error leaving circle:', e);
+                        }
+                    }}
+                    style={styles.leaveButton}
+                    labelStyle={styles.leaveLabel}
+                    icon="exit-to-app"
+                >
+                    Leave Circle
+                </Button>
+
             </ScrollView>
+
             <Footer navigation={navigation} />
         </View >
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 20,
+    scrollContainer: {
+        flexGrow: 1,
+        paddingHorizontal: 20,   // space left/right
+        paddingTop: 20,
+        paddingBottom: 120,      // extra space at bottom so footer isn’t cramped
         backgroundColor: '#e3d2f0ff',
     },
+
+    dashboardBox: {
+        backgroundColor: '#d4a5ff',
+        padding: 15,
+        borderRadius: 12,
+        marginVertical: 10,      // ensures background shows above/below
+        width: '90%',
+        alignSelf: 'center',
+        // shadow
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+
+
     backButton: {
         alignSelf: 'flex-start',
         marginBottom: 10,
@@ -188,4 +235,22 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginRight: 10,
     },
+    leaveButton: {
+        marginTop: 20,
+        backgroundColor: '#f8f8ff',
+        borderColor: '#4a148c',
+        borderWidth: 2,
+        width: 200,
+        alignSelf: 'center',
+        borderRadius: 50,
+        height: 45,
+        justifyContent: 'center',
+    },
+
+    leaveLabel: {
+        fontSize: 14,
+        color: '#4a148c',
+        fontWeight: 'bold',
+    },
+
 });

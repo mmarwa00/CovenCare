@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   resizeMode: 'contain',
   },
 
-  logoutButton: {
+  logoutButton: {    
     marginTop: 20,
     backgroundColor: '#f8f8ff',
     borderColor: '#4a148c',

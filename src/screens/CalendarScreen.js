@@ -21,7 +21,7 @@ export default function CalendarScreen({ navigation }) {
     // State for logging a new period
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    
+
     // State for display
     const [periods, setPeriods] = useState([]);
     const [prediction, setPrediction] = useState(null);
@@ -48,9 +48,9 @@ export default function CalendarScreen({ navigation }) {
         if (predictionResult.success) {
             setPrediction(predictionResult);
         } else if (predictionResult.error) {
-             setPrediction({ prediction: null, error: predictionResult.error });
+            setPrediction({ prediction: null, error: predictionResult.error });
         }
-        
+
         setLoading(false);
     };
 
@@ -84,13 +84,13 @@ export default function CalendarScreen({ navigation }) {
         }
         setLoading(false);
     };
-    
+
     // --- Render Logic ---
     const renderPrediction = () => {
         if (prediction?.error) {
             return (
                 <Paragraph style={styles.tipText}>
-                    Tip: {prediction.error}. Log more periods to get a prediction!
+                    Tip: {prediction.error}. Log more periods to get a precise prediction!
                 </Paragraph>
             );
         }
@@ -98,7 +98,7 @@ export default function CalendarScreen({ navigation }) {
             return (
                 <View style={styles.predictionBox}>
                     <Text style={styles.predictionText}>
-                        Next Period Predicted: 
+                        Next Period Predicted:
                         <Text style={styles.predictionDate}> {formatDate(prediction.prediction)}</Text>
                     </Text>
                     <Text style={styles.detailText}>
@@ -111,129 +111,172 @@ export default function CalendarScreen({ navigation }) {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <Button 
-                mode="text" 
-                onPress={() => navigation.navigate('Dashboard')} 
-                style={styles.backButton}
-            >
-                ← Back to Dashboard
-            </Button>
-            
-            <Title style={styles.title}>Cycle Calendar 🗓️</Title>
-            <Paragraph style={styles.subtitle}>
-                Log your flow and predict your future.
-            </Paragraph>
+        <View style={{ flex: 1 }}>
+            <Header navigation={navigation} />
 
-            {loading && <ActivityIndicator animating={true} color="#4a148c" size="small" />}
-            {error && <HelperText type="error" visible={!!error} style={{ textAlign: 'center' }}>{error}</HelperText>}
-            {success && <HelperText type="info" visible={!!success} style={styles.successText}>{success}</HelperText>}
-            
-            {/* --- 1. Prediction Card --- */}
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Title style={styles.cardTitle}>Next Cycle Prediction</Title>
-                    {renderPrediction()}
-                </Card.Content>
-            </Card>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <Button
+                    mode="text"
+                    onPress={() => navigation.navigate('Dashboard')}
+                    style={styles.backButton}
+                >
+                    ← Back to Dashboard
+                </Button>
 
-            {/* --- 2. Log Period --- */}
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Title style={styles.cardTitle}>Log New Period</Title>
-                    <TextInput
-                        label="Start Date (YYYY-MM-DD)"
-                        value={startDate}
-                        onChangeText={setStartDate}
-                        mode="outlined"
-                        style={styles.input}
-                        disabled={loading}
-                    />
-                    <TextInput
-                        label="End Date (YYYY-MM-DD)"
-                        value={endDate}
-                        onChangeText={setEndDate}
-                        mode="outlined"
-                        style={styles.input}
-                        disabled={loading}
-                    />
-                    <Button 
-                        mode="contained" 
-                        onPress={handleLogPeriod} 
-                        disabled={loading || !startDate || !endDate}
-                        style={styles.actionButton}
-                    >
-                        Log Flow
-                    </Button>
-                </Card.Content>
-            </Card>
+                <Title style={styles.title}>Cycle Calendar 🗓️</Title>
+                <Paragraph style={styles.subtitle}>
+                    Log your flow and predict your future.
+                </Paragraph>
 
-            {/* --- 3. History --- */}
-            <Card style={styles.card}>
-                <Card.Content>
-                    <Title style={styles.cardTitle}>History ({periods.length} Logged)</Title>
-                    {periods.length === 0 ? (
-                        <Paragraph style={{ color: '#555' }}>No past periods logged yet.</Paragraph>
-                    ) : (
-                        periods.map((p, index) => (
-                            <View key={index} style={styles.historyItem}>
-                                <Text style={styles.historyText}>
-                                    Flow: {formatDate(p.startDate)} - {formatDate(p.endDate)}
-                                </Text>
-                                <Text style={styles.detailText}>
-                                    Cycle Length: {p.cycleLength || 'N/A'} days
-                                </Text>
-                            </View>
-                        ))
-                    )}
-                </Card.Content>
-            </Card>
+                {loading && (
+                    <ActivityIndicator animating={true} color="#4a148c" size="small" />
+                )}
+                {error && (
+                    <HelperText type="error" visible={!!error} style={{ textAlign: 'center' }}>
+                        {error}
+                    </HelperText>
+                )}
+                {success && (
+                    <HelperText type="info" visible={!!success} style={styles.successText}>
+                        {success}
+                    </HelperText>
+                )}
 
-        </ScrollView>
+                {/* --- Prediction Card --- */}
+                <Card style={styles.card}>
+                    <Card.Content>
+                        <Title style={styles.cardTitle}>Next Cycle Prediction</Title>
+                        {renderPrediction()}
+                    </Card.Content>
+                </Card>
+
+                {/* --- Log Period --- */}
+                <Card style={styles.card}>
+                    <Card.Content>
+                        <Title style={styles.cardTitle}>Log New Period</Title>
+                        <TextInput
+                            label="Start Date (YYYY-MM-DD)"
+                            value={startDate}
+                            onChangeText={setStartDate}
+                            mode="outlined"
+                            style={styles.input}
+                            disabled={loading}
+                        />
+                        <TextInput
+                            label="End Date (YYYY-MM-DD)"
+                            value={endDate}
+                            onChangeText={setEndDate}
+                            mode="outlined"
+                            style={styles.input}
+                            disabled={loading}
+                        />
+                        <Button
+                            mode="outlined"
+                            onPress={handleLogPeriod}
+                            disabled={loading || !startDate || !endDate}
+                            style={styles.logFlowButton}
+                            labelStyle={styles.logFlowLabel}
+                            icon="water"
+                        >
+                            Log Flow
+                        </Button>
+
+
+                    </Card.Content>
+                </Card>
+
+                {/* --- History --- */}
+                <Card style={styles.card}>
+                    <Card.Content>
+                        <Title style={styles.cardTitle}>History ({periods.length} Logged)</Title>
+                        {periods.length === 0 ? (
+                            <Paragraph style={{ color: '#555' }}>No past periods logged yet.</Paragraph>
+                        ) : (
+                            periods.map((p, index) => (
+                                <View key={index} style={styles.historyItem}>
+                                    <Text style={styles.historyText}>
+                                        Flow: {formatDate(p.startDate)} - {formatDate(p.endDate)}
+                                    </Text>
+                                    <Text style={styles.detailText}>
+                                        Cycle Length: {p.cycleLength || 'N/A'} days
+                                    </Text>
+                                </View>
+                            ))
+                        )}
+                    </Card.Content>
+                </Card>
+            </ScrollView>
+
+            <Footer navigation={navigation} />
+        </View>
     );
-}
 
+}
 const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
-        padding: 20,
-        backgroundColor: '#f9f9f9',
+        paddingTop: 20,
+        paddingBottom: 120,
+        backgroundColor: '#e3d2f0ff',
     },
+
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#b71c1c', // Deep red/maroon
+        color: '#4a148c', // Deep red/maroon
         marginBottom: 5,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#777',
+        color: '#4a148c',
         textAlign: 'center',
         marginBottom: 20,
     },
     card: {
-        width: '100%',
+        width: '90%',
+        alignSelf: 'center',
         marginBottom: 20,
         borderRadius: 12,
+        backgroundColor: '#d4a5ff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
         elevation: 3,
     },
+
     cardTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#8e24aa',
+        color: '#4a148c',
         marginBottom: 10,
     },
     input: {
         marginBottom: 10,
     },
-    actionButton: {
+    logFlowButton: {
         marginTop: 10,
-        backgroundColor: '#b71c1c',
+        backgroundColor: '#f8f8ff',   // light lilac/white background
+        borderColor: '#4a148c',       // dark purple border
+        borderWidth: 2,
+        width: 200,
+        alignSelf: 'center',
+        borderRadius: 50,             // pill shape
+        height: 45,
+        justifyContent: 'center',
     },
+
+    logFlowLabel: {
+        fontSize: 14,
+        color: '#4a148c',             // dark purple text
+        fontWeight: 'bold',
+    },
+
+
     successText: {
-        backgroundColor: '#ffebee',
-        color: '#b71c1c',
+        backgroundColor: '#c6add9ff',
+        color: '#4a148c',
         borderRadius: 4,
         padding: 5,
         marginBottom: 10,
@@ -249,30 +292,30 @@ const styles = StyleSheet.create({
     },
     detailText: {
         fontSize: 12,
-        color: '#555',
+        color: '#4a148c',
     },
     predictionBox: {
         padding: 10,
-        backgroundColor: '#fff3e0',
+        backgroundColor: '#d4a5ff',
         borderRadius: 8,
         borderLeftWidth: 4,
-        borderLeftColor: '#ff9800',
+        borderLeftColor: '#4a148c',
     },
     predictionText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#4a148c',
     },
     predictionDate: {
-        color: '#d84315',
+        color: '#4a148c',
     },
     tipText: {
-        color: '#999',
+        color: '#4a148c',
         fontSize: 14,
     },
     backButton: {
         alignSelf: 'flex-start',
         marginBottom: 10,
         color: '#4a148c',
-    }
+    },
 });
