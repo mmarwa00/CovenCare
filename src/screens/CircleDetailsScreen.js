@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Card, Title, Paragraph, ActivityIndicator, Button } from 'react-native-paper';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '../config/firebaseConfig'; // Add this import
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { leaveCircle } from '../services/circleService';
 
-// NOTE: We rely on App.js to pass the circle object inside route.params.
 export default function CircleDetailsScreen({ route, navigation }) {
-    // Check if route.params exists, and destructure circle from it
+
     const { circle } = route.params || {};
 
     // Safety check: If circle is somehow missing, navigate back
@@ -23,6 +24,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
 
     const [memberDetails, setMemberDetails] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [leaveLoading, setLeaveLoading] = useState(false); // Add loading state for leave button
 
     const witch1 = require('../../assets/Profile_pics/witch1.png');
     const witch2 = require('../../assets/Profile_pics/witch2.png');
@@ -40,7 +42,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
     const fetchMemberDetails = async () => {
         const details = [];
         const memberPromises = circle.members.map(async (memberObject) => {
-            const uid = memberObject.userId; // <-- CORRECTLY EXTRACT USER ID
+            const uid = memberObject.userId;
             try {
                 const userRef = doc(db, 'users', uid);
                 const snap = await getDoc(userRef);
@@ -74,7 +76,6 @@ export default function CircleDetailsScreen({ route, navigation }) {
     }, [circle.members]);
 
     const renderMemberAvatar = (member) => {
-        // If the avatar's name is saved in the profile
         if (member.profilePhoto && photoMap[member.profilePhoto]) {
             return (
                 <Image
@@ -84,8 +85,34 @@ export default function CircleDetailsScreen({ route, navigation }) {
                 />
             );
         }
-        // if no avatar is set, return null
         return null;
+    };
+
+    const handleLeaveCircle = async () => {
+        try {
+            setLeaveLoading(true);
+            
+            // Get current user ID from Firebase Auth
+            const currentUserId = auth.currentUser?.uid;
+            
+            if (!currentUserId) {
+                console.error('No user logged in');
+                setLeaveLoading(false);
+                return;
+            }
+
+            // Get circle ID from the circle object
+            const circleId = circle.id;
+
+            // Call leaveCircle with userId and circleId
+            await leaveCircle(currentUserId, circleId);
+            
+            // Navigate back to dashboard after successfully leaving
+            navigation.navigate('Dashboard');
+        } catch (e) {
+            console.error('Error leaving circle:', e);
+            setLeaveLoading(false);
+        }
     };
 
     return (
@@ -127,64 +154,48 @@ export default function CircleDetailsScreen({ route, navigation }) {
                         )}
                     </Card.Content>
                 </Card>
+
                 {/* --- Leave Circle Button --- */}
                 <Button
                     mode="outlined"
-                    onPress={async () => {
-                        try {
-                            // remove circle reference from user document
-                            const userRef = doc(db, 'users', userId);
-                            await updateDoc(userRef, { activeCircleId: null });
-
-                            // optionally also remove user from circle.members array
-                            const circleRef = doc(db, 'circles', circle.id);
-                            // you may need arrayRemove from firestore
-                            // await updateDoc(circleRef, { members: arrayRemove({ userId }) });
-
-                            navigation.navigate('Dashboard');
-                        } catch (e) {
-                            console.error('Error leaving circle:', e);
-                        }
-                    }}
+                    onPress={handleLeaveCircle}
                     style={styles.leaveButton}
                     labelStyle={styles.leaveLabel}
                     icon="exit-to-app"
+                    disabled={leaveLoading}
+                    loading={leaveLoading}
                 >
-                    Leave Circle
+                    {leaveLoading ? 'Leaving...' : 'Leave Circle'}
                 </Button>
 
             </ScrollView>
 
             <Footer navigation={navigation} />
-        </View >
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
-        paddingHorizontal: 20,   // space left/right
+        paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 120,      // extra space at bottom so footer isn’t cramped
+        paddingBottom: 120,
         backgroundColor: '#e3d2f0ff',
     },
-
     dashboardBox: {
         backgroundColor: '#d4a5ff',
         padding: 15,
         borderRadius: 12,
-        marginVertical: 10,      // ensures background shows above/below
+        marginVertical: 10,
         width: '90%',
         alignSelf: 'center',
-        // shadow
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
         elevation: 3,
     },
-
-
     backButton: {
         alignSelf: 'flex-start',
         marginBottom: 10,
@@ -228,7 +239,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6a1b9a',
     },
-
     memberAvatar: {
         width: 32,
         height: 32,
@@ -246,11 +256,9 @@ const styles = StyleSheet.create({
         height: 45,
         justifyContent: 'center',
     },
-
     leaveLabel: {
         fontSize: 14,
         color: '#4a148c',
         fontWeight: 'bold',
     },
-
 });
