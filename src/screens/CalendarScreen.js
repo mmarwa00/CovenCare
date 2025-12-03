@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#4a148c', // Deep red/maroon
+        color: '#4a148c',
         marginBottom: 5,
         textAlign: 'center',
     },
@@ -257,19 +257,19 @@ const styles = StyleSheet.create({
     },
     logFlowButton: {
         marginTop: 10,
-        backgroundColor: '#f8f8ff',   // light lilac/white background
-        borderColor: '#4a148c',       // dark purple border
+        backgroundColor: '#f8f8ff',
+        borderColor: '#4a148c',
         borderWidth: 2,
         width: 200,
         alignSelf: 'center',
-        borderRadius: 50,             // pill shape
+        borderRadius: 50,
         height: 45,
         justifyContent: 'center',
     },
 
     logFlowLabel: {
         fontSize: 14,
-        color: '#4a148c',             // dark purple text
+        color: '#4a148c',
         fontWeight: 'bold',
     },
 

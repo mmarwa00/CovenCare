@@ -135,12 +135,17 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-
-        { }
         <View style={styles.dashboardBox}>
-          <Text style={styles.boxTitle}>Sent Vouchers</Text>
+          <View style={styles.circleRow}>
+            <Image
+              source={require('../../assets/Vouchers/voucher.png')}
+              style={styles.voucherIcon}
+            />
+            <Text style={styles.boxTitle}>Sent Vouchers</Text>
+          </View>
+
           {vouchers.length === 0 ? (
-            <Text style={styles.boxSubtitle}>No voucher sent yet</Text>
+            <Text style={styles.boxSubtitle}>No voucher sent yet.</Text>
           ) : (
             vouchers.map(voucher => (
               <View key={voucher.id} style={styles.voucherItem}>
@@ -151,6 +156,7 @@ export default function DashboardScreen({ navigation }) {
             ))
           )}
         </View>
+
 
         {/* --- Log Out Button --- */}
         <Button
@@ -230,6 +236,12 @@ const styles = StyleSheet.create({
   emergencyIcon: {
   width: 30,
   height: 30,
+  marginRight: 10,
+  resizeMode: 'contain',
+  },
+  voucherIcon: {
+  width: 40,
+  height: 40,
   marginRight: 10,
   resizeMode: 'contain',
   },
