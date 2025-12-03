@@ -42,7 +42,8 @@ export const createCircle = async (userId, circleName) => {
         privacyLevel: 'show_all'
       }],
       maxMembers: 5,
-      createdAt: new Date()
+      createdAt: new Date(),
+      circlePic: ""
     });
 
     // Add circle to user's circles array

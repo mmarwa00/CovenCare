@@ -17,6 +17,7 @@
 - members (array of maps)
 - maxMembers (number, default: 5)
 - createdAt (timestamp)
+- circlePic (string)
 
 ### 3. periods
 - userId (string)
