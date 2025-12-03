@@ -3,7 +3,8 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
-// Header and Footer are provided by Layout; no duplication here.
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 const alertOptions = [
   { image: require('../../assets/Alerts/Heat.png') },
@@ -23,8 +24,8 @@ export default function Alerts({ navigation }) {
         {alertOptions.map((alert, index) => (
           <TouchableOpacity
             key={index}
-            style={styles.card}
-            onPress={() => navigation.navigate('AlertDetails', { alert })}
+            style={styles.card} // wrapper only for positioning; no color, no name
+            onPress={() => navigation.navigate('SendAlert', { alert })}
           >
             <Image source={alert.image} style={styles.cardImage} />
           </TouchableOpacity>
