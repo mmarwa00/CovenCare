@@ -60,7 +60,6 @@ export default function CircleScreen({ navigation }) {
     fetchActiveCircle();
   }, [userId]);
 
-  // Create circle
   const handleCreateCircle = async () => {
     setLoading(true);
     setError('');
@@ -85,7 +84,6 @@ export default function CircleScreen({ navigation }) {
     setLoading(false);
   };
 
-  // Join circle
   const handleJoinCircle = async () => {
     setLoading(true);
     setError('');
@@ -110,7 +108,6 @@ export default function CircleScreen({ navigation }) {
     setLoading(false);
   };
 
-  // Set active circle
   const handleSetActiveCircle = async (circleId) => {
     try {
       const currentUser = auth.currentUser;
@@ -328,7 +325,6 @@ const styles = StyleSheet.create({
         marginBottom: 5,
     },
 
-    // Wrap buttons so shadows can escape Card boundaries
     buttonShadowWrapper: {
         overflow: 'visible',
     },

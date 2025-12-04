@@ -1,54 +1,65 @@
-import React from 'react';
-import { View, StyleSheet, ImageBackground, Dimensions, ScrollView, TouchableOpacity, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ImageBackground, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { Button } from 'react-native-paper';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-// Alignment and size controls
-const OFFSET_X = 2;      // pixels to the right
-const OFFSET_Y = 32;      // pixels down
-const SLOT_WIDTH = 226;  // button width in px
-const SLOT_HEIGHT = 40;  // button height in px
 
 const screenWidth = Dimensions.get('window').width;
+const IMAGE_ASPECT_RATIO = 1; // Your image appears to be square
+const containerWidth = screenWidth - 4;
+const containerHeight = containerWidth / IMAGE_ASPECT_RATIO;
 
 export default function VendingMachineMenu({ navigation }) {
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+
+  // These percentages are based on the ACTUAL image content
+  // Adjust these by measuring your PNG file directly
+  const buttons = [
+    { name: 'Events', top: 10, left: 10, width: 62, height: 12 },
+    { name: 'Stash', top: 25, left: 10, width: 62, height: 12 },
+    { name: 'Alerts', top: 41, left: 10, width: 62, height: 12 },
+    { name: 'Vouchers', top: 57, left: 10, width: 62, height: 12 },
+  ];
+
   return (
     <View style={styles.screen}>
       <Header />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <ImageBackground
-          source={require('../../assets/icons/menu.png')}
-          style={styles.machine}
-          resizeMode="contain"
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
         >
-    
-          {/* Window 1 → Events */}
-          <TouchableOpacity
-            style={[styles.slot, { top: '16%', left: '8%', width: SLOT_WIDTH, height: SLOT_HEIGHT, transform: [{ translateX: OFFSET_X }, { translateY: OFFSET_Y }] }]}
-            onPress={() => navigation.navigate('Events')}
-          />
+          ← Back to Dashboard
+        </Button>
 
-          {/* Window 2 → Stash */}
-          <TouchableOpacity
-            style={[styles.slot, { top: '27%', left: '8%', width: SLOT_WIDTH, height: SLOT_HEIGHT, transform: [{ translateX: OFFSET_X }, { translateY: OFFSET_Y }] }]}
-            onPress={() => navigation.navigate('Stash')}
-          />
-
-          {/* Window 3 → Alerts */}
-          <TouchableOpacity
-            style={[styles.slot, { top: '38%', left: '8%', width: SLOT_WIDTH, height: SLOT_HEIGHT, transform: [{ translateX: OFFSET_X }, { translateY: OFFSET_Y }] }]}
-            onPress={() => navigation.navigate('Alerts')}
-          />
-
-          {/* Window 4 → Vouchers */}
-          <TouchableOpacity
-            style={[styles.slot, { top: '50%', left: '8%', width: SLOT_WIDTH, height: SLOT_HEIGHT, transform: [{ translateX: OFFSET_X }, { translateY: OFFSET_Y }] }]}
-            onPress={() => navigation.navigate('Vouchers')}
-          />
-
-
-
-        </ImageBackground>
+        <View 
+          style={[styles.machineContainer, { width: containerWidth, height: containerHeight }]}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            setImageSize({ width, height });
+          }}
+        >
+          <ImageBackground
+            source={require('../../assets/icons/menu.png')}
+            style={styles.machine}
+            resizeMode="contain"
+          >
+            {imageSize.width > 0 && buttons.map((button, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.slot, { 
+                  top: `${button.top}%`, 
+                  left: `${button.left}%`, 
+                  width: `${button.width}%`, 
+                  height: `${button.height}%` 
+                }]}
+                onPress={() => navigation.navigate(button.name)}
+              />
+            ))}
+          </ImageBackground>
+        </View>
       </ScrollView>
 
       <Footer navigation={navigation} />
@@ -62,17 +73,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#e3d2f0ff',
   },
   scrollContent: {
-    paddingHorizontal: 1,
+    paddingHorizontal: 2,
     paddingTop: 0,
+    alignItems: 'center',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 5,
+  },
+  machineContainer: {
+    alignSelf: 'center',
   },
   machine: {
-    width: screenWidth - 2,
-    height: 500,
-    alignSelf: 'center',
-    marginTop: 0,
+    width: '100%',
+    height: '100%',
   },
   slot: {
     position: 'absolute',
-    backgroundColor: 'rgba(4, 0, 6, 0.3)',
+    backgroundColor: 'rgba(21, 19, 19, 0.3)',
   },
 });

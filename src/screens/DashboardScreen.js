@@ -117,7 +117,7 @@ export default function DashboardScreen({ navigation }) {
         <View style={styles.dashboardBox}>
           <View style={styles.circleRow}>
             <Image
-              source={require('../../assets/Emergency/alert.png')}
+              source={require('../../assets/Alerts/alert.png')}
               style={styles.emergencyIcon}
             />
             <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
