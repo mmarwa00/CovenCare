@@ -1,13 +1,12 @@
-// src/screens/StashPlaceholder.js
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Layout from '../components/Layout';
 
-export default function StashPlaceholder({ navigation }) {
+export default function SpellsPlaceholder({ navigation }) {
   return (
-    <Layout navigation={navigation} subtitle="Stash">
+    <Layout navigation={navigation} subtitle="SpellsPlaceholder">
       <View style={styles.container}>
-        <Text style={styles.text}>Stash screen coming soon…</Text>
+        <Text style={styles.text}>Spells screen coming soon…</Text>
       </View>
     </Layout>
   );

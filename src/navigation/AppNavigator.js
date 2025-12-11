@@ -13,7 +13,8 @@ import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import Vouchers from '../screens/Vouchers';
 import SendVoucher from '../screens/SendVoucher';
 import EventsPlaceholder from '../screens/EventsPlaceholder';
-import StashPlaceholder from '../screens/StashPlaceholder';
+import CareBoxPlaceholder from '../screens/CareBoxPlaceholder';
+import SpellsPlaceholder from '../screens/SpellsPlaceholder';
 import Alerts from '../screens/Alerts';
 import SendAlert from '../screens/SendAlert';
 import { useAuth } from '../context/AuthContext';
@@ -37,8 +38,9 @@ export default function AppNavigator() {
             <Stack.Screen name="Vouchers" component={Vouchers} />
             <Stack.Screen name="SendVoucher" component={SendVoucher} />
             <Stack.Screen name="SendAlert" component={SendAlert} />
+            <Stack.Screen name="Spells" component={SpellsPlaceholder} />
             <Stack.Screen name="Events" component={EventsPlaceholder} />
-            <Stack.Screen name="Stash" component={StashPlaceholder} />
+            <Stack.Screen name="CareBox" component={CareBoxPlaceholder} />
             <Stack.Screen name="Alerts" component={Alerts} />
           </>
         ) : (
