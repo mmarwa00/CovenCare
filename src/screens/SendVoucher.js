@@ -1,25 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Layout from '../components/Layout';
+import SendItemScreen from '../components/SendItemScreen';
 
 export default function SendVoucher({ route, navigation }) {
+  const { voucher } = route.params;
+
   return (
-    <Layout navigation={navigation} subtitle="Send Voucher">
-      <View style={styles.container}>
-        <Text style={styles.text}>SendVoucher screen placeholder</Text>
-      </View>
-    </Layout>
+    <SendItemScreen
+      navigation={navigation}
+      selectedItem={voucher}
+      itemType="voucher"
+      backgroundImage={require('../../assets/icons/BackgroundStars.png')}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#4a148c',
-  },
-});

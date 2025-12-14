@@ -1,25 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Layout from '../components/Layout';
+import SendItemScreen from '../components/SendItemScreen';
 
 export default function SendAlert({ route, navigation }) {
+  const { alert } = route.params;
+
   return (
-    <Layout navigation={navigation} subtitle="Send Alert">
-      <View style={styles.container}>
-        <Text style={styles.text}>SendAlert screen placeholder</Text>
-      </View>
-    </Layout>
+    <SendItemScreen
+      navigation={navigation}
+      selectedItem={alert}
+      itemType="alert"
+      backgroundImage={require('../../assets/icons/BackgroundStars.png')}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    fontSize: 18,
-    color: '#4a148c',
-  },
-});
