@@ -13,7 +13,8 @@ import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import Vouchers from '../screens/Vouchers';
 import SendVoucher from '../screens/SendVoucher';
 import EventsPlaceholder from '../screens/EventsPlaceholder';
-import CareBoxPlaceholder from '../screens/CareBoxPlaceholder';
+import CareBoxScreen from '../screens/CareBoxScreen';
+import CareBoxDetails from '../screens/CareBoxDetails';
 import SpellsPlaceholder from '../screens/SpellsPlaceholder';
 import Alerts from '../screens/Alerts';
 import SendAlert from '../screens/SendAlert';
@@ -40,8 +41,9 @@ export default function AppNavigator() {
             <Stack.Screen name="SendAlert" component={SendAlert} />
             <Stack.Screen name="Spells" component={SpellsPlaceholder} />
             <Stack.Screen name="Events" component={EventsPlaceholder} />
-            <Stack.Screen name="CareBox" component={CareBoxPlaceholder} />
+            <Stack.Screen name="CareBox" component={CareBoxScreen} />
             <Stack.Screen name="Alerts" component={Alerts} />
+            <Stack.Screen name="CareBoxDetails" component={CareBoxDetails} />
           </>
         ) : (
           <>

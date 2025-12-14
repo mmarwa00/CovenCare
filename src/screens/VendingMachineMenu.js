@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#4a148c', // dark purple, same as other pages
+    color: '#4a148c',
     textAlign: 'center',
     marginVertical: 16,
   },

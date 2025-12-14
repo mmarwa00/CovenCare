@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
-import { Button, TextInput, HelperText, ActivityIndicator, Avatar, Card, Title as PaperTitle } from 'react-native-paper'; 
+import { Button, TextInput, HelperText, ActivityIndicator, Avatar, Card, Title as PaperTitle } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { getUserProfile, updateUserProfile } from '../services/userService';
 import { updateProfile } from 'firebase/auth';
@@ -8,9 +8,27 @@ import { auth } from '../config/firebaseConfig';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+// Centralized avatar map — add any new keys/files here.
+// Keys must match the strings you save in Firestore under `profilePhoto`.
+const photoMap = {
+  witch1: require('../../assets/Profile_pics/witch1.png'),
+  witch2: require('../../assets/Profile_pics/witch2.png'),
+  witch3: require('../../assets/Profile_pics/witch3.png'),
+  witch4: require('../../assets/Profile_pics/witch4.png'),
+  witch5: require('../../assets/Profile_pics/witch5.png'),
+  wizz1: require('../../assets/Profile_pics/wizz1.png'),
+  wizz2: require('../../assets/Profile_pics/wizz2.png'),
+  wizz3: require('../../assets/Profile_pics/wizz3.png'),
+  // Example placeholders — include only if files exist:
+  // wizz12: require('../../assets/Profile_pics/wizz12.png'),
+  // wizz13: require('../../assets/Profile_pics/wizz13.png'),
+};
+
+const photoOptions = Object.keys(photoMap);
+
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
-  
+
   const [displayName, setDisplayName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -21,43 +39,24 @@ export default function ProfileScreen({ navigation }) {
   const [firestoreData, setFirestoreData] = useState(null);
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
 
-  const witch1 = require('../../assets/Profile_pics/witch1.png');
-  const witch2 = require('../../assets/Profile_pics/witch2.png');
-  const witch3 = require('../../assets/Profile_pics/witch3.png');
-  const witch4 = require('../../assets/Profile_pics/witch4.png');
-  const witch5 = require('../../assets/Profile_pics/witch5.png');
-  const wizz1 = require('../../assets/Profile_pics/wizz1.png');
-  const wizz2 = require('../../assets/Profile_pics/wizz2.png');
-  const wizz3 = require('../../assets/Profile_pics/wizz3.png');
-
   const fetchProfile = useCallback(async () => {
     if (!user?.uid) return;
-    
+
     setLoading(true);
     setError('');
-    
-    const result = await getUserProfile(user.uid); 
-    
+
+    const result = await getUserProfile(user.uid);
+
     if (result.success) {
-      setFirestoreData(result.user);
-      setDisplayName(result.user.displayName || '');
-      setProfileEmail(result.user.email || '');
-  
-      // Load saved photo
-      if (result.user.profilePhoto) {
-        const photoMap = {
-          'witch1': witch1,
-          'witch2': witch2,
-          'witch3': witch3,
-          'witch4': witch4,
-          'witch5': witch5,
-          'wizz1': wizz1,
-          'wizz2': wizz2,
-          'wizz3': wizz3,
-        };
-        setSelectedPhoto(photoMap[result.user.profilePhoto]);
-      }
-      
+      const doc = result.user;
+      setFirestoreData(doc);
+      setDisplayName(doc.displayName || '');
+      setProfileEmail(doc.email || '');
+
+      const key = doc.profilePhoto;
+      const resolved = key ? photoMap[key] : null;
+      setSelectedPhoto(resolved || null);
+
       setSuccess('');
     } else {
       setError(`Failed to load profile: ${result.error}`);
@@ -75,12 +74,12 @@ export default function ProfileScreen({ navigation }) {
     setSuccess('');
 
     if (displayName.length < 3) {
-      setError("Display name must be at least 3 characters.");
+      setError('Display name must be at least 3 characters.');
       setLoading(false);
       return;
     }
 
-    if (displayName === firestoreData.displayName) {
+    if (firestoreData && displayName === firestoreData.displayName) {
       setSuccess('No changes detected.');
       setLoading(false);
       setIsEditing(false);
@@ -101,11 +100,11 @@ export default function ProfileScreen({ navigation }) {
     setLoading(false);
   };
 
-  const handlePhotoSelect = async (photoSource, photoName) => {
-    setSelectedPhoto(photoSource);
+  const handlePhotoSelect = async (photoName) => {
+    const resolved = photoMap[photoName] || null;
+    setSelectedPhoto(resolved);
     setShowPhotoPicker(false);
-  
-    // Save to Firestore immediately
+
     try {
       await updateUserProfile(user.uid, { profilePhoto: photoName });
       setSuccess('Avatar updated!');
@@ -117,24 +116,14 @@ export default function ProfileScreen({ navigation }) {
   const renderAvatar = () => {
     if (selectedPhoto) {
       return (
-        <TouchableOpacity 
-          onPress={isEditing ? () => setShowPhotoPicker(true) : null}
-          disabled={!isEditing}
-        >
+        <TouchableOpacity onPress={isEditing ? () => setShowPhotoPicker(true) : null} disabled={!isEditing}>
           <Image source={selectedPhoto} style={styles.avatar} />
         </TouchableOpacity>
       );
     }
     return (
-      <TouchableOpacity 
-        onPress={isEditing ? () => setShowPhotoPicker(true) : null}
-        disabled={!isEditing}
-      >
-        <Avatar.Icon 
-          size={100} 
-          icon="account-circle" 
-          style={styles.defaultAvatar} 
-        />
+      <TouchableOpacity onPress={isEditing ? () => setShowPhotoPicker(true) : null} disabled={!isEditing}>
+        <Avatar.Icon size={100} icon="account-circle" style={styles.defaultAvatar} />
       </TouchableOpacity>
     );
   };
@@ -154,21 +143,20 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.errorTextTitle}>Profile Load Error</Text>
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorTip}>
-            Tip: If this is a "permissions" error, you MUST publish the correct Firestore rule.
+            Tip: If this is a "permissions" error, publish the correct Firestore rule.
           </Text>
-          <Button onPress={fetchProfile} mode="contained" style={{marginTop: 20}}>
+          <Button onPress={fetchProfile} mode="contained" style={{ marginTop: 20 }}>
             Try Again
           </Button>
         </View>
       );
     }
   }
-  
+
   return (
     <View style={{ flex: 1 }}>
       <Header />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
         <Button
           mode="text"
           onPress={() => navigation.navigate('Dashboard')}
@@ -191,13 +179,7 @@ export default function ProfileScreen({ navigation }) {
           ) : null}
           {error && <HelperText type="error" visible={!!error}>{error}</HelperText>}
 
-          <TextInput
-            label="Email (Read Only)"
-            value={profileEmail}
-            mode="outlined"
-            style={styles.input}
-            disabled={true}
-          />
+          <TextInput label="Email (Read Only)" value={profileEmail} mode="outlined" style={styles.input} disabled />
 
           <TextInput
             label="Display Name"
@@ -221,11 +203,7 @@ export default function ProfileScreen({ navigation }) {
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           ) : (
-            <Button
-              mode="outlined"
-              onPress={() => setIsEditing(true)}
-              style={styles.editButton}
-            >
+            <Button mode="outlined" onPress={() => setIsEditing(true)} style={styles.editButton}>
               Edit Profile
             </Button>
           )}
@@ -247,49 +225,24 @@ export default function ProfileScreen({ navigation }) {
 
         <Modal
           visible={showPhotoPicker}
-          transparent={true}
+          transparent
           animationType="fade"
           onRequestClose={() => setShowPhotoPicker(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.photoPickerModal}>
-              <PaperTitle style={styles.modalTitle}>Choose Your Witch</PaperTitle>
+              <PaperTitle style={styles.modalTitle}>Choose Your Avatar</PaperTitle>
 
               <View style={styles.photoGrid}>
-                <TouchableOpacity
-                  onPress={() => handlePhotoSelect(witch1, 'witch1')}
-                  style={styles.photoOption}
-                >
-                  <Image source={witch1} style={styles.photoOptionImage} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handlePhotoSelect(witch2, 'witch2')}
-                  style={styles.photoOption}
-                >
-                  <Image source={witch2} style={styles.photoOptionImage} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handlePhotoSelect(witch3, 'witch3')}
-                  style={styles.photoOption}
-                >
-                  <Image source={witch3} style={styles.photoOptionImage} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => handlePhotoSelect(witch4, 'witch4')}
-                  style={styles.photoOption}
-                >
-                  <Image source={witch4} style={styles.photoOptionImage} />
-                </TouchableOpacity>
+                {photoOptions.map((name) => (
+                  <TouchableOpacity key={name} onPress={() => handlePhotoSelect(name)} style={styles.photoOption}>
+                    <Image source={photoMap[name]} style={styles.photoOptionImage} />
+                    <Text style={styles.photoLabel}>{name}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              <Button
-                mode="outlined"
-                onPress={() => setShowPhotoPicker(false)}
-                style={styles.cancelButton}
-              >
+              <Button mode="outlined" onPress={() => setShowPhotoPicker(false)} style={styles.cancelButton}>
                 Cancel
               </Button>
             </View>
@@ -297,8 +250,8 @@ export default function ProfileScreen({ navigation }) {
         </Modal>
       </ScrollView>
       <Footer navigation={navigation} />
-      </View>
-      );
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -319,6 +272,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 15,
     elevation: 3,
+    backgroundColor: '#fff',
   },
   header: {
     alignItems: 'center',
@@ -417,13 +371,18 @@ const styles = StyleSheet.create({
   },
   photoOption: {
     margin: 10,
-    borderRadius: 50,
-    overflow: 'hidden',
+    alignItems: 'center',
   },
   photoOptionImage: {
     width: 70,
     height: 70,
     borderRadius: 35,
+    marginBottom: 6,
+  },
+  photoLabel: {
+    fontSize: 12,
+    color: '#4a148c',
+    textAlign: 'center',
   },
   cancelButton: {
     marginTop: 10,
