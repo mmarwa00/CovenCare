@@ -84,6 +84,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
     }, [circle.members]);
 
     const renderMemberAvatar = (member) => {
+        // If user has profilePhoto and it exists in photoMap, show the image
         if (member.profilePhoto && photoMap[member.profilePhoto]) {
             return (
                 <Image
@@ -93,7 +94,14 @@ export default function CircleDetailsScreen({ route, navigation }) {
                 />
             );
         }
-        return null;
+        // Otherwise show circle with first letter
+        return (
+            <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>
+                    {member.displayName?.charAt(0).toUpperCase() || '?'}
+                </Text>
+            </View>
+        );
     };
 
     const handleLeaveCircle = async () => {
@@ -248,10 +256,26 @@ const styles = StyleSheet.create({
         color: '#6a1b9a',
     },
     memberAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        marginRight: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        marginRight: 12,
+        borderWidth: 2,
+        borderColor: '#7b1fa2',
+    },
+    avatarPlaceholder: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#7b1fa2', 
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    avatarText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
     },
     leaveButton: {
         marginTop: 20,
