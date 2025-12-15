@@ -3,6 +3,8 @@ import { View, StyleSheet, ImageBackground, Image, ScrollView, Dimensions, Touch
 import { Title, Button } from 'react-native-paper';
 import Layout from './Layout';
 import { getCircleMembers } from '../services/circleService';
+import { sendVoucher } from '../services/voucherService'; 
+import { createEmergency } from '../services/emergencyService'; 
 import { auth, db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -22,8 +24,10 @@ export default function SendItemScreen({
   const [selectedPeople, setSelectedPeople] = useState([]);
   const [allPeople, setAllPeople] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeCircleId, setActiveCircleId] = useState(null); 
+  const [isSending, setIsSending] = useState(false); 
 
-  // Photo map for profile pictures
+  // Photo map for profile pictures (unchanged)
   const witch1 = require('../../assets/Profile_pics/witch1.png');
   const witch2 = require('../../assets/Profile_pics/witch2.png');
   const witch3 = require('../../assets/Profile_pics/witch3.png');
@@ -68,13 +72,13 @@ export default function SendItemScreen({
         throw new Error('User not found');
       }
 
-      const activeCircleId = userSnap.data().activeCircleId;
+      const circleId = userSnap.data().activeCircleId;
 
-      if (!activeCircleId) {
+      if (!circleId) {
         Alert.alert('No Active Circle', 'Please set an active circle first!', [
           {
             text: 'Go to Circles',
-            onPress: () => navigation.navigate('Circle')
+            onPress: () => navigation.navigate('CircleScreen') 
           },
           {
             text: 'Cancel',
@@ -84,14 +88,15 @@ export default function SendItemScreen({
         return;
       }
 
-      // Get members from ACTIVE circle only
-      const membersResult = await getCircleMembers(activeCircleId);
+      setActiveCircleId(circleId);
+
+      const membersResult = await getCircleMembers(circleId);
       
       if (!membersResult.success) {
         throw new Error(membersResult.error);
       }
 
-      // Get full user details for each member
+      // Get full user details for each member (filtering out the current user)
       const peopleWithDetails = [];
       for (const member of membersResult.members) {
         if (member.id !== userId) {
@@ -105,25 +110,23 @@ export default function SendItemScreen({
                 id: member.id,
                 displayName: userData.displayName || member.displayName || 'Unknown',
                 profilePhoto: userData.profilePhoto || null,
-                circleId: activeCircleId
+                circleId: circleId 
               });
             } else {
-              // Fallback if user document doesn't exist
               peopleWithDetails.push({
                 id: member.id,
                 displayName: member.displayName || 'Unknown',
                 profilePhoto: null,
-                circleId: activeCircleId
+                circleId: circleId
               });
             }
           } catch (error) {
             console.error('Error fetching user details:', error);
-            // Add member even if fetch fails
             peopleWithDetails.push({
               id: member.id,
               displayName: member.displayName || 'Unknown',
               profilePhoto: null,
-              circleId: activeCircleId
+              circleId: circleId
             });
           }
         }
@@ -143,7 +146,7 @@ export default function SendItemScreen({
     }
   };
 
-  // Toggle person selection
+  // Toggle person selection (unchanged)
   const togglePersonSelection = (personId) => {
     if (selectedPeople.includes(personId)) {
       setSelectedPeople(selectedPeople.filter(id => id !== personId));
@@ -152,32 +155,70 @@ export default function SendItemScreen({
     }
   };
 
-  const handleSend = () => {
-    if (selectedPeople.length === 0) {
-      Alert.alert('No Recipients', 'Please select at least one person');
+  // HANDLER: Send Voucher or Alert
+  const handleSend = async () => {
+  if (selectedPeople.length === 0) {
+    Alert.alert('No Recipients', 'Please select at least one person');
+    return;
+  }
+
+  const userId = auth.currentUser?.uid;
+  const message = selectedItem?.message || '';
+  const recipients = selectedPeople;
+  const type = String(selectedItem?.type || selectedItem?.name || selectedItem?.id || selectedItem?.value || 'unknown');
+
+  console.log('--- SEND ATTEMPT ---');
+  console.log('User ID:', userId);
+  console.log('Circle ID:', activeCircleId);
+  console.log('Item type:', type);
+  console.log('Recipients:', recipients);
+
+  if (!userId || !activeCircleId || !type) {
+    Alert.alert(
+      'Sending Blocked',
+      `Required data missing: User ID: ${!!userId}, Circle ID: ${!!activeCircleId}, Type: ${type}`
+    );
+    return;
+  }
+
+  setIsSending(true);
+
+  let result;
+
+
+  // Add a robust check here, even if you check earlier.
+  if (!userId) {
+      Alert.alert('Auth Error', 'User is not authenticated.');
+      setIsSending(false);
       return;
-    }
+  } 
 
-    // TODO: When backend is ready, replace with actual API call
-    console.log('=== SENDING ===');
-    console.log('Type:', itemType);
-    console.log('Item:', selectedItem);
-    console.log('Recipients:', selectedPeople);
-    console.log('===============');
+  if (itemType === 'voucher') {
+    result = await sendVoucher(userId, recipients, activeCircleId, type, message);
+  } else if (itemType === 'alert') {
+    result = await createEmergency(userId, activeCircleId, type, recipients, message);
+    if (result.success) result.count = recipients.length;
+  } else {
+    Alert.alert('Error', 'Invalid item type.');
+    setIsSending(false);
+    return;
+  }
 
+  setIsSending(false);
+
+  if (result?.success) {
     Alert.alert(
       'Success!',
-      `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${selectedPeople.length} ${selectedPeople.length === 1 ? 'person' : 'people'}!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack()
-        }
-      ]
+      `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${result.count || recipients.length} ${recipients.length === 1 ? 'person' : 'people'}!`,
+      [{ text: 'OK', onPress: () => navigation.goBack() }]
     );
-  };
+  } else {
+    Alert.alert('Failed', `Sending failed: ${result?.error || 'Unknown error'}`);
+    console.error('Backend Service Failure:', result?.error);
+  }
+};
 
-  // Render person's avatar
+  // Render person's avatar (unchanged)
   const renderPersonAvatar = (person) => {
     // If user has profilePhoto and it exists in photoMap, show the image
     if (person.profilePhoto && photoMap[person.profilePhoto]) {
@@ -187,7 +228,7 @@ export default function SendItemScreen({
           style={styles.avatar} 
         />
       );
-   }
+    }
     // Otherwise show circle with first letter
     return (
       <View style={styles.avatarPlaceholder}>
@@ -241,8 +282,8 @@ export default function SendItemScreen({
                 <View style={styles.personInfo}>
                   {person.profilePhoto && photoMap[person.profilePhoto] ? (
                     <Image
-                     source={photoMap[person.profilePhoto]} 
-                     style={styles.avatar} 
+                      source={photoMap[person.profilePhoto]} 
+                      style={styles.avatar} 
                     />
                   ) : (
                     <View style={styles.avatarPlaceholder}>
@@ -278,9 +319,12 @@ export default function SendItemScreen({
         onPress={handleSend}
         style={styles.sendButton}
         labelStyle={styles.sendButtonLabel}
-        disabled={selectedPeople.length === 0}
+        disabled={selectedPeople.length === 0 || isSending} 
       >
-        Send to {selectedPeople.length || 0} {selectedPeople.length === 1 ? 'person' : 'people'}
+        {isSending 
+          ? <ActivityIndicator color="#fff" size="small" /> 
+          : `Send to ${selectedPeople.length || 0} ${selectedPeople.length === 1 ? 'person' : 'people'}`
+        }
       </Button>
     </ScrollView>
   );
@@ -310,7 +354,7 @@ export default function SendItemScreen({
 const styles = StyleSheet.create({
   backgroundWrapper: {
     flex: 1,
-    backgroundColor: '#eaddf7ff', // Light lilac behind stars
+    backgroundColor: '#eaddf7ff', 
   },
   background: {
     flex: 1,
@@ -342,7 +386,7 @@ const styles = StyleSheet.create({
     width: '90%',
     flex: 1,
     minHeight: screenHeight * 0.3,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent to show background
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
@@ -464,13 +508,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#d4a5ff',
     borderWidth: 2,
     borderColor: '#4a148c',
-    borderRadius: 25, // Pill shape
+    borderRadius: 25, 
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8, // For Android shadow,
+    elevation: 8, 
   },
   sendButtonLabel: {
     color: '#4a148c',

@@ -13,12 +13,12 @@ const CARD_WIDTH = (screenWidth - (HORIZONTAL_PADDING * 2) - GAP) / 2; // 2 colu
 const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 const voucherOptions = [
-  { image: require('../../assets/Vouchers/tea.png') },
-  { image: require('../../assets/Vouchers/coffee.png') },
-  { image: require('../../assets/Vouchers/mask.png') },
-  { image: require('../../assets/Vouchers/chips.png') },
-  { image: require('../../assets/Vouchers/Love.png') },
-  { image: require('../../assets/Vouchers/choco.png') },
+  { image: require('../../assets/Vouchers/tea.png'),    type: 'tea' },      // <-- Added type: 'tea'
+  { image: require('../../assets/Vouchers/coffee.png'), type: 'coffee' },   // <-- Added type: 'coffee'
+  { image: require('../../assets/Vouchers/mask.png'),   type: 'face_mask' }, // <-- Matches VOUCHER_TYPES.FACE_MASK
+  { image: require('../../assets/Vouchers/chips.png'),  type: 'chips' },    // <-- Added type: 'chips'
+  { image: require('../../assets/Vouchers/Love.png'),   type: 'love' },     // <-- Added type: 'love'
+  { image: require('../../assets/Vouchers/choco.png'),  type: 'chocolate' },// <-- Matches VOUCHER_TYPES.CHOCOLATE
 ];
 
 export default function Vouchers({ navigation }) {
@@ -40,7 +40,7 @@ export default function Vouchers({ navigation }) {
                   marginBottom: index < 4 ? GAP : 0,
                 }
               ]}
-              onPress={() => navigation.navigate('SendVoucher', { voucher })}
+              onPress={() => navigation.navigate('SendVoucher', voucher)}
             >
               <Image source={voucher.image} style={styles.cardImage} />
             </TouchableOpacity>

@@ -2,12 +2,15 @@ import React from 'react';
 import SendItemScreen from '../components/SendItemScreen';
 
 export default function SendAlert({ route, navigation }) {
-  const { alert } = route.params;
+  // 🌟 KORREKTUR: Flexible Suche nach dem Datenobjekt (REVISED)
+  // The data object IS the route.params itself if the previous screen passes it directly.
+  const itemData = route.params || {}; 
 
   return (
     <SendItemScreen
       navigation={navigation}
-      selectedItem={alert}
+      // Pass the entire parameter object.
+      selectedItem={itemData} 
       itemType="alert"
       backgroundImage={require('../../assets/icons/BackgroundStars.png')}
     />

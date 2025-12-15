@@ -12,13 +12,14 @@ const HORIZONTAL_PADDING = screenWidth * 0.08; // 8% padding on sides
 const CARD_WIDTH = (screenWidth - (HORIZONTAL_PADDING * 2) - GAP) / 2; // 2 columns
 const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
+// ✅ FIX PART 1: ADD THE 'type' PROPERTY
 const alertOptions = [
-  { image: require('../../assets/Alerts/Heat.png') },
-  { image: require('../../assets/Alerts/Pad.png') },
-  { image: require('../../assets/Alerts/tampon.png') },
-  { image: require('../../assets/Alerts/painkiller.png') },
-  { image: require('../../assets/Alerts/ear.png') },
-  { image: require('../../assets/Alerts/PMS.png') },
+  { image: require('../../assets/Alerts/Heat.png'),      type: 'the_heat' }, // Matches EMERGENCY_TYPES.THE_EAR
+  { image: require('../../assets/Alerts/Pad.png'),       type: 'pads' },    // Matches EMERGENCY_TYPES.PADS
+  { image: require('../../assets/Alerts/tampon.png'),    type: 'tampon' },  // Matches EMERGENCY_TYPES.TAMPON
+  { image: require('../../assets/Alerts/painkiller.png'),type: 'painkiller'},// Matches EMERGENCY_TYPES.PAINKILLER
+  { image: require('../../assets/Alerts/ear.png'),       type: 'the_ear' }, // Matches EMERGENCY_TYPES.THE_EAR (Duplicate? Maybe rename one image/type)
+  { image: require('../../assets/Alerts/PMS.png'),       type: 'the_pms' }, // Matches EMERGENCY_TYPES.THE_PMS
 ];
 
 export default function Alerts({ navigation }) {
@@ -40,7 +41,7 @@ export default function Alerts({ navigation }) {
                   marginBottom: index < 4 ? GAP : 0,
                 }
               ]}
-              onPress={() => navigation.navigate('SendAlert', { alert })}
+              onPress={() => navigation.navigate('SendAlert', alert)}
             >
               <Image source={alert.image} style={styles.cardImage} />
             </TouchableOpacity>
