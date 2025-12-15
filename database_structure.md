@@ -28,6 +28,8 @@
 - cravings (array)
 - dailyMood (string)
 - createdAt (timestamp)
+- isEstimated (boolean)
+- periodLength (number)
 
 ### 4. emergencies
 - senderId (string)

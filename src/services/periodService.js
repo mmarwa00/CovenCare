@@ -4,61 +4,33 @@ import {
   doc, 
   addDoc, 
   getDocs,
+  getDoc,
   query, 
   where,
   orderBy,
   limit
 } from 'firebase/firestore';
 
-// Log period (M14, M15, M16, M17, M18)
-export const logPeriod = async (userId, startDate, endDate) => {
-  try {
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+const DEFAULT_PERIOD_LENGTH_DAYS = 5;
+const DEFAULT_CYCLE_LENGTH_DAYS = 28;
 
-    if (end <= start) {
-      throw new Error('End date must be after start date');
-    }
+/*Periods:
 
-    // Get previous periods to calculate cycle length
-    const previousPeriods = await getPreviousPeriods(userId, 6);
-    
-    let cycleLength = null;
-    if (previousPeriods.length > 0) {
-      const lastPeriod = previousPeriods[0];
-      const daysBetween = Math.floor(
-        (start - lastPeriod.startDate.toDate()) / (1000 * 60 * 60 * 24)
-      );
-      cycleLength = daysBetween;
-    }
+cycle length: number of days btw your periods, so first day of your period till the day before you see your next period
 
-    // Create period document
-    await addDoc(collection(db, 'periods'), {
-      userId: userId,
-      startDate: start,
-      endDate: end,
-      cycleLength: cycleLength,
-      symptoms: {
-        cramps: null,
-        mood: null,
-        energy: null
-      },
-      cravings: [],
-      dailyMood: null,
-      createdAt: new Date()
-    });
+normal length: 21 - 35
+abnormal length: anything <21 or > 35 
 
-    console.log('Period logged');
-    return { success: true };
 
-  } catch (error) {
-    console.error('Error logging period:', error);
-    return { success: false, error: error.message };
-  }
-};
+ex. 
+my period was on the 30.10
+cylcle length is 30 days
 
-// Get previous periods (helper function)
+should get it on the 29.11, which is correct
+next one would be on the 29.12
+*/
+
+// Get previous periods
 const getPreviousPeriods = async (userId, limitCount = 6) => {
   const periodsRef = collection(db, 'periods');
   const q = query(
@@ -70,6 +42,230 @@ const getPreviousPeriods = async (userId, limitCount = 6) => {
   
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+// Calculate cycle length between two periods
+const calculateCycleLength = (earlierStartDate, laterStartDate) => {
+  const earlier = earlierStartDate.toDate ? earlierStartDate.toDate() : new Date(earlierStartDate);
+  const later = laterStartDate.toDate ? laterStartDate.toDate() : new Date(laterStartDate);
+  
+  return Math.ceil((later - earlier) / (1000 * 60 * 60 * 24));
+};
+
+// It would be nice to have a function where all the logic is done
+// First we need to calculate the length
+const calculateAveragePeriodLength = (periods) => {
+  if (!periods || periods.length === 0) {
+    return DEFAULT_PERIOD_LENGTH_DAYS;
+  }
+
+  const validPeriodLengths = periods
+    .map(p => {
+      const start = p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate);
+      const end = p.endDate.toDate ? p.endDate.toDate() : new Date(p.endDate);
+      return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    })
+    .filter(length => length >= 2 && length <= 10);
+
+  if (validPeriodLengths.length === 0) {
+    return DEFAULT_PERIOD_LENGTH_DAYS;
+  }
+
+  return Math.round(
+    validPeriodLengths.reduce((sum, len) => sum + len, 0) / validPeriodLengths.length
+  );
+};
+
+// We also need a function for default cycle length 
+export const calculateAverageCycleLength = async (userId) => {
+  try {
+    const periods = await getPreviousPeriods(userId, 6);
+
+    if (periods.length < 2) {
+      return {
+        success: true,
+        averageCycle: DEFAULT_CYCLE_LENGTH_DAYS,
+        confidence: 'low',
+        periodsAnalyzed: periods.length
+      };
+    }
+
+    // Calculate cycle lengths between consecutive periods
+    const cycleLengths = [];
+    for (let i = 0; i < periods.length - 1; i++) {
+      const cycleLength = calculateCycleLength(periods[i + 1].startDate, periods[i].startDate);
+      
+      // Only include reasonable cycle lengths
+      if (cycleLength >= 21 && cycleLength <= 45) {
+        cycleLengths.push(cycleLength);
+      }
+    }
+
+    if (cycleLengths.length === 0) {
+      return {
+        success: true,
+        averageCycle: DEFAULT_CYCLE_LENGTH_DAYS,
+        confidence: 'low',
+        periodsAnalyzed: periods.length
+      };
+    }
+
+    const avgCycle = Math.round(
+      cycleLengths.reduce((sum, c) => sum + c, 0) / cycleLengths.length
+    );
+
+    const minCycle = Math.min(...cycleLengths);
+    const maxCycle = Math.max(...cycleLengths);
+
+    return {
+      success: true,
+      averageCycle: avgCycle,
+      minCycle: minCycle,
+      maxCycle: maxCycle,
+      cycleVariability: maxCycle - minCycle,
+      confidence: cycleLengths.length >= 3 ? 'high' : 'medium',
+      periodsAnalyzed: periods.length
+    };
+
+  } catch (error) {
+    console.error('Error calculating average cycle:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      averageCycle: DEFAULT_CYCLE_LENGTH_DAYS 
+    };
+  }
+};
+
+// I need a function for previous periods:
+// So for previous periods, we need to put in start and end date
+// Also we should get an error if they put the end date before the start date
+// If there are more then one previous periods we can calculate the length 
+// We take the medium as the cycle length
+// If user just puts one previous period we take a default number till we get more info
+export const logPreviousPeriods = async(userId, startDateInput, endDateInput) => {
+  try{
+
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+
+    if (isNaN(startDate) || isNaN(endDate)) {
+      throw new Error('Invalid date provided');
+    }
+
+    if (endDate <= startDate) {
+      throw new Error('End date must be after start date');
+    }
+
+    // Here we are calculating how long the period lasted
+    const periodLength = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24 )) + 1;
+
+    let cycleLength = null;
+    const previousPeriods = await getPreviousPeriods(userId, 1);
+
+    if (previousPeriods && previousPeriods.length > 0) {
+      const lastPeriod = previousPeriods[0];
+      cycleLength = calculateCycleLength(lastPeriod.startDate, startDate);
+
+      if (cycleLength < 21 || cycleLength > 45){
+        console.warn(`Unusual cycle length detected: ${cycleLength} days`);
+      }
+    }  
+
+    // Create period document
+    await addDoc(collection(db, 'periods'), {
+      userId: userId,
+      startDate: startDate,
+      endDate: endDate,
+      periodLength: periodLength,
+      cycleLength: cycleLength,
+      symptoms: {
+        cramps: null,
+        mood: null,
+        energy: null
+      },
+      cravings: [],
+      dailyMood: null,
+      createdAt: new Date()
+    });
+
+    console.log('Previous period logged successfully');
+    return { success: true, periodLength, cycleLength };
+
+  } catch (error){
+    console.error('Error logging previous period:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+
+// So now I need a function, where we can just log a started Period
+// Here we just save the first day and calculate the end date
+// end date can be a default one 
+// or it gets calculated from previous ones 
+export const logPeriod = async (userId, startDateInput) => {
+
+  try {
+    // Validate dates
+    const startDate = new Date(startDateInput);
+    if (isNaN(startDate)) {
+        throw new Error('Invalid start date provided.');
+    }
+
+    // How do we get the end date 
+    // First we check if there is any previous Periods
+    // if we have previous ones we calculate the length of the periods, means end date - start date
+    // if not we take 5 as a default number
+
+    const previousPeriods = await getPreviousPeriods(userId, 3);
+    const periodLengthDays = calculateAveragePeriodLength(previousPeriods);
+
+    let cycleLength = null;
+    if (previousPeriods && previousPeriods.length > 0) {
+      const lastPeriod = previousPeriods[0];
+      cycleLength = calculateCycleLength(lastPeriod.startDate, startDate);
+
+      if (cycleLength < 21 || cycleLength > 45) {
+        console.warn(`Unusual cycle length: ${cycleLength} days`);
+      }
+    }
+
+    const endDate = new Date(startDate);
+
+    // minus 1 because first day is the start date
+    endDate.setDate(startDate.getDate() + periodLengthDays - 1);
+    
+
+    // Create period document
+    await addDoc(collection(db, 'periods'), {
+      userId: userId,
+      startDate: startDate,
+      endDate: endDate,
+      periodLength: periodLengthDays,
+      cycleLength: cycleLength,
+      isEstimated: true, // Flag that end date is estimated
+      symptoms: {
+        cramps: null,
+        mood: null,
+        energy: null
+      },
+      cravings: [],
+      dailyMood: null,
+      createdAt: new Date()
+    });
+
+    console.log('Period logged');
+    return { 
+      success: true, 
+      estimatedEndDate: endDate,
+      periodLength: periodLengthDays,
+      cycleLength: cycleLength
+    };
+
+  } catch (error) {
+    console.error('Error logging period:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // Get user's periods
@@ -84,53 +280,40 @@ export const getUserPeriods = async (userId) => {
   }
 };
 
-// Predict next period (M17, M18)
+// Predict next period 
 export const predictNextPeriod = async (userId) => {
   try {
     const periods = await getPreviousPeriods(userId, 6);
 
-    if (periods.length < 2) {
-      // Use default 28-day cycle
-      if (periods.length === 1) {
-        const lastPeriod = periods[0].startDate.toDate();
-        const prediction = new Date(lastPeriod);
-        prediction.setDate(prediction.getDate() + 28);
-        
-        return { 
-          success: true, 
-          prediction: prediction,
-          averageCycle: 28,
-          confidence: 'low'
-        };
-      } else {
-        return { 
-          success: false, 
-          error: 'Need at least 1 logged period to predict' 
-        };
-      }
+    if (periods.length === 0) {
+      return { 
+        success: false, 
+        error: 'Need at least 1 logged period to predict' 
+      };
     }
 
-    // Calculate average cycle length
-    const cycleLengths = periods
-      .slice(0, -1)
-      .map(p => p.cycleLength)
-      .filter(c => c !== null);
+    // Use centralized function to calculate average cycle
+    const cycleInfo = await calculateAverageCycleLength(userId);
+    
+    if (!cycleInfo.success) {
+      throw new Error(cycleInfo.error);
+    }
 
-    const avgCycle = Math.round(
-      cycleLengths.reduce((sum, c) => sum + c, 0) / cycleLengths.length
-    );
-
-    // Predict next period
-    const lastPeriod = periods[0].startDate.toDate();
+    // Predict next period based on last period + average cycle
+    const lastPeriod = periods[0].startDate.toDate ? periods[0].startDate.toDate() : new Date(periods[0].startDate);
     const prediction = new Date(lastPeriod);
-    prediction.setDate(prediction.getDate() + avgCycle);
+    prediction.setDate(prediction.getDate() + cycleInfo.averageCycle);
 
     console.log('Next period predicted');
     return { 
       success: true, 
       prediction: prediction,
-      averageCycle: avgCycle,
-      confidence: periods.length >= 3 ? 'high' : 'medium'
+      averageCycle: cycleInfo.averageCycle,
+      minCycle: cycleInfo.minCycle,
+      maxCycle: cycleInfo.maxCycle,
+      cycleVariability: cycleInfo.cycleVariability,
+      confidence: cycleInfo.confidence,
+      periodsAnalyzed: cycleInfo.periodsAnalyzed
     };
 
   } catch (error) {
@@ -148,7 +331,7 @@ export const getCircleCalendar = async (circleId) => {
       throw new Error('Circle not found');
     }
 
-    const members = circleDoc.data().members;
+    const members = circleDoc.data().members || [];
     const calendar = [];
 
     // Get periods for each member (respecting privacy)
@@ -160,12 +343,13 @@ export const getCircleCalendar = async (circleId) => {
         
         calendar.push({
           userId: member.userId,
-          displayName: userData.data().displayName,
-          privacyLevel: member.privacyLevel,
+          displayName: userData.exists() ? userData.data().displayName : 'Unknown',
+          privacyLevel: member.privacyLevel || 'period_only',
           periods: member.privacyLevel === 'show_all' 
             ? memberPeriods.periods 
             : memberPeriods.periods.map(p => ({ 
                 startDate: p.startDate,
+                endDate: p.endDate
                 // Hide detailed info if privacy is "period_only"
               }))
         });
