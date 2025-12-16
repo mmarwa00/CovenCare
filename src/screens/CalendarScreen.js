@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { logPeriod, getUserPeriods, predictNextPeriod } from '../services/periodService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { Calendar } from 'react-native-calendars';
 
 // Helper function to format date objects
 const formatDate = (date) => {
@@ -58,19 +59,102 @@ export default function CalendarScreen({ navigation }) {
         fetchData();
     }, [userId]);
 
+    // Handle date selection on calendar
+    const handleDayPress = (day) => {
+        const dateStr = day.dateString;
+
+        // If nothing selected → set start
+        if (!startDate) {
+            setStartDate(dateStr);
+            setEndDate('');
+            return;
+        }
+
+        // If start selected & end empty → set end
+        if (!endDate) {
+            if (new Date(dateStr) < new Date(startDate)) {
+                // If end < start → new start
+                setStartDate(dateStr);
+                return;
+            }
+            setEndDate(dateStr);
+            return;
+        }
+
+        // If both chosen → restart selection
+        setStartDate(dateStr);
+        setEndDate('');
+    };
+
+    // Marked dates for calendar (highlight range)
+    const getMarkedDates = () => {
+        const marks = {};
+
+        if (startDate) {
+            marks[startDate] = { startingDay: true, color: '#7b1fa2', textColor: 'white' };
+        }
+        if (endDate) {
+            marks[endDate] = { endingDay: true, color: '#9c4dcc', textColor: 'white' };
+        }
+
+        return marks;
+    };
+
+    // Create range of dates between start/end
+    const generateDateRange = (start, end) => {
+        const dates = [];
+        let current = new Date(start);
+        const last = new Date(end);
+
+        while (current <= last) {
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            dates.push(`${yyyy}-${mm}-${dd}`);
+            current.setDate(current.getDate() + 1);
+        }
+        return dates;
+    };
+
+    // Mark all historical period days
+    const getPeriodMarkedDates = () => {
+        const marks = {};
+
+        periods.forEach(p => {
+            const days = generateDateRange(p.startDate.toDate(), p.endDate.toDate());
+
+            days.forEach(d => {
+                marks[d] = {
+                    customStyles: {
+                        container: {
+                            backgroundColor: '#f1d8ff', // soft lilac-pink
+                            borderRadius: 20,
+                        },
+                        text: {
+                            color: '#4a148c',
+                            fontWeight: '600',
+                        }
+                    }
+                };
+            });
+        });
+
+        return marks;
+    };
+
+    // Merge selected dates + historical flow dates
+    const getAllMarkedDates = () => {
+        return {
+            ...getPeriodMarkedDates(),
+            ...getMarkedDates(),
+        };
+    };
 
     // --- Log Period Handler ---
     const handleLogPeriod = async () => {
         setLoading(true);
         setError('');
         setSuccess('');
-
-        // Basic date format validation (YYYY-MM-DD expected)
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-            setError('Please use YYYY-MM-DD format for dates.');
-            setLoading(false);
-            return;
-        }
 
         const result = await logPeriod(userId, startDate, endDate);
 
@@ -150,38 +234,34 @@ export default function CalendarScreen({ navigation }) {
                     </Card.Content>
                 </Card>
 
-                {/* --- Log Period --- */}
+                {/* --- Log Period Calender--- */}
                 <Card style={styles.card}>
                     <Card.Content>
                         <Title style={styles.cardTitle}>Log New Period</Title>
-                        <TextInput
-                            label="Start Date (YYYY-MM-DD)"
-                            value={startDate}
-                            onChangeText={setStartDate}
-                            mode="outlined"
-                            style={styles.input}
-                            disabled={loading}
+                        <Calendar
+                            onDayPress={handleDayPress}
+                            markedDates={getAllMarkedDates()}
+                            markingType={'custom'}
+                            theme={{
+                                todayTextColor: '#4a148c',
+                                arrowColor: '#4a148c',
+                            }}
                         />
-                        <TextInput
-                            label="End Date (YYYY-MM-DD)"
-                            value={endDate}
-                            onChangeText={setEndDate}
-                            mode="outlined"
-                            style={styles.input}
-                            disabled={loading}
-                        />
+
+                        <Paragraph style={{ marginTop: 10, color: '#4a148c' }}>
+                            Start: {startDate || '-'}   |   End: {endDate || '-'}
+                        </Paragraph>
+
                         <Button
                             mode="outlined"
                             onPress={handleLogPeriod}
-                            disabled={loading || !startDate || !endDate}
+                            disabled={!startDate || !endDate}
                             style={styles.logFlowButton}
                             labelStyle={styles.logFlowLabel}
                             icon="water"
                         >
                             Log Flow
                         </Button>
-
-
                     </Card.Content>
                 </Card>
 
@@ -250,9 +330,6 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#4a148c',
-        marginBottom: 10,
-    },
-    input: {
         marginBottom: 10,
     },
     logFlowButton: {
