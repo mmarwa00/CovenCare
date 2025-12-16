@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import AlertBox from '../screens/AlertBox';
 import ProfileScreen from '../screens/ProfileScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import CircleScreen from '../screens/CircleScreen';
@@ -12,6 +13,7 @@ import VendingMachineMenu from '../screens/VendingMachineMenu';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import Vouchers from '../screens/Vouchers';
 import SendVoucher from '../screens/SendVoucher';
+import SentVouchersScreen from '../screens/SentVouchersScreen';
 import EventsPlaceholder from '../screens/EventsPlaceholder';
 import CareBoxScreen from '../screens/CareBoxScreen';
 import CareBoxDetails from '../screens/CareBoxDetails';
@@ -31,6 +33,7 @@ export default function AppNavigator() {
         {isAuthenticated ? (
           <>
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
+            <Stack.Screen name="AlertBox" component={AlertBox} />
             <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
             <Stack.Screen name="CalendarScreen" component={CalendarScreen} />
             <Stack.Screen name="CircleScreen" component={CircleScreen} />
@@ -38,6 +41,7 @@ export default function AppNavigator() {
             <Stack.Screen name="VendingMachineMenu" component={VendingMachineMenu} />
             <Stack.Screen name="Vouchers" component={Vouchers} />
             <Stack.Screen name="SendVoucher" component={SendVoucher} />
+            <Stack.Screen name="SentVouchers" component={SentVouchersScreen} />
             <Stack.Screen name="SendAlert" component={SendAlert} />
             <Stack.Screen name="Spells" component={SpellsPlaceholder} />
             <Stack.Screen name="Events" component={EventsPlaceholder} />

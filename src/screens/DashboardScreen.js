@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { getActiveEmergencies } from '../services/emergencyService';
-import { getReceivedVouchers } from '../services/voucherService';
+import { getSentVouchers } from '../services/voucherService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -15,13 +15,12 @@ export default function DashboardScreen({ navigation }) {
 
   const [activeCircle, setActiveCircle] = useState(null);
   const [loadingCircle, setLoadingCircle] = useState(true);
-  const [alerts, setAlerts] = useState([]); // emergency alerts
+  const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
-  const [vouchers, setVouchers] = useState([]); // received vouchers
+  const [vouchers, setVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
   const [phaseName, setPhaseName] = useState('Follicular');
 
-  // Fetch active circle
   useEffect(() => {
     const fetchActiveCircle = async () => {
       if (!userId) return;
@@ -30,20 +29,24 @@ export default function DashboardScreen({ navigation }) {
 
       if (userSnap.exists()) {
         const activeId = userSnap.data().activeCircleId;
-        const iconId = userSnap.data().activeCircleIcon || 1;
-
         if (activeId) {
           const circleRef = doc(db, "circles", activeId);
           const circleSnap = await getDoc(circleRef);
 
           if (circleSnap.exists()) {
+            const circleData = circleSnap.data();
             setActiveCircle({
               id: activeId,
-              icon: iconId,
-              ...circleSnap.data()
+              ...circleData,
             });
+          } else {
+            setActiveCircle(null);
           }
+        } else {
+          setActiveCircle(null);
         }
+      } else {
+        setActiveCircle(null);
       }
       setLoadingCircle(false);
     };
@@ -51,14 +54,11 @@ export default function DashboardScreen({ navigation }) {
     fetchActiveCircle();
   }, [userId]);
 
-  // Fetch emergency alerts
   useEffect(() => {
     const fetchAlerts = async () => {
       if (!userId) return;
-      
       setLoadingAlerts(true);
       const result = await getActiveEmergencies(userId);
-      
       if (result.success) {
         setAlerts(result.emergencies);
       } else {
@@ -66,26 +66,21 @@ export default function DashboardScreen({ navigation }) {
       }
       setLoadingAlerts(false);
     };
-
     fetchAlerts();
   }, [userId]);
 
-  // Fetch received vouchers (unredeemed only)
   useEffect(() => {
     const fetchVouchers = async () => {
       if (!userId) return;
-      
       setLoadingVouchers(true);
-      const result = await getReceivedVouchers(userId, 'unredeemed');
-      
+      const result = await getSentVouchers(userId);
       if (result.success) {
         setVouchers(result.vouchers);
       } else {
-        console.error('Error fetching vouchers:', result.error);
+        console.error('Error fetching sent vouchers:', result.error);
       }
       setLoadingVouchers(false);
     };
-
     fetchVouchers();
   }, [userId]);
 
@@ -117,45 +112,38 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
-  // Get emergency type display
   const getEmergencyTypeDisplay = (type) => {
     const types = {
-      tampon: '🩸 Tampon/Pads Emergency',
-      chocolate: '🍫 Chocolate Craving',
-      ibuprofen: '💊 Need Ibuprofen',
-      emotional: '💗 Emotional Support',
-      selfcare: '🛁 Self-Care Emergency'
+      tampon: '🩸 Tampon Emergency',
+      pads: '🩸 Pad Emergency',
+      painkiller: '💊 Need Painkiller',
+      heating_pad: '♨️ Heating Pad Emergency',
+      the_ear: '👂 Need a Listening Ear',
+      the_pms: '👹 PMS Emergency'
     };
     return types[type] || type;
   };
 
-  // Get voucher type display
   const getVoucherTypeDisplay = (type) => {
     const types = {
       chocolate: '🍫 Chocolate',
-      period_products: '🩸 Period Products',
+      coffee: '☕️ Coffee',
       face_mask: '🧖 Face Mask',
-      movie: '🎬 Movie Night',
-      crying: '😭 Crying Session',
-      food: '🍕 Food Delivery'
+      tea: '🍵 Hot tea',
+      chips: '🍟 Chips',
+      love: '🫶🏻 Love'
     };
     return types[type] || type;
   };
 
-  // Format time ago
   const getTimeAgo = (date) => {
     const now = new Date();
     const diff = now - date;
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor(diff / (1000 * 60));
-
-    if (hours > 0) {
-      return `${hours}h ago`;
-    } else if (minutes > 0) {
-      return `${minutes}m ago`;
-    } else {
-      return 'Just now';
-    }
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
   };
 
   return (
@@ -163,7 +151,6 @@ export default function DashboardScreen({ navigation }) {
       <Header navigation={navigation} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* --- Active Circle Box --- */}
         <View style={styles.dashboardBox}>
           {loadingCircle ? (
             <ActivityIndicator animating={true} color="#4a148c" />
@@ -171,7 +158,7 @@ export default function DashboardScreen({ navigation }) {
             <View>
               <View style={styles.circleRow}>
                 <Image
-                  source={getCircleIcon(activeCircle.icon)}
+                  source={getCircleIcon(activeCircle.iconId)}
                   style={styles.circleIcon}
                 />
                 <Text style={styles.boxTitle}>Active Circle</Text>
@@ -185,7 +172,6 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* --- Menstrual Phase Box --- */}
         <View style={styles.dashboardBox}>
           <View style={styles.circleRow}>
             <Image source={getPhaseIcon(phaseName)} style={styles.phaseIcon} />
@@ -193,10 +179,9 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* --- Emergency Alerts Box --- */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.dashboardBox}
-          onPress={() => navigation.navigate('EmergencyAlerts')}
+          onPress={() => navigation.navigate('AlertBox')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
@@ -214,9 +199,7 @@ export default function DashboardScreen({ navigation }) {
           ) : (
             alerts.slice(0, 3).map(alert => (
               <View key={alert.id} style={styles.alertItem}>
-                <Text style={styles.alertType}>
-                  {getEmergencyTypeDisplay(alert.type)}
-                </Text>
+                <Text style={styles.alertType}>{getEmergencyTypeDisplay(alert.type)}</Text>
                 <Text style={styles.boxSubtitle}>
                   From: {alert.senderName} • {getTimeAgo(alert.createdAt)}
                 </Text>
@@ -226,16 +209,15 @@ export default function DashboardScreen({ navigation }) {
               </View>
             ))
           )}
-          
+
           {alerts.length > 3 && (
             <Text style={styles.viewMore}>Tap to view all alerts →</Text>
           )}
         </TouchableOpacity>
 
-        {/* --- Received Vouchers Box --- */}
-        <TouchableOpacity 
-          style={styles.dashboardBox}
-          onPress={() => navigation.navigate('CareBox')}
+        <TouchableOpacity
+  style={styles.dashboardBox}
+  onPress={() => navigation.navigate('SentVouchers')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
@@ -243,33 +225,9 @@ export default function DashboardScreen({ navigation }) {
               source={require('../../assets/Vouchers/voucher.png')}
               style={styles.voucherIcon}
             />
-            <Text style={styles.boxTitle}>Received Vouchers: {vouchers.length}</Text>
+            <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
           </View>
-
-          {loadingVouchers ? (
-            <ActivityIndicator animating={true} color="#4a148c" size="small" style={{ marginTop: 10 }} />
-          ) : vouchers.length === 0 ? (
-            <Text style={styles.boxSubtitle}>No vouchers received yet.</Text>
-          ) : (
-            vouchers.slice(0, 3).map(voucher => (
-              <View key={voucher.id} style={styles.voucherItem}>
-                <Text style={styles.voucherType}>
-                  {getVoucherTypeDisplay(voucher.type)}
-                </Text>
-                <Text style={styles.boxSubtitle}>
-                  From: {voucher.senderName} • {getTimeAgo(voucher.sentAt)}
-                </Text>
-                <Text style={styles.voucherCode}>Code: {voucher.code}</Text>
-              </View>
-            ))
-          )}
-          
-          {vouchers.length > 3 && (
-            <Text style={styles.viewMore}>Tap to view all vouchers →</Text>
-          )}
         </TouchableOpacity>
-
-        {/* --- Log Out Button --- */}
         <Button
           mode="outlined"
           onPress={signOutUser}
@@ -286,10 +244,12 @@ export default function DashboardScreen({ navigation }) {
   );
 }
 
+
 const styles = StyleSheet.create({
   scrollContainer: {
     padding: 10,
     paddingBottom: 30,
+    backgroundColor: '#e3d2f0ff',
   },
 
   dashboardBox: {
@@ -379,6 +339,38 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  answerButton: {
+    backgroundColor: '#4a148c',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    marginTop: 10,
+    alignSelf: 'center',
+  },
+
+  answerLabel: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+
+  voucherButton: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: '#4a148c',
+    borderRadius: 50,
+    alignSelf: 'flex-start',
+  },
+
+  voucherLabel: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+
   // Voucher styles
   voucherItem: {
     marginTop: 10,
@@ -403,6 +395,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
+  voucherButton: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: '#4a148c',
+    borderRadius: 50,
+    alignSelf: 'flex-start',
+  },
+  voucherLabel: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 
   viewMore: {
     color: '#4a148c',
@@ -411,7 +417,25 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'right',
   },
-
+  
+  redeemButton: {
+    marginTop: 8,
+    backgroundColor: '#4a148c',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  redeemButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   logoutButton: {
     marginTop: 20,
     backgroundColor: '#f8f8ff',

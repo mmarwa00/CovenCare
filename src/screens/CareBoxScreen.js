@@ -2,37 +2,85 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Image, Text, Dimensions } from 'react-native';
 import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthContext';
+import { getReceivedVouchers } from '../services/voucherService';
 
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
 const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
+// Map voucher types to images
+const getVoucherImage = (type) => {
+  const images = {
+    chocolate: require('../../assets/Vouchers/choco.png'),
+    coffee: require('../../assets/Vouchers/coffee.png'),
+    face_mask: require('../../assets/Vouchers/mask.png'),
+    tea: require('../../assets/Vouchers/tea.png'),
+    chips: require('../../assets/Vouchers/chips.png'),
+    love: require('../../assets/Vouchers/Love.png'),
+  };
+  return images[type] || require('../../assets/Vouchers/choco.png');
+};
+
+// Map voucher types to display names
+const getVoucherName = (type) => {
+  const names = {
+    chocolate: 'Chocolate',
+    coffee: 'Coffee',
+    face_mask: 'Face Mask',
+    tea: 'Tea',
+    chips: 'Chips',
+    love: 'Love',
+  };
+  return names[type] || type;
+};
+
 export default function CareBoxScreen({ navigation }) {
+  const { user } = useAuth();
+  const userId = user?.uid;
   const [receivedItems, setReceivedItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setReceivedItems([
-      {
-        id: 1,
-        itemImage: require('../../assets/Vouchers/choco.png'),
-        itemName: 'Chocolate',
-        count: 2,
-        senders: [
-          { senderId: 5, senderName: 'Alice', sentAt: '2025-01-10', redeemed: false },
-          { senderId: 8, senderName: 'Bob', sentAt: '2025-01-12', redeemed: false }
-        ]
-      },
-      {
-        id: 2,
-        itemImage: require('../../assets/Vouchers/tea.png'),
-        itemName: 'Tea',
-        count: 1,
-        senders: [
-          { senderId: 3, senderName: 'Carol', sentAt: '2025-01-11', redeemed: false }
-        ]
+    const fetchVouchers = async () => {
+      if (!userId) return;
+      setLoading(true);
+      const result = await getReceivedVouchers(userId, 'unredeemed');
+      
+      if (result.success) {
+        // Group vouchers by type
+        const grouped = {};
+        result.vouchers.forEach(voucher => {
+          if (!grouped[voucher.type]) {
+            grouped[voucher.type] = {
+              id: voucher.type,
+              itemImage: getVoucherImage(voucher.type),
+              itemName: getVoucherName(voucher.type),
+              type: voucher.type,
+              count: 0,
+              senders: []
+            };
+          }
+          grouped[voucher.type].count++;
+          grouped[voucher.type].senders.push({
+            voucherId: voucher.id,
+            senderId: voucher.senderId,
+            senderName: voucher.senderName,
+            sentAt: new Date(voucher.sentAt).toLocaleDateString(),
+            code: voucher.code,
+            redeemed: voucher.status === 'redeemed'
+          });
+        });
+        
+        setReceivedItems(Object.values(grouped));
+      } else {
+        console.error('Error fetching vouchers:', result.error);
       }
-    ]);
-  }, []);
+      setLoading(false);
+    };
+
+    fetchVouchers();
+  }, [userId]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -48,7 +96,11 @@ export default function CareBoxScreen({ navigation }) {
     <Layout navigation={navigation} subtitle="Your Care Box">
       <View style={styles.scrollContainer}>
         <Title style={styles.title}>Your Care Box</Title>
-        {receivedItems.length === 0 ? (
+        {loading ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Loading...</Text>
+          </View>
+        ) : receivedItems.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No items received yet</Text>
           </View>
