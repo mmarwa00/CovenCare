@@ -8,8 +8,8 @@ import { auth } from '../config/firebaseConfig';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-// Centralized avatar map — add any new keys/files here.
-// Keys must match the strings you save in Firestore under `profilePhoto`.
+// Single source of truth for avatars.
+// IMPORTANT: Only list files that exist. Keys must match Firestore values exactly.
 const photoMap = {
   witch1: require('../../assets/Profile_pics/witch1.png'),
   witch2: require('../../assets/Profile_pics/witch2.png'),
@@ -19,9 +19,6 @@ const photoMap = {
   wizz1: require('../../assets/Profile_pics/wizz1.png'),
   wizz2: require('../../assets/Profile_pics/wizz2.png'),
   wizz3: require('../../assets/Profile_pics/wizz3.png'),
-  // Example placeholders — include only if files exist:
-  // wizz12: require('../../assets/Profile_pics/wizz12.png'),
-  // wizz13: require('../../assets/Profile_pics/wizz13.png'),
 };
 
 const photoOptions = Object.keys(photoMap);
@@ -142,9 +139,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.centerContainer}>
           <Text style={styles.errorTextTitle}>Profile Load Error</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorTip}>
-            Tip: If this is a "permissions" error, publish the correct Firestore rule.
-          </Text>
+          <Text style={styles.errorTip}>Tip: Publish the correct Firestore rule if this is a permissions error.</Text>
           <Button onPress={fetchProfile} mode="contained" style={{ marginTop: 20 }}>
             Try Again
           </Button>
@@ -157,12 +152,7 @@ export default function ProfileScreen({ navigation }) {
     <View style={{ flex: 1 }}>
       <Header />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Button
-          mode="text"
-          onPress={() => navigation.navigate('Dashboard')}
-          style={styles.backButton}
-          labelStyle={styles.backButtonLabel}
-        >
+        <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton} labelStyle={styles.backButtonLabel}>
           ← Back to Dashboard
         </Button>
 
@@ -193,13 +183,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.uidText}>UID: {user?.uid}</Text>
 
           {isEditing ? (
-            <Button
-              mode="contained"
-              onPress={handleSave}
-              loading={loading}
-              disabled={loading || displayName.length < 3}
-              style={styles.saveButton}
-            >
+            <Button mode="contained" onPress={handleSave} loading={loading} disabled={loading || displayName.length < 3} style={styles.saveButton}>
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           ) : (
@@ -223,12 +207,7 @@ export default function ProfileScreen({ navigation }) {
           )}
         </Card>
 
-        <Modal
-          visible={showPhotoPicker}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowPhotoPicker(false)}
-        >
+        <Modal visible={showPhotoPicker} transparent animationType="fade" onRequestClose={() => setShowPhotoPicker(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.photoPickerModal}>
               <PaperTitle style={styles.modalTitle}>Choose Your Avatar</PaperTitle>
