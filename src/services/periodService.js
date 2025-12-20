@@ -161,14 +161,26 @@ export const logPreviousPeriods = async(userId, startDateInput, endDateInput) =>
     const periodLength = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24 )) + 1;
 
     let cycleLength = null;
-    const previousPeriods = await getPreviousPeriods(userId, 1);
+    const previousPeriods = await getPreviousPeriods(userId, 3);
 
     if (previousPeriods && previousPeriods.length > 0) {
-      const lastPeriod = previousPeriods[0];
-      cycleLength = calculateCycleLength(lastPeriod.startDate, startDate);
+      const sorted = previousPeriods
+        .map(p => ({
+          ...p,
+          start: p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate)
+        }))
+        .sort((a, b) => b.start - a.start);
+    
+      const newStart = startDate;
+      const earlier = sorted.find(p => p.start < newStart);
 
-      if (cycleLength < 21 || cycleLength > 45){
-        console.warn(`Unusual cycle length detected: ${cycleLength} days`);
+  /*
+    Simple logic:
+    - If we find an earlier period → cycle = difference in days
+    - If not → this is probably the earliest logged period → leave null
+  */
+      if (earlier) {
+        cycleLength = Math.ceil((newStart - earlier.start) / (1000 * 60 * 60 * 24));
       }
     }  
 
@@ -271,7 +283,25 @@ export const logPeriod = async (userId, startDateInput) => {
 // Get user's periods
 export const getUserPeriods = async (userId) => {
   try {
-    const periods = await getPreviousPeriods(userId, 12); // Last 12 periods
+    const periodsRef = collection(db, 'periods');
+    const q = query(
+      periodsRef,
+      where('userId', '==', userId),
+    );
+
+    const snapshot = await getDocs(q);
+
+    let periods = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    periods.sort((a, b) => {
+      const A = a.startDate.toDate ? a.startDate.toDate() : new Date(a.startDate);
+      const B = b.startDate.toDate ? b.startDate.toDate() : new Date(b.startDate);
+      return A - B;
+    });
+    
     console.log('Got user periods:', periods.length);
     return { success: true, periods };
   } catch (error) {

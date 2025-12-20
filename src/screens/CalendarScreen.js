@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { logPeriod, getUserPeriods, predictNextPeriod } from '../services/periodService';
+import { logPreviousPeriods, getUserPeriods, predictNextPeriod } from '../services/periodService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Calendar } from 'react-native-calendars';
+import { db } from '../config/firebaseConfig';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { Alert } from "react-native";
 
 // Helper function to format date objects
 const formatDate = (date) => {
@@ -13,6 +16,14 @@ const formatDate = (date) => {
     // Ensure we handle Firestore Timestamp objects by calling .toDate()
     const d = date.toDate ? date.toDate() : new Date(date);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+// Helper: convert JS Date → YYYY-MM-DD
+const toDateString = (date) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 };
 
 export default function CalendarScreen({ navigation }) {
@@ -59,22 +70,41 @@ export default function CalendarScreen({ navigation }) {
         fetchData();
     }, [userId]);
 
-    // Handle date selection on calendar
+    // --- Date selection logic ---
     const handleDayPress = (day) => {
         const dateStr = day.dateString;
+        const today = new Date();
+        const clicked = new Date(dateStr);
 
-        // If nothing selected → set start
+        // check if user tapped on existing logged period
+        const existing = findPeriodByDay(dateStr);
+        if (existing) {
+            Alert.alert(
+                "Delete Period?",
+                `${formatDate(existing.startDate)} - ${formatDate(existing.endDate)}`,
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Delete", style: "destructive", onPress: () => deletePeriod(existing) }
+                ]
+            );
+            return;
+        }
+
+         // Start CANNOT be in future
         if (!startDate) {
+            if (clicked > today) {
+                Alert.alert("Not allowed", "Start date cannot be in the future 😊");
+                return;
+            }
             setStartDate(dateStr);
             setEndDate('');
             return;
         }
 
-        // If start selected & end empty → set end
+        // If start selected & end empty, set end
         if (!endDate) {
-            if (new Date(dateStr) < new Date(startDate)) {
-                // If end < start → new start
-                setStartDate(dateStr);
+            if (clicked < new Date(startDate)) {
+                setStartDate(dateStr); // reset start if earlier clicked
                 return;
             }
             setEndDate(dateStr);
@@ -86,68 +116,98 @@ export default function CalendarScreen({ navigation }) {
         setEndDate('');
     };
 
-    // Marked dates for calendar (highlight range)
-    const getMarkedDates = () => {
-        const marks = {};
-
-        if (startDate) {
-            marks[startDate] = { startingDay: true, color: '#7b1fa2', textColor: 'white' };
-        }
-        if (endDate) {
-            marks[endDate] = { endingDay: true, color: '#9c4dcc', textColor: 'white' };
-        }
-
-        return marks;
-    };
-
-    // Create range of dates between start/end
-    const generateDateRange = (start, end) => {
-        const dates = [];
-        let current = new Date(start);
-        const last = new Date(end);
-
-        while (current <= last) {
-            const yyyy = current.getFullYear();
-            const mm = String(current.getMonth() + 1).padStart(2, '0');
-            const dd = String(current.getDate()).padStart(2, '0');
-            dates.push(`${yyyy}-${mm}-${dd}`);
-            current.setDate(current.getDate() + 1);
-        }
-        return dates;
-    };
-
-    // Mark all historical period days
     const getPeriodMarkedDates = () => {
         const marks = {};
 
         periods.forEach(p => {
-            const days = generateDateRange(p.startDate.toDate(), p.endDate.toDate());
+            const start = p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate);
+            const end = p.endDate.toDate ? p.endDate.toDate() : new Date(p.endDate);
 
-            days.forEach(d => {
-                marks[d] = {
+            let current = new Date(start);
+
+            while (current <= end) {
+                const key = toDateString(current);
+
+                marks[key] = {
                     customStyles: {
                         container: {
-                            backgroundColor: '#f1d8ff', // soft lilac-pink
+                            backgroundColor: '#e6c9ff',
                             borderRadius: 20,
                         },
                         text: {
                             color: '#4a148c',
-                            fontWeight: '600',
+                            fontWeight: 'bold',
                         }
                     }
                 };
-            });
+                current.setDate(current.getDate() + 1);
+            }
         });
-
         return marks;
     };
 
-    // Merge selected dates + historical flow dates
-    const getAllMarkedDates = () => {
-        return {
-            ...getPeriodMarkedDates(),
-            ...getMarkedDates(),
+    // Highlight currently selected range
+    const getSelectedRangeMarks = () => {
+        const marks = {};
+        if (!startDate) return marks;
+
+        marks[startDate] = {
+            startingDay: true,
+            color: '#7b1fa2',
+            textColor: 'white'
         };
+
+        if (endDate) {
+            marks[endDate] = {
+                endingDay: true,
+                color: '#9c4dcc',
+                textColor: 'white'
+            };
+        }
+        return marks;
+    };
+
+    const todayString = new Date().toISOString().split("T")[0];
+
+    // disable dates are light gray
+    const getFutureDisabledDates = (existingMarks) => {
+        const marks = { ...existingMarks };
+        const today = new Date();
+
+        for (let i = 1; i <= 365; i++) {
+            const d = new Date();
+            d.setDate(today.getDate() + i);
+
+            const key = toDateString(d);
+            // ❗ Do NOT override period days
+            if (!marks[key]) {
+                marks[key] = { disabled: true };
+            }
+        }
+        return marks;
+    };
+
+
+    const getAllMarkedDates = () => {
+       let baseMarks = {
+            ...getPeriodMarkedDates(),
+            ...getSelectedRangeMarks(),
+            [todayString]: {
+                customStyles: {
+                    container: {
+                        backgroundColor: "#4a148c",
+                        borderRadius: 20,
+                    },
+                    text: {
+                        color: "white",
+                        fontWeight: "bold",
+                    },
+                },
+            },
+            
+        };
+        baseMarks = getFutureDisabledDates(baseMarks);
+        return baseMarks;
     };
 
     // --- Log Period Handler ---
@@ -156,7 +216,7 @@ export default function CalendarScreen({ navigation }) {
         setError('');
         setSuccess('');
 
-        const result = await logPeriod(userId, startDate, endDate);
+        const result = await logPreviousPeriods(userId, startDate, endDate);
 
         if (result.success) {
             setSuccess('Period successfully logged!');
@@ -168,6 +228,30 @@ export default function CalendarScreen({ navigation }) {
         }
         setLoading(false);
     };
+
+    const findPeriodByDay = (dateStr) => {
+        const clicked = new Date(dateStr);
+
+        return periods.find(p => {
+            const start = p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate);
+            const end = p.endDate.toDate ? p.endDate.toDate() : new Date(p.endDate);
+            return clicked >= start && clicked <= end;
+        });
+    };
+
+    const deletePeriod = async (period) => {
+        try {
+            await deleteDoc(doc(db, 'periods', period.id));
+            setSuccess('Period deleted');
+            setStartDate('');
+            setEndDate('');
+            fetchData();
+        } catch (e) {
+            console.log(e);
+            setError('Failed to delete period');
+        }
+    };
+
 
     // --- Render Logic ---
     const renderPrediction = () => {
@@ -234,20 +318,22 @@ export default function CalendarScreen({ navigation }) {
                     </Card.Content>
                 </Card>
 
-                {/* --- Log Period Calender--- */}
+                {/* --- Log Period --- */}
                 <Card style={styles.card}>
                     <Card.Content>
                         <Title style={styles.cardTitle}>Log New Period</Title>
                         <Calendar
+                            firstDay={1} 
+                            disableAllTouchEventsForDisabledDays={false}
                             onDayPress={handleDayPress}
                             markedDates={getAllMarkedDates()}
-                            markingType={'custom'}
+                            markingType="custom"
                             theme={{
                                 todayTextColor: '#4a148c',
                                 arrowColor: '#4a148c',
+                                textDisabledColor: '#aaaaaa'
                             }}
                         />
-
                         <Paragraph style={{ marginTop: 10, color: '#4a148c' }}>
                             Start: {startDate || '-'}   |   End: {endDate || '-'}
                         </Paragraph>
@@ -332,6 +418,7 @@ const styles = StyleSheet.create({
         color: '#4a148c',
         marginBottom: 10,
     },
+
     logFlowButton: {
         marginTop: 10,
         backgroundColor: '#f8f8ff',
