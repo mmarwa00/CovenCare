@@ -1,0 +1,38 @@
+[33me8613ff[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Implemented calendar selection and visual period
+[33ma87b682[m Corrected Sent Vouchers box on dashboard, added SentVouchersScreen
+[33mf0eeaae[m emergency, vouchers work and can be seen in the dashboard
+[33m3a6f58e[m Corrected Profile Screen double import
+[33m9eff658[m alert sollte hoffentlich funktioneren, voucher noch nicht
+[33maa85c93[m period should hopefully work now
+[33m0426f8d[m Added CareBox screen and details, added link to profile to the dropdown menu
+[33meafb695[m Avatars in circle have been changed, the user list for voucher and allerts has been configured
+[33m1b79331[m Added SendItemScreen.js for sending voucher and alerts logic
+[33me21a4f1[m Updated Vending machine menu and created SpellPlaceholder screen
+[33m75ab7cd[m Fixed tarot cards proportions and vnding machine buttons position
+[33ma0160dc[m Navigation from Vouchers and Alerts to their sending screen implemented
+[33mb24a766[m Vouchers and Alerts screens created
+[33med77025[m Dummy page for SendVoucher
+[33mebd8ed7[m add circlePic to backend and firebase
+[33m25a2f0b[m Created Vouchers screen
+[33m6cf65c3[m leave Circle Button works
+[33mf30769e[m Merge branch 'main' of https://github.com/mmarwa00/CovenCare
+[33m15502f9[m Voucher icon implemented in dashboard
+[33maad59f1[m reset Password works
+[33mb8dfb44[m Leave circle button implemented, log screen style updated
+[33m725f0e8[m avatar for members in Circle
+[33m2dcb3f3[m Emergency icon implemented
+[33m30e972a[m Dashboard updated with icons
+[33maa5ad0e[m Added pixel art icons, dashboard redesign, and profile photo picker
+[33m3dc8521[m FIX: Footer, fixed active circle on dashboard.
+[33m5ac21f9[m log period works + circle member details works
+[33m2c7c810[m Rewrite CircleScreen, add CircleDetailsScreen, clean navigation
+[33m985836d[m Added working profile photo picker with Firebase save
+[33maa5d144[m Added pixel art icons, dashboard redesign, and profile photo picker
+[33m08544da[m Added pixel art icons and header to dashboard
+[33m2d58a28[m added icons, logo, and profile pics folders
+[33m3f83e08[m circle works + period still not working
+[33mb372118[m profile update works, added extra Screens to test everything
+[33m09f5458[m auth is working
+[33m2fa5be0[m Authentication + user services
+[33m5e80bd8[m Fresh React Native Expo app
+[33ma675eca[m Initial commit

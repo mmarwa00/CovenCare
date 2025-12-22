@@ -1,63 +1,60 @@
 import { db } from '../config/firebaseConfig';
-import { 
-  collection, 
-  doc, 
-  addDoc, 
+import {
+  collection,
+  doc,
+  addDoc,
   getDoc,
   getDocs,
   updateDoc,
-  query, 
+  query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  runTransaction
 } from 'firebase/firestore';
 
 // Emergency types
-// Emergency types (with added HEATING_PAD)
 export const EMERGENCY_TYPES = {
-    TAMPON: 'tampon',
-    PADS: 'pads',
-    PAINKILLER: 'painkiller',
-    HEATING_PAD: 'heating_pad',
-    THE_EAR: 'the_ear',
-    THE_PMS: 'the_pms'
+  TAMPON: 'tampon',
+  PADS: 'pads',
+  PAINKILLER: 'painkiller',
+  HEATING_PAD: 'heating_pad',
+  THE_EAR: 'the_ear',
+  THE_PMS: 'the_pms'
 };
 
-// Create emergency alert (M20, M21)
+// Predefined response messages (used by UI)
+export const PREDEFINED_RESPONSES = [
+  "On my way! 🏃‍♀️",
+  "Sending care package! 📦",
+  "Can't right now but ❤️",
+  "I'll be there in 10 minutes!",
+  "Heading to the store now! 🛒"
+];
+
+const CANT_PHRASE = "Can't right now but ❤️";
+
+// Create emergency alert
 export const createEmergency = async (senderId, circleId, type, recipients, message = '') => {
   try {
-    // Validate inputs
-    if (!senderId || !circleId || !type) {
-      throw new Error('Sender ID, circle ID, and type are required');
-    }
+    if (!senderId || !circleId || !type) throw new Error('Sender ID, circle ID, and type are required');
+    if (!recipients || recipients.length === 0) throw new Error('At least one recipient is required');
 
-    if (!recipients || recipients.length === 0) {
-      throw new Error('At least one recipient is required');
-    }
-
-    // Validate emergency type
     const validTypes = Object.values(EMERGENCY_TYPES);
-    if (!validTypes.includes(type)) {
-      throw new Error(`Invalid emergency type. Must be one of: ${validTypes.join(', ')}`);
-    }
+    if (!validTypes.includes(type)) throw new Error(`Invalid emergency type. Must be one of: ${validTypes.join(', ')}`);
 
-    // Get sender info
     const senderDoc = await getDoc(doc(db, 'users', senderId));
-    if (!senderDoc.exists()) {
-      throw new Error('Sender not found');
-    }
+    if (!senderDoc.exists()) throw new Error('Sender not found');
 
-    // Calculate auto-resolve time (24 hours from now)
     const now = new Date();
     const autoResolveAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // Create emergency document
     const emergencyRef = await addDoc(collection(db, 'emergencies'), {
-      senderId: senderId,
-      senderName: senderDoc.data().displayName,
-      circleId: circleId,
-      type: type,
-      recipients: recipients,
+      senderId,
+      senderName: senderDoc.data().displayName || '',
+      circleId,
+      type,
+      recipients,
       message: message || '',
       status: 'active',
       responses: [],
@@ -66,30 +63,18 @@ export const createEmergency = async (senderId, circleId, type, recipients, mess
     });
 
     console.log('Emergency created:', emergencyRef.id);
-
-    // Note: Email sending will be handled by Cloud Function
-    // Cloud Function will trigger on this document creation
-
-    return { 
-      success: true, 
-      emergencyId: emergencyRef.id,
-      autoResolveAt: autoResolveAt
-    };
-
+    return { success: true, emergencyId: emergencyRef.id, autoResolveAt };
   } catch (error) {
     console.error('Error creating emergency:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Get active emergencies for user (M23)
+// Get active emergencies for user
 export const getActiveEmergencies = async (userId) => {
   try {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
+    if (!userId) throw new Error('User ID is required');
 
-    // Get emergencies where user is a recipient
     const emergenciesRef = collection(db, 'emergencies');
     const q = query(
       emergenciesRef,
@@ -106,15 +91,13 @@ export const getActiveEmergencies = async (userId) => {
       emergencies.push({
         id: docSnap.id,
         ...data,
-        // Convert Timestamps to Dates for easier handling
-        createdAt: data.createdAt.toDate(),
-        autoResolveAt: data.autoResolveAt.toDate()
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+        autoResolveAt: data.autoResolveAt?.toDate ? data.autoResolveAt.toDate() : data.autoResolveAt
       });
     }
 
     console.log('Got active emergencies:', emergencies.length);
     return { success: true, emergencies };
-
   } catch (error) {
     console.error('Error getting emergencies:', error);
     return { success: false, error: error.message };
@@ -124,9 +107,7 @@ export const getActiveEmergencies = async (userId) => {
 // Get emergencies sent by user
 export const getSentEmergencies = async (userId) => {
   try {
-    if (!userId) {
-      throw new Error('User ID is required');
-    }
+    if (!userId) throw new Error('User ID is required');
 
     const emergenciesRef = collection(db, 'emergencies');
     const q = query(
@@ -136,50 +117,37 @@ export const getSentEmergencies = async (userId) => {
     );
 
     const snapshot = await getDocs(q);
-    const emergencies = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt.toDate(),
-      autoResolveAt: doc.data().autoResolveAt.toDate()
-    }));
+    const emergencies = snapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+        autoResolveAt: data.autoResolveAt?.toDate ? data.autoResolveAt.toDate() : data.autoResolveAt
+      };
+    });
 
     console.log('Got sent emergencies:', emergencies.length);
     return { success: true, emergencies };
-
   } catch (error) {
     console.error('Error getting sent emergencies:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Resolve emergency manually (M24)
+// Resolve emergency manually (sender only)
 export const resolveEmergency = async (emergencyId, userId) => {
   try {
-    if (!emergencyId || !userId) {
-      throw new Error('Emergency ID and user ID are required');
-    }
+    if (!emergencyId || !userId) throw new Error('Emergency ID and user ID are required');
 
-    // Get emergency document
     const emergencyRef = doc(db, 'emergencies', emergencyId);
     const emergencyDoc = await getDoc(emergencyRef);
-
-    if (!emergencyDoc.exists()) {
-      throw new Error('Emergency not found');
-    }
+    if (!emergencyDoc.exists()) throw new Error('Emergency not found');
 
     const emergencyData = emergencyDoc.data();
+    if (emergencyData.senderId !== userId) throw new Error('Only the sender can resolve this emergency');
+    if (emergencyData.status === 'resolved') return { success: true, message: 'Emergency already resolved' };
 
-    // Verify user is the sender
-    if (emergencyData.senderId !== userId) {
-      throw new Error('Only the sender can resolve this emergency');
-    }
-
-    // Check if already resolved
-    if (emergencyData.status === 'resolved') {
-      return { success: true, message: 'Emergency already resolved' };
-    }
-
-    // Update status to resolved
     await updateDoc(emergencyRef, {
       status: 'resolved',
       resolvedAt: Timestamp.now(),
@@ -188,7 +156,6 @@ export const resolveEmergency = async (emergencyId, userId) => {
 
     console.log('Emergency resolved:', emergencyId);
     return { success: true };
-
   } catch (error) {
     console.error('Error resolving emergency:', error);
     return { success: false, error: error.message };
@@ -198,21 +165,15 @@ export const resolveEmergency = async (emergencyId, userId) => {
 // Get emergency details
 export const getEmergencyDetails = async (emergencyId) => {
   try {
-    if (!emergencyId) {
-      throw new Error('Emergency ID is required');
-    }
+    if (!emergencyId) throw new Error('Emergency ID is required');
 
     const emergencyDoc = await getDoc(doc(db, 'emergencies', emergencyId));
-
-    if (!emergencyDoc.exists()) {
-      throw new Error('Emergency not found');
-    }
+    if (!emergencyDoc.exists()) throw new Error('Emergency not found');
 
     const data = emergencyDoc.data();
-
-    // Get recipient details
     const recipientDetails = [];
-    for (const recipientId of data.recipients) {
+
+    for (const recipientId of data.recipients || []) {
       const userDoc = await getDoc(doc(db, 'users', recipientId));
       if (userDoc.exists()) {
         recipientDetails.push({
@@ -223,97 +184,101 @@ export const getEmergencyDetails = async (emergencyId) => {
       }
     }
 
-    console.log('Got emergency details');
-    return { 
-      success: true, 
+    return {
+      success: true,
       emergency: {
         id: emergencyDoc.id,
         ...data,
-        createdAt: data.createdAt.toDate(),
-        autoResolveAt: data.autoResolveAt.toDate(),
-        resolvedAt: data.resolvedAt ? data.resolvedAt.toDate() : null,
-        recipientDetails: recipientDetails
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
+        autoResolveAt: data.autoResolveAt?.toDate ? data.autoResolveAt.toDate() : data.autoResolveAt,
+        resolvedAt: data.resolvedAt?.toDate ? data.resolvedAt.toDate() : data.resolvedAt,
+        recipientDetails
       }
     };
-
   } catch (error) {
     console.error('Error getting emergency details:', error);
     return { success: false, error: error.message };
   }
 };
 
-// Respond to emergency (S5, S6)
+// Respond to emergency (transactional, preserves responses and returns updated emergency)
 export const respondToEmergency = async (emergencyId, userId, responseMessage) => {
   try {
-    if (!emergencyId || !userId || !responseMessage) {
-      throw new Error('Emergency ID, user ID, and response message are required');
-    }
+    if (!emergencyId || !userId || !responseMessage) throw new Error('Emergency ID, user ID, and response message are required');
 
-    // Get emergency document
     const emergencyRef = doc(db, 'emergencies', emergencyId);
-    const emergencyDoc = await getDoc(emergencyRef);
+    const isCant = responseMessage?.toLowerCase().trim() === CANT_PHRASE.toLowerCase().trim();
+    const isPositive = !isCant;
 
-    if (!emergencyDoc.exists()) {
-      throw new Error('Emergency not found');
-    }
+    // Run transaction to append response and optionally resolve
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(emergencyRef);
+      if (!snap.exists()) throw new Error('Emergency not found');
 
-    const emergencyData = emergencyDoc.data();
+      const data = snap.data();
 
-    // Verify user is a recipient
-    if (!emergencyData.recipients.includes(userId)) {
-      throw new Error('Only recipients can respond to this emergency');
-    }
+      // Only recipients can respond
+      if (!Array.isArray(data.recipients) || !data.recipients.includes(userId)) {
+        throw new Error('Only recipients can respond to this emergency');
+      }
 
-    // Get user info
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
-      throw new Error('User not found');
-    }
+      // Get responder name
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await tx.get(userRef);
+      const userName = userSnap.exists() ? userSnap.data().displayName : 'Unknown';
 
-    // Add response
-    const response = {
-      userId: userId,
-      userName: userDoc.data().displayName,
-      message: responseMessage,
-      timestamp: Timestamp.now()
-    };
+      const response = {
+        userId,
+        userName,
+        message: responseMessage,
+        timestamp: Timestamp.now()
+      };
 
-    const currentResponses = emergencyData.responses || [];
-    
-    await updateDoc(emergencyRef, {
-      responses: [...currentResponses, response]
+      const currentResponses = Array.isArray(data.responses) ? data.responses : [];
+      const newResponses = [...currentResponses, response];
+
+      const updatePayload = { responses: newResponses };
+
+      // If positive and not already resolved, mark resolved
+      if (isPositive && data.status !== 'resolved') {
+        updatePayload.status = 'resolved';
+        updatePayload.resolvedAt = Timestamp.now();
+        updatePayload.resolvedBy = userId;
+      }
+
+      tx.update(emergencyRef, updatePayload);
     });
 
-    console.log('Response added to emergency');
-    return { success: true };
+    // Fetch updated doc so caller gets latest responses/status
+    const updatedSnap = await getDoc(emergencyRef);
+    const updatedData = updatedSnap.exists() ? updatedSnap.data() : null;
 
+    if (updatedData) {
+      const formatted = {
+        id: updatedSnap.id,
+        ...updatedData,
+        createdAt: updatedData.createdAt?.toDate ? updatedData.createdAt.toDate() : updatedData.createdAt,
+        autoResolveAt: updatedData.autoResolveAt?.toDate ? updatedData.autoResolveAt.toDate() : updatedData.autoResolveAt,
+        resolvedAt: updatedData.resolvedAt?.toDate ? updatedData.resolvedAt.toDate() : updatedData.resolvedAt
+      };
+      console.log('respondToEmergency success', { emergencyId, userId, responseMessage });
+      return { success: true, emergency: formatted };
+    }
+
+    return { success: true };
   } catch (error) {
-    console.error('Error responding to emergency:', error);
+    console.error('respondToEmergency error', error);
     return { success: false, error: error.message };
   }
 };
 
-// Get time remaining until auto-resolve (helper function)
+// Helper to compute time until auto-resolve
 export const getTimeUntilAutoResolve = (autoResolveAt) => {
   const now = new Date();
-  const resolveTime = autoResolveAt instanceof Date ? autoResolveAt : autoResolveAt.toDate();
+  const resolveTime = autoResolveAt instanceof Date ? autoResolveAt : (autoResolveAt?.toDate ? autoResolveAt.toDate() : new Date(autoResolveAt));
   const diff = resolveTime - now;
-
-  if (diff <= 0) {
-    return { hours: 0, minutes: 0, expired: true };
-  }
-
+  if (diff <= 0) return { hours: 0, minutes: 0, expired: true };
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
   return { hours, minutes, expired: false };
 };
-
-// Predefined response messages
-export const PREDEFINED_RESPONSES = [
-  "On my way! 🏃‍♀️",
-  "Sending care package! 📦",
-  "Can't right now but ❤️",
-  "I'll be there in 10 minutes!",
-  "Heading to the store now! 🛒"
-];

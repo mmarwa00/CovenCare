@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { Button, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { useFocusEffect } from '@react-navigation/native';
 import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation, route }) {
   const { signOutUser, user } = useAuth();
   const userId = user?.uid;
 
@@ -20,95 +21,121 @@ export default function DashboardScreen({ navigation }) {
   const [vouchers, setVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
   const [phaseName, setPhaseName] = useState('Follicular');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     const fetchActiveCircle = async () => {
       if (!userId) return;
-      const userRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userRef);
+      setLoadingCircle(true);
+      try {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const activeId = userSnap.data().activeCircleId;
-        if (activeId) {
-          const circleRef = doc(db, "circles", activeId);
-          const circleSnap = await getDoc(circleRef);
+        if (userSnap.exists()) {
+          const activeId = userSnap.data().activeCircleId;
+          if (activeId) {
+            const circleRef = doc(db, "circles", activeId);
+            const circleSnap = await getDoc(circleRef);
 
-          if (circleSnap.exists()) {
-            const circleData = circleSnap.data();
-            setActiveCircle({
-              id: activeId,
-              ...circleData,
-            });
+            if (circleSnap.exists()) {
+              const circleData = circleSnap.data();
+              if (mounted) setActiveCircle({ id: activeId, ...circleData });
+            } else {
+              if (mounted) setActiveCircle(null);
+            }
           } else {
-            setActiveCircle(null);
+            if (mounted) setActiveCircle(null);
           }
         } else {
-          setActiveCircle(null);
+          if (mounted) setActiveCircle(null);
         }
-      } else {
-        setActiveCircle(null);
+      } catch (err) {
+        console.error('fetchActiveCircle error', err);
+        if (mounted) setActiveCircle(null);
+      } finally {
+        if (mounted) setLoadingCircle(false);
       }
-      setLoadingCircle(false);
     };
 
     fetchActiveCircle();
+    return () => { mounted = false; };
   }, [userId]);
 
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      if (!userId) return;
-      setLoadingAlerts(true);
+  const loadAlerts = useCallback(async () => {
+    if (!userId) return;
+    setLoadingAlerts(true);
+    try {
       const result = await getActiveEmergencies(userId);
       if (result.success) {
         setAlerts(result.emergencies);
       } else {
         console.error('Error fetching alerts:', result.error);
       }
+    } catch (err) {
+      console.error('loadAlerts error', err);
+    } finally {
       setLoadingAlerts(false);
-    };
-    fetchAlerts();
+    }
   }, [userId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadAlerts();
+    }, [loadAlerts])
+  );
+
   useEffect(() => {
+    if (route?.params?.refresh) {
+      loadAlerts();
+      navigation.setParams({ refresh: null });
+    }
+  }, [route?.params?.refresh, loadAlerts, navigation]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAlerts();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    let mounted = true;
     const fetchVouchers = async () => {
       if (!userId) return;
       setLoadingVouchers(true);
-      const result = await getSentVouchers(userId);
-      if (result.success) {
-        setVouchers(result.vouchers);
-      } else {
-        console.error('Error fetching sent vouchers:', result.error);
+      try {
+        const result = await getSentVouchers(userId);
+        if (result.success && mounted) {
+          setVouchers(result.vouchers);
+        } else if (!result.success) {
+          console.error('Error fetching sent vouchers:', result.error);
+        }
+      } catch (err) {
+        console.error('fetchVouchers error', err);
+      } finally {
+        if (mounted) setLoadingVouchers(false);
       }
-      setLoadingVouchers(false);
     };
     fetchVouchers();
+    return () => { mounted = false; };
   }, [userId]);
 
   const getCircleIcon = (iconId) => {
     switch (iconId) {
-      case 1:
-        return require('../../assets/icons/circle_small1.png');
-      case 2:
-        return require('../../assets/icons/circle_small2.png');
-      case 3:
-        return require('../../assets/icons/circle_small3.png');
-      default:
-        return require('../../assets/icons/circle_small2.png');
+      case 1: return require('../../assets/icons/circle_small1.png');
+      case 2: return require('../../assets/icons/circle_small2.png');
+      case 3: return require('../../assets/icons/circle_small3.png');
+      default: return require('../../assets/icons/circle_small2.png');
     }
   };
 
   const getPhaseIcon = (phaseName) => {
     switch (phaseName) {
-      case 'Period':
-        return require('../../assets/phases/period.png');
-      case 'Ovulation':
-        return require('../../assets/phases/ovulation.png');
-      case 'Luteal':
-        return require('../../assets/phases/luteal.png');
-      case 'Follicular':
-        return require('../../assets/phases/follicular.png');
-      default:
-        return require('../../assets/icons/Log.png');
+      case 'Period': return require('../../assets/phases/period.png');
+      case 'Ovulation': return require('../../assets/phases/ovulation.png');
+      case 'Luteal': return require('../../assets/phases/luteal.png');
+      case 'Follicular': return require('../../assets/phases/follicular.png');
+      default: return require('../../assets/icons/Log.png');
     }
   };
 
@@ -150,17 +177,17 @@ export default function DashboardScreen({ navigation }) {
     <View style={{ flex: 1 }}>
       <Header navigation={navigation} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
         <View style={styles.dashboardBox}>
           {loadingCircle ? (
             <ActivityIndicator animating={true} color="#4a148c" />
           ) : activeCircle ? (
             <View>
               <View style={styles.circleRow}>
-                <Image
-                  source={getCircleIcon(activeCircle.iconId)}
-                  style={styles.circleIcon}
-                />
+                <Image source={getCircleIcon(activeCircle.iconId)} style={styles.circleIcon} />
                 <Text style={styles.boxTitle}>Active Circle</Text>
               </View>
               <Text style={styles.circleName}>
@@ -185,10 +212,7 @@ export default function DashboardScreen({ navigation }) {
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
-            <Image
-              source={require('../../assets/Alerts/alert.png')}
-              style={styles.emergencyIcon}
-            />
+            <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
             <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
           </View>
 
@@ -203,31 +227,25 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={styles.boxSubtitle}>
                   From: {alert.senderName} • {getTimeAgo(alert.createdAt)}
                 </Text>
-                {alert.message && (
-                  <Text style={styles.alertMessage}>"{alert.message}"</Text>
-                )}
+                {alert.message && <Text style={styles.alertMessage}>"{alert.message}"</Text>}
               </View>
             ))
           )}
 
-          {alerts.length > 3 && (
-            <Text style={styles.viewMore}>Tap to view all alerts →</Text>
-          )}
+          {alerts.length > 3 && <Text style={styles.viewMore}>Tap to view all alerts →</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity
-  style={styles.dashboardBox}
-  onPress={() => navigation.navigate('SentVouchers')}
+          style={styles.dashboardBox}
+          onPress={() => navigation.navigate('SentVouchers')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
-            <Image
-              source={require('../../assets/Vouchers/voucher.png')}
-              style={styles.voucherIcon}
-            />
+            <Image source={require('../../assets/Vouchers/voucher.png')} style={styles.voucherIcon} />
             <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
           </View>
         </TouchableOpacity>
+
         <Button
           mode="outlined"
           onPress={signOutUser}
@@ -243,7 +261,6 @@ export default function DashboardScreen({ navigation }) {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   scrollContainer: {
