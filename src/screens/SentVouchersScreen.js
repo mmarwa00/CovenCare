@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, Text, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, Image, Text, Dimensions } from 'react-native';
 import { Title } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getSentVouchers } from '../services/voucherService';
@@ -8,21 +9,6 @@ import { getSentVouchers } from '../services/voucherService';
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
 const CARD_HEIGHT = CARD_WIDTH * 1.2;
-
-const renderItem = ({ item }) => (
-  <View style={styles.card}>
-    <Image source={item.itemImage} style={styles.cardImage} />
-    <Text style={styles.cardCount}>{item.count}x {item.itemName}</Text>
-    {item.recipients.map((r) => (
-      <View key={r.voucherId} style={styles.detailBlock}>
-        <Text style={styles.detailText}>To: {r.recipientName}</Text>
-        <Text style={styles.detailText}>Sent: {r.sentAt}</Text>
-        <Text style={styles.detailText}>Code: {r.code}</Text>
-        {r.redeemed && <Text style={styles.redeemed}>Redeemed ✔</Text>}
-      </View>
-    ))}
-  </View>
-);
 
 const imagesByType = {
   chocolate: require('../../assets/Vouchers/choco.png'),
@@ -48,54 +34,56 @@ export default function SentVouchersScreen({ navigation }) {
   const [sentItems, setSentItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchVouchers = async () => {
-      if (!userId) return;
-      setLoading(true);
-      const result = await getSentVouchers(userId);
+  const fetchVouchers = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    const result = await getSentVouchers(userId);
 
-      if (result.success) {
-        const grouped = {};
-        const now = new Date();
+    if (result.success) {
+      const grouped = {};
+      const now = new Date();
 
-        result.vouchers.forEach(voucher => {
-          // filter: hide redeemed vouchers older than 1 day
-          if (voucher.status === 'redeemed') {
-            const sentDate = new Date(voucher.sentAt);
-            const diffMs = now - sentDate;
-            const diffDays = diffMs / (1000 * 60 * 60 * 24);
-            if (diffDays > 1) return; // skip
-          }
+      result.vouchers.forEach(voucher => {
+        // filter: hide redeemed vouchers older than 1 day
+        if (voucher.status === 'redeemed') {
+          const sentDate = new Date(voucher.sentAt);
+          const diffMs = now - sentDate;
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+          if (diffDays > 1) return; // skip
+        }
 
-          if (!grouped[voucher.type]) {
-            grouped[voucher.type] = {
-              id: voucher.type,
-              itemImage: imagesByType[voucher.type],
-              itemName: namesByType[voucher.type],
-              type: voucher.type,
-              count: 0,
-              recipients: []
-            };
-          }
-          grouped[voucher.type].count++;
-          grouped[voucher.type].recipients.push({
-            voucherId: voucher.id,
-            recipientName: voucher.recipientName,
-            sentAt: new Date(voucher.sentAt).toLocaleDateString(),
-            code: voucher.code,
-            redeemed: voucher.status === 'redeemed'
-          });
+        if (!grouped[voucher.type]) {
+          grouped[voucher.type] = {
+            id: voucher.type,
+            itemImage: imagesByType[voucher.type],
+            itemName: namesByType[voucher.type],
+            type: voucher.type,
+            count: 0,
+            recipients: []
+          };
+        }
+        grouped[voucher.type].count++;
+        grouped[voucher.type].recipients.push({
+          voucherId: voucher.id,
+          recipientName: voucher.recipientName,
+          sentAt: new Date(voucher.sentAt).toLocaleDateString(),
+          code: voucher.code,
+          redeemed: voucher.status === 'redeemed'
         });
+      });
 
-        setSentItems(Object.values(grouped));
-      } else {
-        console.error('Error fetching sent vouchers:', result.error);
-      }
-      setLoading(false);
-    };
-
-    fetchVouchers();
+      setSentItems(Object.values(grouped));
+    } else {
+      console.error('Error fetching sent vouchers:', result.error);
+    }
+    setLoading(false);
   }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchVouchers();
+    }, [fetchVouchers])
+  );
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
@@ -189,7 +177,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  
   emptyState: {
     flex: 1,
     justifyContent: 'center',

@@ -1,15 +1,16 @@
 import { db } from '../config/firebaseConfig';
-import { 
-  collection, 
-  doc, 
-  addDoc, 
+import {
+  collection,
+  doc,
+  addDoc,
   getDoc,
   getDocs,
   updateDoc,
-  query, 
+  query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  runTransaction
 } from 'firebase/firestore';
 
 // Voucher types
@@ -211,48 +212,47 @@ export const getSentVouchers = async (userId) => {
 // Redeem voucher (S4)
 export const redeemVoucher = async (voucherId, userId) => {
   try {
-    if (!voucherId || !userId) {
-      throw new Error('Voucher ID and user ID are required');
-    }
+    if (!voucherId || !userId) throw new Error('Voucher ID and user ID are required');
 
-    // Get voucher document
     const voucherRef = doc(db, 'vouchers', voucherId);
-    const voucherDoc = await getDoc(voucherRef);
 
-    if (!voucherDoc.exists()) {
-      throw new Error('Voucher not found');
-    }
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(voucherRef);
+      if (!snap.exists()) throw new Error('Voucher not found');
 
-    const voucherData = voucherDoc.data();
+      const data = snap.data();
 
-    // Verify user is the recipient
-    if (voucherData.recipientId !== userId) {
-      throw new Error('Only the recipient can redeem this voucher');
-    }
+      if (String(data.recipientId) !== String(userId)) {
+        throw new Error('Only the recipient can redeem this voucher');
+      }
 
-    // Check if already redeemed
-    if (voucherData.status === 'redeemed') {
-      return { 
-        success: false, 
-        error: 'This voucher has already been redeemed',
-        redeemedAt: voucherData.redeemedAt.toDate()
-      };
-    }
+      if (data.status === 'redeemed') {
+        throw new Error('This voucher has already been redeemed');
+      }
 
-    // Update status to redeemed
-    await updateDoc(voucherRef, {
-      status: 'redeemed',
-      redeemedAt: Timestamp.now()
+      tx.update(voucherRef, {
+        status: 'redeemed',
+        redeemedAt: Timestamp.now(),
+        redeemedBy: String(userId)
+      });
     });
 
-    console.log('Voucher redeemed:', voucherId);
+    const updatedSnap = await getDoc(voucherRef);
+    if (!updatedSnap.exists()) throw new Error('Voucher not found after redeem');
 
-    // Note: Notification to sender will be handled by Cloud Function (optional)
+    const updated = updatedSnap.data();
+    const formatted = {
+      id: updatedSnap.id,
+      ...updated,
+      sentAt: updated.sentAt?.toDate ? updated.sentAt.toDate() : updated.sentAt,
+      redeemedAt: updated.redeemedAt?.toDate ? updated.redeemedAt.toDate() : updated.redeemedAt
+    };
 
-    return { success: true };
+    console.log('Voucher redeemed (transaction):', voucherId);
+    return { success: true, voucher: formatted };
 
   } catch (error) {
-    console.error('Error redeeming voucher:', error);
+    console.error('Error redeeming voucher (transaction):', error);
     return { success: false, error: error.message };
   }
 };
@@ -287,8 +287,8 @@ export const getVoucherDetails = async (voucherId) => {
     } : null;
 
     console.log('Got voucher details');
-    return { 
-      success: true, 
+    return {
+      success: true,
       voucher: {
         id: voucherDoc.id,
         ...data,

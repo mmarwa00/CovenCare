@@ -1,6 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, Text, Dimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Text,
+  Dimensions
+} from 'react-native';
 import { Title } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getReceivedVouchers } from '../services/voucherService';
@@ -41,46 +50,49 @@ export default function CareBoxScreen({ navigation }) {
   const [receivedItems, setReceivedItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchVouchers = async () => {
-      if (!userId) return;
-      setLoading(true);
-      const result = await getReceivedVouchers(userId, 'unredeemed');
-      
-      if (result.success) {
-        // Group vouchers by type
-        const grouped = {};
-        result.vouchers.forEach(voucher => {
-          if (!grouped[voucher.type]) {
-            grouped[voucher.type] = {
-              id: voucher.type,
-              itemImage: getVoucherImage(voucher.type),
-              itemName: getVoucherName(voucher.type),
-              type: voucher.type,
-              count: 0,
-              senders: []
-            };
-          }
-          grouped[voucher.type].count++;
-          grouped[voucher.type].senders.push({
-            voucherId: voucher.id,
-            senderId: voucher.senderId,
-            senderName: voucher.senderName,
-            sentAt: new Date(voucher.sentAt).toLocaleDateString(),
-            code: voucher.code,
-            redeemed: voucher.status === 'redeemed'
-          });
-        });
-        
-        setReceivedItems(Object.values(grouped));
-      } else {
-        console.error('Error fetching vouchers:', result.error);
-      }
-      setLoading(false);
-    };
+  const fetchVouchers = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    const result = await getReceivedVouchers(userId, 'unredeemed');
 
-    fetchVouchers();
+    if (result.success) {
+      const grouped = {};
+      result.vouchers.forEach(voucher => {
+        if (!grouped[voucher.type]) {
+          grouped[voucher.type] = {
+            id: voucher.type,
+            itemImage: getVoucherImage(voucher.type),
+            itemName: getVoucherName(voucher.type),
+            type: voucher.type,
+            count: 0,
+            senders: []
+          };
+        }
+        grouped[voucher.type].count++;
+        grouped[voucher.type].senders.push({
+          voucherId: voucher.id,
+          senderId: voucher.senderId,
+          senderName: voucher.senderName,
+          sentAt: voucher.sentAt instanceof Date
+            ? voucher.sentAt.toLocaleDateString()
+            : new Date(voucher.sentAt).toLocaleDateString(),
+          code: voucher.code,
+          redeemed: voucher.status === 'redeemed'
+        });
+      });
+
+      setReceivedItems(Object.values(grouped));
+    } else {
+      console.error('Error fetching vouchers:', result.error);
+    }
+    setLoading(false);
   }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchVouchers();
+    }, [fetchVouchers])
+  );
 
   const renderItem = ({ item }) => (
     <TouchableOpacity

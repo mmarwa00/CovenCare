@@ -12,12 +12,18 @@ export default function CareBoxDetails({ route, navigation }) {
   const { user } = useAuth();
   const userId = user?.uid;
   const { itemImage, itemName, count, senders } = route.params;
-  const [localSenders, setLocalSenders] = useState(senders);
 
-  const handleRedeem = async (sender) => {
+  // localSenders: array of { voucherId, senderId, senderName, sentAt, code, redeemed }
+  const [localSenders, setLocalSenders] = useState(senders || []);
+  const [processingMap, setProcessingMap] = useState({}); // { [voucherId]: boolean }
+
+  const setProcessing = (voucherId, val) => {
+    setProcessingMap(prev => ({ ...prev, [voucherId]: val }));
+  };
+
+  const handleRedeem = (sender) => {
     if (!userId) return;
 
-    // Show confirmation alert
     Alert.alert(
       'Redeem Voucher',
       `Redeem this ${itemName} from ${sender.senderName}?`,
@@ -26,28 +32,45 @@ export default function CareBoxDetails({ route, navigation }) {
         {
           text: 'Redeem',
           onPress: async () => {
-            const result = await redeemVoucher(sender.voucherId, userId);
-            
-            if (result.success) {
-              // Update local state
-              setLocalSenders((prev) =>
-                prev.map((s) =>
-                  s.voucherId === sender.voucherId ? { ...s, redeemed: true } : s
-                )
-              );
-              
-              // Check if all vouchers are redeemed
-              const allRedeemed = localSenders.every(
-                s => s.voucherId === sender.voucherId ? true : s.redeemed
-              );
-              
-              if (allRedeemed) {
-                // Go back to CareBox if all redeemed
-                setTimeout(() => navigation.goBack(), 500);
+            setProcessing(sender.voucherId, true);
+
+            try {
+              const result = await redeemVoucher(sender.voucherId, userId);
+
+              if (!result.success) {
+                // If already redeemed, show friendly message
+                if (result.error && result.error.toLowerCase().includes('already been redeemed')) {
+                  Alert.alert('Already redeemed', 'This voucher was already redeemed.');
+                } else {
+                  Alert.alert('Error', result.error || 'Failed to redeem voucher. Please try again.');
+                }
+                console.error('Redeem error:', result.error);
+                setProcessing(sender.voucherId, false);
+                return;
               }
-            } else {
-              Alert.alert('Error', 'Failed to redeem voucher. Please try again.');
-              console.error('Redeem error:', result.error);
+
+              // Build new senders array with redeemed flag updated
+              const newSenders = localSenders.map(s =>
+                s.voucherId === sender.voucherId ? { ...s, redeemed: true, redeemedAt: result.voucher?.redeemedAt || new Date() } : s
+              );
+
+              setLocalSenders(newSenders);
+
+              Alert.alert('Redeemed', 'Voucher redeemed successfully');
+
+              // If all vouchers are redeemed, go back to CareBox
+              const allRedeemed = newSenders.every(s => s.redeemed);
+              if (allRedeemed) {
+                setTimeout(() => navigation.goBack(), 500);
+              } else {
+                // keep user on details so they can redeem others
+              }
+
+            } catch (err) {
+              console.error('handleRedeem error:', err);
+              Alert.alert('Error', 'Network error while redeeming');
+            } finally {
+              setProcessing(sender.voucherId, false);
             }
           }
         }
@@ -73,26 +96,32 @@ export default function CareBoxDetails({ route, navigation }) {
         <FlatList
           data={localSenders}
           keyExtractor={(s) => s.voucherId.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.senderRow}>
-              <View style={styles.senderInfo}>
-                <Text style={styles.senderName}>Sent from: {item.senderName}</Text>
-                <Text style={styles.senderDate}>Date: {item.sentAt}</Text>
-                <Text style={styles.senderCode}>Code: {item.code}</Text>
-                <Text style={styles.senderStatus}>
-                  {item.redeemed ? '✓ Redeemed' : 'Not redeemed'}
-                </Text>
+          renderItem={({ item }) => {
+            const processing = !!processingMap[item.voucherId];
+            return (
+              <View style={styles.senderRow}>
+                <View style={styles.senderInfo}>
+                  <Text style={styles.senderName}>Sent from: {item.senderName}</Text>
+                  <Text style={styles.senderDate}>Date: {item.sentAt}</Text>
+                  <Text style={styles.senderCode}>Code: {item.code}</Text>
+                  <Text style={styles.senderStatus}>
+                    {item.redeemed ? '✓ Redeemed' : 'Not redeemed'}
+                  </Text>
+                </View>
+                {!item.redeemed ? (
+                  <TouchableOpacity
+                    style={[styles.redeemButton, processing && styles.buttonDisabled]}
+                    onPress={() => handleRedeem(item)}
+                    disabled={processing}
+                  >
+                    <Text style={styles.redeemText}>{processing ? 'Redeeming...' : 'Redeem'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.redeemedBadge}><Text style={styles.redeemedText}>Redeemed</Text></View>
+                )}
               </View>
-              {!item.redeemed && (
-                <TouchableOpacity
-                  style={styles.redeemButton}
-                  onPress={() => handleRedeem(item)}
-                >
-                  <Text style={styles.redeemText}>Redeem</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+            );
+          }}
         />
       </View>
     </Layout>
