@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
-import { registerUser } from '../services/authService'; // Direct call to service
+import { registerUser } from '../services/authService';
+import { registerForPushNotifications } from '../services/notificationService';
 import Header from '../components/Header';
 
 export default function RegisterScreen({ navigation }) {
@@ -25,19 +26,28 @@ export default function RegisterScreen({ navigation }) {
     const result = await registerUser(email, password, displayName);
 
     if (result.success) {
-      // Success! Alert the user and navigate back to the Login screen.
+      // Success! Register for push notifications
+      try {
+        await registerForPushNotifications(result.user.uid);
+        console.log('Push notifications registered');
+      } catch (err) {
+        console.log('Push notification registration failed:', err);
+        // Don't block registration if push notifications fail
+      }
+
+      // Alert the user and navigate back to the Login screen
       Alert.alert(
         'Registration Success',
         'Your account has been created! Please log in.',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Login'), // Mocks navigating back
+            onPress: () => navigation.navigate('Login'),
           },
         ],
       );
     } else {
-      // 2. Display the error message (e.g., Firebase: Error (auth/email-already-in-use))
+      // 2. Display the error message
       setError(result.error || 'Registration failed. Check your network.');
     }
     setLoading(false);
@@ -115,13 +125,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4a148c', // Deep purple
+    color: '#4a148c',
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6a1b9a', // Lighter purple
+    color: '#6a1b9a',
     textAlign: 'center',
     marginBottom: 30,
   },
@@ -137,7 +147,7 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
     borderRadius: 8,
-    backgroundColor: '#4a148c', // Darker purple for action
+    backgroundColor: '#4a148c',
   },
   buttonContent: {
     height: 50,

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-// Note: You will need to install 'react-native-paper' for professional components
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
 import { useAuth } from '../context/AuthContext';
+import { registerForPushNotifications } from '../services/notificationService';
 import Header from '../components/Header';
 
 export default function LoginScreen({ navigation }) {
@@ -15,7 +15,6 @@ export default function LoginScreen({ navigation }) {
 
   // If the user is already authenticated (from context check), go to Dashboard
   if (isAuthenticated) {
-    // In a real navigator, you'd navigate('Dashboard');
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Welcome Back!</Text>
@@ -35,8 +34,16 @@ export default function LoginScreen({ navigation }) {
     const result = await signIn(email, password);
 
     if (result.success) {
-      // Success! The AuthContext listener will automatically handle navigation 
-      // by updating isAuthenticated and reloading the app stack.
+      // Success! Register for push notifications
+      try {
+        await registerForPushNotifications(result.user.uid);
+        console.log('Push notifications registered');
+      } catch (err) {
+        console.log('Push notification registration failed:', err);
+        // Don't block login if push notifications fail
+      }
+      
+      // The AuthContext listener will automatically handle navigation 
       console.log('Login successful, state update imminent.');
     } else {
       // 2. Display the error message
@@ -96,7 +103,7 @@ export default function LoginScreen({ navigation }) {
 
       {/*Reset Button*/}
       <TouchableOpacity onPress={() => navigation.navigate('Reset')}>
-        <Text sttyle={styles.link}>Forgot your Password?</Text>
+        <Text style={styles.link}>Forgot your Password?</Text>
       </TouchableOpacity>
 
     </View>
@@ -113,13 +120,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4a148c', // Deep purple
+    color: '#4a148c',
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6a1b9a', // Lighter purple
+    color: '#6a1b9a',
     textAlign: 'center',
     marginBottom: 30,
   },

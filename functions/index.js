@@ -1,54 +1,78 @@
 const admin = require("firebase-admin");
-
 const {
   onSchedule,
 } = require("firebase-functions/v2/scheduler");
-
 const {
   onDocumentCreated,
   onDocumentUpdated,
 } = require("firebase-functions/v2/firestore");
 
 admin.initializeApp();
-
 const db = admin.firestore();
+
+/**
+ * Send push notification using Firebase Admin SDK
+ */
 
 /**
  * Sends a push notification to a list of users via FCM.
  *
  * @param {string[]} userIds - Array of user IDs to notify
  * @param {Object} payload - Notification payload
- * @param {Object} payload.notification - FCM notification object
+ * @param {Object} payload.notification - Notification object
  * @param {string} payload.notification.title - Notification title
  * @param {string} payload.notification.body - Notification body
  * @param {Object} payload.data - Custom data payload
  * @return {Promise<void>} Resolves when notifications are sent
  */
 async function sendPushToUsers(userIds, payload) {
-  const tokens = [];
+  try {
+    const tokens = [];
 
-  for (const userId of userIds) {
-    const userDoc = await db
-        .collection("users")
-        .doc(userId)
-        .get();
+    for (const userId of userIds) {
+      const userDoc = await db.collection("users").doc(userId).get();
 
-    if (userDoc.exists && userDoc.data().fcmTokens) {
-      tokens.push(...userDoc.data().fcmTokens);
+      if (userDoc.exists && userDoc.data().fcmTokens) {
+        const userTokens = userDoc.data().fcmTokens;
+        tokens.push(...userTokens);
+      }
     }
-  }
 
-  if (tokens.length === 0) {
-    console.log("No FCM tokens found");
-    return;
-  }
+    if (tokens.length === 0) {
+      console.log("No FCM tokens found for users:", userIds);
+      return;
+    }
 
-  await admin.messaging().sendEachForMulticast({
-    tokens,
-    notification: payload.notification,
-    data: payload.data,
-  });
+    // Send notification using Admin SDK
+    const message = {
+      notification: {
+        title: payload.notification.title,
+        body: payload.notification.body,
+      },
+      data: payload.data || {},
+      tokens: tokens,
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    console.log(`Successfully sent ${response.successCount} notifications`);
+    console.log(`Failed to send ${response.failureCount} notifications`);
+
+    // Clean up invalid tokens
+    if (response.failureCount > 0) {
+      const failedTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          failedTokens.push(tokens[idx]);
+        }
+      });
+      console.log("Failed tokens:", failedTokens);
+    }
+  } catch (error) {
+    console.error("Error sending push notifications:", error);
+  }
 }
+
 
 /**
  * M24: Auto-expire emergencies after 24 hours
