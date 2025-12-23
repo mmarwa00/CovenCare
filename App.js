@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { db, auth } from './src/config/firebase'; // Adjust path if needed
+import { db, auth } from './src/config/firebaseConfig';
 
 // Configure notification handler (outside component)
 Notifications.setNotificationHandler({
