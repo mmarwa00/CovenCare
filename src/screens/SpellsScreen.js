@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, Animated, PanResponder } from 'react-native';
 import Layout from '../components/Layout';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -12,74 +12,65 @@ const SPELLS = [
     id: 1,
     title: 'Crystal Healing',
     image: require('../../assets/spells/crystal.png'),
-    description: "Harness the power of earth's gems",
-    details:
-      "Place moonstone on your lower abdomen for 15 minutes. Carnelian to ease cramps. Rose quartz to bring comfort and self-love.",
+    description: 'Harness the power of earth\'s gems',
+    details: 'Place moonstone on your lower abdomen for 15 minutes. Carnelian to ease cramps. Rose quartz to bring comfort and self-love. Let the crystal\'s energy flow through you.',
   },
   {
     id: 2,
     title: 'Moon Tea Ritual',
     image: require('../../assets/spells/moontea.png'),
     description: 'Sacred herbs to soothe your body',
-    details:
-      'Brew chamomile, ginger, and raspberry leaf tea. Sip slowly while setting intentions for comfort and ease.',
+    details: 'Brew chamomile, ginger, and raspberry leaf tea. Sip slowly while setting intentions for comfort and ease. Feel the warmth spread through your body.',
   },
   {
     id: 3,
     title: 'Cleansing Smoke',
     image: require('../../assets/spells/sage.png'),
     description: 'Clear negative energy and pain',
-    details:
-      'Light sage and let the smoke swirl around you. Visualize cramps melting away with each exhale.',
+    details: 'Light sage and let the smoke swirl around you. Breathe deeply and visualize cramps melting away with each exhale. Release what no longer serves you.',
   },
   {
     id: 4,
     title: 'Flame Meditation',
     image: require('../../assets/spells/candle.png'),
     description: 'Find peace in the flickering light',
-    details:
-      'Light a purple candle. Focus on the flame for 5 minutes. Breathe: 4 in, hold 4, 4 out.',
+    details: 'Light a purple candle. Focus on the flame for 5 minutes. Breathe: 4 counts in, hold for 4, 4 counts out. Feel calm wash over you like gentle waves.',
   },
   {
     id: 5,
     title: 'Lunar Bath Spell',
     image: require('../../assets/spells/bath.png'),
     description: 'Soak in healing waters',
-    details:
-      'Add Epsom salt, lavender oil, and rose petals. Soak for 20 minutes under candlelight.',
+    details: 'Add Epsom salt, lavender oil, and rose petals to warm water. Soak for 20 minutes under candlelight. Visualize pain dissolving into the water.',
   },
 ];
-
 export default function SpellsScreen({ navigation }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCard, setExpandedCard] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
-
+  
   const position = useRef(new Animated.ValueXY()).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // --- SWIPE HANDLER ---
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => expandedCard === null,
-
       onPanResponderMove: (_, gesture) => {
-        position.setValue({ x: gesture.dx, y: gesture.dy * 0.1 });
+        position.setValue({ x: gesture.dx, y: 0 });
       },
-
       onPanResponderRelease: (_, gesture) => {
-        const swipeThreshold = 120;
-        const velocityThreshold = 0.3;
-
-        if (gesture.dx > swipeThreshold || gesture.vx > velocityThreshold) {
+        if (gesture.dx > 120) {
+          // Swipe right - go to previous
           swipeCard('right');
-        } else if (gesture.dx < -swipeThreshold || gesture.vx < -velocityThreshold) {
+        } else if (gesture.dx < -120) {
+          // Swipe left - go to next
           swipeCard('left');
         } else {
+          // Return to center
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
-            useNativeDriver: true,
+            useNativeDriver: false,
           }).start();
         }
       },
@@ -88,30 +79,35 @@ export default function SpellsScreen({ navigation }) {
 
   const swipeCard = (direction) => {
     const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
-
     Animated.timing(position, {
       toValue: { x, y: 0 },
       duration: 250,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => {
-      if (direction === 'left' && currentIndex < SPELLS.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-      } else if (direction === 'right' && currentIndex > 0) {
-        setCurrentIndex(currentIndex - 1);
-      }
-
+      if (direction === 'left') {
+  setCurrentIndex((prev) => {
+    if (prev === SPELLS.length - 1) return 0;      // last → first
+    return prev + 1;                                // normal next
+  });
+} else if (direction === 'right') {
+  setCurrentIndex((prev) => {
+    if (prev === 0) return SPELLS.length - 1;       // first → last
+    return prev - 1;                                // normal previous
+  });
+}
       position.setValue({ x: 0, y: 0 });
     });
   };
 
-  // --- CARD TAP / FLIP ---
   const handleCardTap = () => {
     if (expandedCard !== null) {
+      // Card is expanded - flip it
       flipCard();
     } else {
+      // Card is not expanded - expand it
       setExpandedCard(currentIndex);
       Animated.spring(scaleAnim, {
-        toValue: 1.25,
+        toValue: 1.3,
         useNativeDriver: true,
       }).start();
     }
@@ -123,7 +119,6 @@ export default function SpellsScreen({ navigation }) {
       duration: 600,
       useNativeDriver: true,
     }).start();
-
     setIsFlipped(!isFlipped);
   };
 
@@ -144,7 +139,6 @@ export default function SpellsScreen({ navigation }) {
     });
   };
 
-  // --- FLIP INTERPOLATION ---
   const frontInterpolate = flipAnim.interpolate({
     inputRange: [0, 180],
     outputRange: ['0deg', '180deg'],
@@ -159,104 +153,103 @@ export default function SpellsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Healing Spells">
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        <Text>Healing Spells</Text>
-        <Text>Swipe to browse • Tap to reveal</Text>
+      <View style={styles.container}>
+        <Text style={styles.title}>Healing Spells</Text>
+        <Text style={styles.subtitle}>Swipe to browse • Tap to reveal</Text>
 
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          {/* Background stacked cards */}
+        <View style={styles.cardContainer}>
+          {/* Stack of cards in background */}
           {SPELLS.map((spell, index) => {
             if (index === currentIndex) return null;
-
             const offset = (index - currentIndex) * 10;
             const opacity = Math.abs(index - currentIndex) === 1 ? 0.5 : 0.2;
-
+            
             return (
               <View
                 key={spell.id}
-                style={{
-                  width: CARD_WIDTH,
-                  height: CARD_HEIGHT,
-                  position: 'absolute',
-                  opacity,
-                  transform: [
-                    { translateX: offset },
-                    { translateY: Math.abs(offset) },
-                    { scale: 0.95 },
-                  ],
-                }}
+                style={[
+                  styles.card,
+                  {
+                    opacity,
+                    transform: [
+                      { translateX: offset },
+                      { translateY: Math.abs(offset) },
+                      { scale: 0.95 },
+                    ],
+                  },
+                ]}
               >
-                <Image source={spell.image} style={{ width: '100%', height: '100%' }} />
+                <Image source={spell.image} style={styles.cardImage} />
               </View>
             );
           })}
 
-          {/* Active card */}
+          {/* Current card */}
           <Animated.View
             {...panResponder.panHandlers}
-            style={{
-              width: CARD_WIDTH,
-              height: CARD_HEIGHT,
-              position: 'absolute',
-              transform: [
-                { translateX: position.x },
-                { translateY: position.y },
-                { scale: expandedCard !== null ? scaleAnim : 1 },
-              ],
-            }}
+            style={[
+              styles.card,
+              {
+                transform: [
+                  { translateX: position.x },
+                  { scale: expandedCard !== null ? scaleAnim : 1 },
+                ],
+              },
+            ]}
           >
-            <TouchableOpacity activeOpacity={1} onPress={handleCardTap} style={{ flex: 1 }}>
-              {/* Front */}
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={handleCardTap}
+              style={styles.cardTouchable}
+            >
+              {/* Front of card */}
               <Animated.View
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  backfaceVisibility: 'hidden',
-                  transform: [{ rotateY: frontInterpolate }],
-                }}
+                style={[
+                  styles.cardFace,
+                  styles.cardFront,
+                  {
+                    transform: [{ rotateY: frontInterpolate }],
+                  },
+                ]}
               >
-                <Image source={currentSpell.image} style={{ width: '100%', height: '80%' }} />
-                <Text>{currentSpell.title}</Text>
+                <Image source={currentSpell.image} style={styles.cardImage} />
+                <Text style={styles.cardTitle}>{currentSpell.title}</Text>
               </Animated.View>
 
-              {/* Back */}
+              {/* Back of card */}
               <Animated.View
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  backfaceVisibility: 'hidden',
-                  transform: [{ rotateY: backInterpolate }],
-                }}
+                style={[
+                  styles.cardFace,
+                  styles.cardBack,
+                  {
+                    transform: [{ rotateY: backInterpolate }],
+                  },
+                ]}
               >
-                <Text>{currentSpell.title}</Text>
-                <Text>{currentSpell.description}</Text>
-                <Text>{currentSpell.details}</Text>
+                <Text style={styles.backTitle}>{currentSpell.title}</Text>
+                <Text style={styles.backDescription}>{currentSpell.description}</Text>
+                <Text style={styles.backDetails}>{currentSpell.details}</Text>
               </Animated.View>
             </TouchableOpacity>
           </Animated.View>
         </View>
 
-        {/* Close button */}
+        {/* Close button when expanded */}
         {expandedCard !== null && (
-          <TouchableOpacity onPress={closeCard}>
-            <Text>Close</Text>
+          <TouchableOpacity style={styles.closeButton} onPress={closeCard}>
+            <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         )}
 
-        {/* Dots */}
-        <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+        {/* Indicator dots */}
+        <View style={styles.dotsContainer}>
           {SPELLS.map((_, index) => (
             <View
               key={index}
-              style={{
-                width: index === currentIndex ? 24 : 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: index === currentIndex ? '#4a148c' : '#d4a5ff',
-                marginHorizontal: 4,
-              }}
+              style={[
+                styles.dot,
+                index === currentIndex && styles.dotActive,
+              ]}
             />
           ))}
         </View>
@@ -264,7 +257,6 @@ export default function SpellsScreen({ navigation }) {
     </Layout>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -395,3 +387,4 @@ const styles = StyleSheet.create({
     width: 24,
   },
 });
+
