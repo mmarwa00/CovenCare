@@ -381,13 +381,3 @@ const styles = StyleSheet.create({
     width: 24,
   },
 });
-
-
-1. **Replace `SpellsPlaceholder.js` with this code** (or rename it to `SpellsScreen.js`)
-
-2. **Add your images to:**
-   assets/Spells/crystal.png
-   assets/Spells/tea.png
-   assets/Spells/sage.png
-   assets/Spells/candle.png
-   assets/Spells/cauldron.png
