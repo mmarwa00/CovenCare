@@ -9,14 +9,16 @@ import {
 } from '../services/emergencyService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useTheme } from '../context/ThemeContext'; 
 
 export default function AlertBox({ navigation }) {
   const { user } = useAuth();
   const userId = user?.uid;
+  const { colors, isDarkMode } = useTheme();
 
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [processingMap, setProcessingMap] = useState({}); // { [alertId]: boolean }
+  const [processingMap, setProcessingMap] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -48,17 +50,13 @@ export default function AlertBox({ navigation }) {
   };
 
   const handleAnswer = async (alert, responseMessage) => {
-    console.log('handleAnswer called', { alertId: alert?.id, responseMessage });
-
     if (!alert || !responseMessage) return;
     const alertId = alert.id;
     const cant = isCantResponse(responseMessage);
     const positive = !cant;
 
-    // Snapshot for rollback
     const prevAlerts = alerts;
 
-    // Optimistic UI update
     if (positive) {
       setAlerts(prev => prev.filter(a => a.id !== alertId));
     } else {
@@ -69,16 +67,13 @@ export default function AlertBox({ navigation }) {
 
     try {
       const res = await respondToEmergency(alertId, userId, responseMessage);
-      console.log('respondToEmergency result', res);
 
       if (!res.success) {
-        console.error('respondToEmergency failed:', res.error);
         setAlerts(prevAlerts);
         Alert.alert('Error', 'Could not send response. Try again.');
         return;
       }
 
-      // If backend returned updated emergency, use it to update local state
       if (res.emergency) {
         if (res.emergency.status === 'resolved') {
           setAlerts(prev => prev.filter(a => a.id !== alertId));
@@ -87,11 +82,9 @@ export default function AlertBox({ navigation }) {
           setAlerts(prev => prev.map(a => a.id === alertId ? res.emergency : a));
         }
       } else {
-        // fallback: if positive, navigate back to Dashboard to force refresh
         if (positive) navigation.navigate('Dashboard', { refresh: Date.now() });
       }
     } catch (err) {
-      console.error('Network error sending response:', err);
       setAlerts(prevAlerts);
       Alert.alert('Error', 'Network error while sending response.');
     } finally {
@@ -112,36 +105,40 @@ export default function AlertBox({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#f8f8ff' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Received Emergency Alerts</Text>
+      <ScrollView contentContainerStyle={styles(colors, isDarkMode).scrollContainer}>
+        <Text style={styles(colors, isDarkMode).title}>Received Emergency Alerts</Text>
 
         {loading ? (
-          <ActivityIndicator animating={true} color="#4a148c" />
+          <ActivityIndicator animating={true} color={isDarkMode ? '#e3d2f0ff' : '#4a148c'} />
         ) : alerts.length === 0 ? (
-          <Text style={styles.subtitle}>No active alerts.</Text>
+          <Text style={[styles(colors, isDarkMode).subtitle, isDarkMode && { color: '#e3d2f0ff' }]}>
+            No active alerts.
+          </Text>
         ) : (
           alerts.map(alert => {
             const processing = !!processingMap[alert.id];
             const answered = !!alert.answered;
             return (
-              <View key={alert.id} style={styles.alertCard}>
-                <Text style={styles.alertType}>{getEmergencyTypeDisplay(alert.type)}</Text>
-                <Text style={styles.alertDetail}>
+              <View key={alert.id} style={styles(colors, isDarkMode).alertCard}>
+                <Text style={styles(colors, isDarkMode).alertType}>
+                  {getEmergencyTypeDisplay(alert.type)}
+                </Text>
+
+                <Text style={styles(colors, isDarkMode).alertDetail}>
                   From: {alert.senderName} • {new Date(alert.createdAt).toLocaleString()}
                 </Text>
 
                 {alert.message ? (
-                  <Text style={styles.alertMessage}>"{alert.message}"</Text>
+                  <Text style={styles(colors, isDarkMode).alertMessage}>"{alert.message}"</Text>
                 ) : null}
 
-                {/* Responses list (if any) */}
                 {Array.isArray(alert.responses) && alert.responses.length > 0 && (
-                  <View style={styles.responsesContainer}>
+                  <View style={styles(colors, isDarkMode).responsesContainer}>
                     {alert.responses.map((r, i) => (
-                      <Text key={i} style={styles.responseText}>
+                      <Text key={i} style={styles(colors, isDarkMode).responseText}>
                         <Text style={{ fontWeight: 'bold' }}>{r.userName}: </Text>
                         {r.message}
                       </Text>
@@ -149,7 +146,7 @@ export default function AlertBox({ navigation }) {
                   </View>
                 )}
 
-                <View style={styles.buttonContainer}>
+                <View style={styles(colors, isDarkMode).buttonContainer}>
                   {PREDEFINED_RESPONSES.map((resp, idx) => {
                     const cantResp = isCantResponse(resp);
                     const disabled = processing || (answered && cantResp);
@@ -158,13 +155,13 @@ export default function AlertBox({ navigation }) {
                         key={idx}
                         onPress={() => handleAnswer(alert, resp)}
                         style={[
-                          styles.answerButton,
-                          disabled && styles.answerButtonDisabled,
-                          cantResp && styles.cantButton
+                          styles(colors, isDarkMode).answerButton,
+                          disabled && styles(colors, isDarkMode).answerButtonDisabled,
+                          cantResp && styles(colors, isDarkMode).cantButton
                         ]}
                         disabled={disabled}
                       >
-                        <Text style={styles.answerButtonText}>{resp}</Text>
+                        <Text style={styles(colors, isDarkMode).answerButtonText}>{resp}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -180,90 +177,110 @@ export default function AlertBox({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    padding: 20,
-    paddingBottom: 100,
-    backgroundColor: '#e3d2f0ff',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4a148c',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6a1b9a',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  alertCard: {
-    backgroundColor: '#d4a5ff',
-    padding: 20,
-    borderRadius: 18,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  alertType: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4a148c',
-    marginBottom: 8,
-  },
-  alertDetail: {
-    fontSize: 12,
-    color: '#4a148c',
-    marginBottom: 4,
-  },
-  alertMessage: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#4a148c',
-    marginTop: 6,
-    marginBottom: 12,
-  },
-  responsesContainer: {
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  responseText: {
-    fontSize: 13,
-    color: '#2e0057',
-    marginBottom: 4,
-  },
-  buttonContainer: {
-    flexDirection: 'column',
-    marginTop: 10,
-  },
-  answerButton: {
-    backgroundColor: '#4a148c',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    marginBottom: 8,
-  },
-  cantButton: {
-    backgroundColor: '#6a1b9a',
-  },
-  answerButtonDisabled: {
-    backgroundColor: '#999',
-    opacity: 0.8,
-  },
-  answerButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-});
+const styles = (colors, isDarkMode) =>
+  StyleSheet.create({
+    scrollContainer: {
+      padding: 20,
+      paddingBottom: 100,
+      backgroundColor: colors.background,
+    },
+
+    title: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: isDarkMode ? '#e3d2f0ff' : colors.text,
+      textAlign: 'center',
+      marginBottom: 20,
+      paddingBottom: isDarkMode ? 4 : 0,
+      borderBottomWidth: isDarkMode ? 2 : 0,
+      borderBottomColor: isDarkMode ? '#7a001f' : 'transparent',
+      alignSelf: 'center',
+    },
+
+    subtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 10,
+    },
+
+    alertCard: {
+      backgroundColor: colors.cardBackground,
+      padding: 20,
+      borderRadius: 18,
+      marginBottom: 15,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: colors.shadowOpacity,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+
+    alertType: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 8,
+    },
+
+    alertDetail: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+
+    alertMessage: {
+      fontSize: 14,
+      fontStyle: 'italic',
+      color: colors.text,
+      marginTop: 6,
+      marginBottom: 12,
+    },
+
+    responsesContainer: {
+      marginTop: 8,
+      marginBottom: 12,
+    },
+
+    responseText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+
+    buttonContainer: {
+      flexDirection: 'column',
+      marginTop: 10,
+    },
+
+    answerButton: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderRadius: 25,
+      alignSelf: 'flex-start',
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: colors.shadowOpacity,
+      shadowRadius: 4,
+      elevation: 5,
+      marginBottom: 8,
+    },
+
+    cantButton: {
+      backgroundColor: colors.accentSecondary,
+    },
+
+    answerButtonDisabled: {
+      backgroundColor: colors.disabled,
+      opacity: 0.8,
+    },
+
+    answerButtonText: {
+      color: colors.buttonText,
+      fontWeight: 'bold',
+      fontSize: 15,
+    },
+  });

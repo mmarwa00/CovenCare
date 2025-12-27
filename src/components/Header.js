@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 import { View, Image, StyleSheet, Text } from 'react-native';
 import { Menu, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Header() {
   const [menuVisible, setMenuVisible] = useState(false);
   const navigation = useNavigation();
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
       {/* LEFT SIDE: Logo + Subtitle */}
       <View style={styles.leftRow}>
         <Image 
           source={require('../../assets/Logo/logo_Main.png')}
           style={styles.logo}
         />
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.text }]}>
           Your home base for tracking, support, and magic care.
         </Text>
       </View>
@@ -27,7 +29,7 @@ export default function Header() {
         anchor={
           <IconButton
             icon="dots-vertical"
-            iconColor="#4a148c"
+            iconColor={colors.accent}
             size={24}
             onPress={() => setMenuVisible(true)}
           />
@@ -57,7 +59,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#d4a5ff',
   },
   leftRow: {
     flexDirection: 'row',
@@ -72,7 +73,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#4a148c',
     flexShrink: 1,
     flexWrap: 'wrap',
     maxWidth: 200,

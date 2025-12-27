@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getSentVouchers } from '../services/voucherService';
+import { useTheme } from '../context/ThemeContext'; 
 
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
@@ -34,6 +35,11 @@ export default function SentVouchersScreen({ navigation }) {
   const [sentItems, setSentItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const { colors, isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+
+  const styles = createStyles(colors, isDarkMode, DM_TEXT);
+
   const fetchVouchers = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -44,12 +50,11 @@ export default function SentVouchersScreen({ navigation }) {
       const now = new Date();
 
       result.vouchers.forEach(voucher => {
-        // filter: hide redeemed vouchers older than 1 day
         if (voucher.status === 'redeemed') {
           const sentDate = new Date(voucher.sentAt);
           const diffMs = now - sentDate;
           const diffDays = diffMs / (1000 * 60 * 60 * 24);
-          if (diffDays > 1) return; // skip
+          if (diffDays > 1) return;
         }
 
         if (!grouped[voucher.type]) {
@@ -89,6 +94,7 @@ export default function SentVouchersScreen({ navigation }) {
     <View style={styles.card}>
       <Image source={item.itemImage} style={styles.cardImage} />
       <Text style={styles.cardCount}>{item.count}x {item.itemName}</Text>
+
       {item.recipients.map((r) => (
         <View key={r.voucherId} style={styles.detailBlock}>
           <Text style={styles.detailText}>To: {r.recipientName}</Text>
@@ -104,6 +110,7 @@ export default function SentVouchersScreen({ navigation }) {
     <Layout navigation={navigation} subtitle="Your Sent Vouchers">
       <View style={styles.scrollContainer}>
         <Title style={styles.title}>Your Sent Vouchers</Title>
+
         {loading ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Loading...</Text>
@@ -126,64 +133,65 @@ export default function SentVouchersScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#e3d2f0ff',
-    paddingBottom: 50,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4a148c',
-    textAlign: 'center',
-    marginBottom: 20,
-    marginTop: 10,
-  },
-  grid: {
-    paddingHorizontal: 10,
-  },
-  card: {
-    width: CARD_WIDTH,
-    margin: 4,
-    alignItems: 'center',
-  },
-  cardImage: {
-    width: CARD_WIDTH - 8,
-    height: CARD_HEIGHT - 20,
-    resizeMode: 'contain',
-  },
-  cardCount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4a148c',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  detailBlock: {
-    marginTop: 4,
-    paddingTop: 2,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#4a148c',
-    textAlign: 'center',
-  },
-  redeemed: {
-    fontSize: 14,
-    color: '#2e7d32',
-    fontWeight: 'bold',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#4a148c',
-  },
-});
+const createStyles = (colors, isDarkMode, DM_TEXT) =>
+  StyleSheet.create({
+    scrollContainer: {
+      flexGrow: 1,
+      padding: 20,
+      backgroundColor: isDarkMode ? colors.background : '#e3d2f0ff',
+      paddingBottom: 50,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      textAlign: 'center',
+      marginBottom: 20,
+      marginTop: 10,
+    },
+    grid: {
+      paddingHorizontal: 10,
+    },
+    card: {
+      width: CARD_WIDTH,
+      margin: 4,
+      alignItems: 'center',
+    },
+    cardImage: {
+      width: CARD_WIDTH - 8,
+      height: CARD_HEIGHT - 20,
+      resizeMode: 'contain',
+    },
+    cardCount: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    detailBlock: {
+      marginTop: 4,
+      paddingTop: 2,
+    },
+    detailText: {
+      fontSize: 14,
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      textAlign: 'center',
+    },
+    redeemed: {
+      fontSize: 14,
+      color: '#2e7d32',
+      fontWeight: 'bold',
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: 18,
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+    },
+  });

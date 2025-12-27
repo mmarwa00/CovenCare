@@ -1,79 +1,90 @@
 import React from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 export default function FooterNav({ navigation }) {
-    return (
-        <View style={styles.footer}>
+  const { colors, isDarkMode } = useTheme();
 
-            {/* Circles */}
-            <TouchableOpacity
-                style={styles.footerItem}
-                onPress={() => navigation.navigate('CircleScreen')}
-            >
-                <Image
-                    source={require('../../assets/icons/circles.png')}
-                    style={styles.icon}
-                />
-                <Text style={styles.label}>Circles</Text>
-            </TouchableOpacity>
+  return (
+    <View style={[styles.footer, { backgroundColor: colors.cardBackground, borderTopColor: colors.border }]}>
+      {/* Circles */}
+      <TouchableOpacity
+        style={styles.footerItem}
+        onPress={() => navigation.navigate('CircleScreen')}
+      >
+        <Image
+          source={
+            isDarkMode
+              ? require('../../assets/icons/circlesVamp.png')
+              : require('../../assets/icons/circles.png')
+          }
+          style={styles.icon}
+        />
+        <Text style={[styles.label, { color: colors.text }]}>Circles</Text>
+      </TouchableOpacity>
 
-            {/* Log */}
-            <TouchableOpacity
-                style={styles.footerItem}
-                onPress={() => navigation.navigate('CalendarScreen')}
-            >
-                <Image
-                    source={require('../../assets/icons/Log.png')}
-                    style={styles.icon}
-                />
-                <Text style={styles.label}>Log</Text>
-            </TouchableOpacity>
+      {/* Log */}
+      <TouchableOpacity
+        style={styles.footerItem}
+        onPress={() => navigation.navigate('CalendarScreen')}
+      >
+        <Image
+          source={
+            isDarkMode
+              ? require('../../assets/icons/Log_vamp.png')
+              : require('../../assets/icons/Log.png')
+          }
+          style={styles.icon}
+        />
+        <Text style={[styles.label, { color: colors.text }]}>Log</Text>
+      </TouchableOpacity>
 
-            {/* Potions */}
-            <TouchableOpacity onPress={() => navigation.navigate('VendingMachineMenu')}>
-                <Image
-                    source={require('../../assets/icons/Potions1.png')}
-                    style={styles.icon}
-                />
-                <Text style={styles.label}>Potions</Text>
-            </TouchableOpacity>
-
-        </View>
-    );
+      {/* Potions */}
+      <TouchableOpacity onPress={() => navigation.navigate('VendingMachineMenu')}>
+        <Image
+          source={
+            isDarkMode
+              ? require('../../assets/icons/PotionsVamp.png')
+              : require('../../assets/icons/Potions1.png')
+          }
+          style={styles.icon}
+        />
+        <Text style={[styles.label, { color: colors.text }]}>Potions</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    footer: {
-        width: '100%',
-        height: 100,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderTopWidth: 1,
-        borderTopColor: '#d4a5ff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 10,
-    },
-    footerItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    icon: {
-        width: 70,
-        height: 70,
-        resizeMode: 'contain',
-        marginBottom: 4,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#4a148c',
-    },
+  footer: {
+    width: '100%',
+    height: 100,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    borderTopWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 10,
+  },
+  footerItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    marginBottom: 4,
+    marginTop: 10,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });

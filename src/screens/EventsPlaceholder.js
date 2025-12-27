@@ -2,8 +2,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Layout from '../components/Layout';
+import { useTheme } from '../context/ThemeContext'; 
 
 export default function EventsPlaceholder({ navigation }) {
+  const { colors, isDarkMode } = useTheme(); const styles = createStyles(colors, isDarkMode);
   return (
     <Layout navigation={navigation} subtitle="Events">
       <View style={styles.container}>
@@ -13,7 +15,8 @@ export default function EventsPlaceholder({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, isDarkMode) => StyleSheet.create({
+
   container: {
     flex: 1,
     alignItems: 'center',

@@ -7,27 +7,29 @@ import { sendVoucher } from '../services/voucherService';
 import { createEmergency } from '../services/emergencyService'; 
 import { auth, db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { useTheme } from '../context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
 
-// Card size - scales with screen
-const CARD_WIDTH = screenWidth * 0.5; // 50% of screen width
-const CARD_HEIGHT = CARD_WIDTH * 1.4; // Tarot card aspect ratio
+const CARD_WIDTH = screenWidth * 0.5;
+const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
 export default function SendItemScreen({ 
   navigation, 
   selectedItem, 
-  itemType, // 'voucher' or 'alert'
+  itemType,
   backgroundImage 
 }) {
+  const { colors, isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+
   const [selectedPeople, setSelectedPeople] = useState([]);
   const [allPeople, setAllPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCircleId, setActiveCircleId] = useState(null); 
   const [isSending, setIsSending] = useState(false); 
 
-  // Photo map for profile pictures (unchanged)
   const witch1 = require('../../assets/Profile_pics/witch1.png');
   const witch2 = require('../../assets/Profile_pics/witch2.png');
   const witch3 = require('../../assets/Profile_pics/witch3.png');
@@ -37,18 +39,8 @@ export default function SendItemScreen({
   const wizz2 = require('../../assets/Profile_pics/wizz2.png');
   const wizz3 = require('../../assets/Profile_pics/wizz3.png');
 
-  const photoMap = {
-    witch1,
-    witch2,
-    witch3,
-    witch4,
-    witch5,
-    wizz1,
-    wizz2,
-    wizz3,
-  };
+  const photoMap = { witch1, witch2, witch3, witch4, witch5, wizz1, wizz2, wizz3 };
 
-  // Load people from ACTIVE circle only
   useEffect(() => {
     loadPeopleFromActiveCircle();
   }, []);
@@ -57,33 +49,21 @@ export default function SendItemScreen({
     try {
       setLoading(true);
       const userId = auth.currentUser?.uid;
-      
       if (!userId) {
         Alert.alert('Error', 'You must be logged in');
         navigation.goBack();
         return;
       }
 
-      // Get user's active circle ID
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        throw new Error('User not found');
-      }
+      if (!userSnap.exists()) throw new Error('User not found');
 
       const circleId = userSnap.data().activeCircleId;
-
       if (!circleId) {
         Alert.alert('No Active Circle', 'Please set an active circle first!', [
-          {
-            text: 'Go to Circles',
-            onPress: () => navigation.navigate('CircleScreen') 
-          },
-          {
-            text: 'Cancel',
-            onPress: () => navigation.goBack()
-          }
+          { text: 'Go to Circles', onPress: () => navigation.navigate('CircleScreen') },
+          { text: 'Cancel', onPress: () => navigation.goBack() }
         ]);
         return;
       }
@@ -91,19 +71,14 @@ export default function SendItemScreen({
       setActiveCircleId(circleId);
 
       const membersResult = await getCircleMembers(circleId);
-      
-      if (!membersResult.success) {
-        throw new Error(membersResult.error);
-      }
+      if (!membersResult.success) throw new Error(membersResult.error);
 
-      // Get full user details for each member (filtering out the current user)
       const peopleWithDetails = [];
       for (const member of membersResult.members) {
         if (member.id !== userId) {
           try {
             const userRef = doc(db, 'users', member.id);
             const userSnap = await getDoc(userRef);
-            
             if (userSnap.exists()) {
               const userData = userSnap.data();
               peopleWithDetails.push({
@@ -120,8 +95,7 @@ export default function SendItemScreen({
                 circleId: circleId
               });
             }
-          } catch (error) {
-            console.error('Error fetching user details:', error);
+          } catch {
             peopleWithDetails.push({
               id: member.id,
               displayName: member.displayName || 'Unknown',
@@ -139,14 +113,12 @@ export default function SendItemScreen({
       setAllPeople(peopleWithDetails);
 
     } catch (error) {
-      console.error('Error loading people:', error);
       Alert.alert('Error', 'Failed to load circle members: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Toggle person selection (unchanged)
   const togglePersonSelection = (personId) => {
     if (selectedPeople.includes(personId)) {
       setSelectedPeople(selectedPeople.filter(id => id !== personId));
@@ -155,95 +127,51 @@ export default function SendItemScreen({
     }
   };
 
-  // HANDLER: Send Voucher or Alert
   const handleSend = async () => {
-  if (selectedPeople.length === 0) {
-    Alert.alert('No Recipients', 'Please select at least one person');
-    return;
-  }
+    if (selectedPeople.length === 0) {
+      Alert.alert('No Recipients', 'Please select at least one person');
+      return;
+    }
 
-  const userId = auth.currentUser?.uid;
-  const message = selectedItem?.message || '';
-  const recipients = selectedPeople;
-  const type = String(selectedItem?.type || selectedItem?.name || selectedItem?.id || selectedItem?.value || 'unknown');
+    const userId = auth.currentUser?.uid;
+    const message = selectedItem?.message || '';
+    const recipients = selectedPeople;
+    const type = String(selectedItem?.type || selectedItem?.name || selectedItem?.id || selectedItem?.value || 'unknown');
 
-  console.log('--- SEND ATTEMPT ---');
-  console.log('User ID:', userId);
-  console.log('Circle ID:', activeCircleId);
-  console.log('Item type:', type);
-  console.log('Recipients:', recipients);
+    if (!userId || !activeCircleId || !type) {
+      Alert.alert('Sending Blocked', 'Missing required data.');
+      return;
+    }
 
-  if (!userId || !activeCircleId || !type) {
-    Alert.alert(
-      'Sending Blocked',
-      `Required data missing: User ID: ${!!userId}, Circle ID: ${!!activeCircleId}, Type: ${type}`
-    );
-    return;
-  }
+    setIsSending(true);
 
-  setIsSending(true);
-
-  let result;
-
-
-  // Add a robust check here, even if you check earlier.
-  if (!userId) {
-      Alert.alert('Auth Error', 'User is not authenticated.');
+    let result;
+    if (itemType === 'voucher') {
+      result = await sendVoucher(userId, recipients, activeCircleId, type, message);
+    } else if (itemType === 'alert') {
+      result = await createEmergency(userId, activeCircleId, type, recipients, message);
+      if (result.success) result.count = recipients.length;
+    } else {
+      Alert.alert('Error', 'Invalid item type.');
       setIsSending(false);
       return;
-  } 
-
-  if (itemType === 'voucher') {
-    result = await sendVoucher(userId, recipients, activeCircleId, type, message);
-  } else if (itemType === 'alert') {
-    result = await createEmergency(userId, activeCircleId, type, recipients, message);
-    if (result.success) result.count = recipients.length;
-  } else {
-    Alert.alert('Error', 'Invalid item type.');
-    setIsSending(false);
-    return;
-  }
-
-  setIsSending(false);
-
-  if (result?.success) {
-    Alert.alert(
-      'Success!',
-      `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${result.count || recipients.length} ${recipients.length === 1 ? 'person' : 'people'}!`,
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
-  } else {
-    Alert.alert('Failed', `Sending failed: ${result?.error || 'Unknown error'}`);
-    console.error('Backend Service Failure:', result?.error);
-  }
-};
-
-  // Render person's avatar (unchanged)
-  const renderPersonAvatar = (person) => {
-    // If user has profilePhoto and it exists in photoMap, show the image
-    if (person.profilePhoto && photoMap[person.profilePhoto]) {
-      return (
-        <Image 
-          source={photoMap[person.profilePhoto]} 
-          style={styles.avatar} 
-        />
-      );
     }
-    // Otherwise show circle with first letter
-    return (
-      <View style={styles.avatarPlaceholder}>
-        <Text style={styles.avatarText}>
-          {person.displayName?.charAt(0).toUpperCase() || '?'}
-        </Text>
-      </View>
-    );
+
+    setIsSending(false);
+
+    if (result?.success) {
+      Alert.alert(
+        'Success!',
+        `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${result.count}!`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
+    } else {
+      Alert.alert('Failed', result?.error || 'Unknown error');
+    }
   };
 
-
-  // Content component
   const Content = () => (
     <ScrollView contentContainerStyle={styles.scrollContent}>
-      {/* Selected Card - Top Center */}
       <View style={styles.cardContainer}>
         <Image 
           source={selectedItem.image} 
@@ -252,18 +180,30 @@ export default function SendItemScreen({
         />
       </View>
 
-      {/* People Selection Area */}
-      <View style={styles.selectionArea}>
-        <Title style={styles.sectionTitle}>Select Recipients:</Title>
+      <View style={[
+        styles.selectionArea,
+        isDarkMode && {
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          borderColor: colors.border,
+        }
+      ]}>
+        <Title style={[styles.sectionTitle, isDarkMode && { color: DM_TEXT }]}>
+          Select Recipients:
+        </Title>
         
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4a148c" />
-            <Text style={styles.loadingText}>Loading circle members...</Text>
+            <ActivityIndicator size="large" color={isDarkMode ? DM_TEXT : "#4a148c"} />
+            <Text style={[styles.loadingText, isDarkMode && { color: DM_TEXT }]}>
+              Loading circle members...
+            </Text>
           </View>
         ) : allPeople.length === 0 ? (
-          <View style={styles.placeholder}>
-            <Title style={styles.placeholderText}>
+          <View style={[
+            styles.placeholder,
+            isDarkMode && { borderColor: DM_TEXT }
+          ]}>
+            <Title style={[styles.placeholderText, isDarkMode && { color: DM_TEXT }]}>
               No circle members found
             </Title>
           </View>
@@ -274,37 +214,67 @@ export default function SendItemScreen({
                 key={person.id}
                 style={[
                   styles.personCard,
-                  selectedPeople.includes(person.id) && styles.personCardSelected
+                  isDarkMode && {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                  },
+                  selectedPeople.includes(person.id) && {
+                    backgroundColor: isDarkMode ? colors.primary : '#e9d5ff',
+                    borderColor: isDarkMode ? DM_TEXT : '#7b1fa2',
+                  }
                 ]}
                 onPress={() => togglePersonSelection(person.id)}
               >
-                {/* Profile Picture */}
                 <View style={styles.personInfo}>
                   {person.profilePhoto && photoMap[person.profilePhoto] ? (
                     <Image
                       source={photoMap[person.profilePhoto]} 
-                      style={styles.avatar} 
+                      style={[
+                        styles.avatar,
+                        isDarkMode && { borderColor: DM_TEXT }
+                      ]}
                     />
                   ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={styles.avatarText}>
+                    <View style={[
+                      styles.avatarPlaceholder,
+                      isDarkMode && { backgroundColor: colors.primary }
+                    ]}>
+                      <Text style={[
+                        styles.avatarText,
+                        isDarkMode && { color: DM_TEXT }
+                      ]}>
                         {person.displayName?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                   )}
                   
                   <View style={styles.personDetails}>
-                    <Text style={styles.personName}>{person.displayName}</Text>
+                    <Text style={[
+                      styles.personName,
+                      isDarkMode && { color: DM_TEXT }
+                    ]}>
+                      {person.displayName}
+                    </Text>
                   </View>
                 </View>
 
-                {/* Checkbox */}
                 <View style={[
                   styles.checkbox,
-                  selectedPeople.includes(person.id) && styles.checkboxSelected
+                  isDarkMode && {
+                    borderColor: DM_TEXT,
+                    backgroundColor: colors.cardBackground,
+                  },
+                  selectedPeople.includes(person.id) && {
+                    backgroundColor: isDarkMode ? DM_TEXT : '#7b1fa2',
+                  }
                 ]}>
                   {selectedPeople.includes(person.id) && (
-                    <Text style={styles.checkmark}>✓</Text>
+                    <Text style={[
+                      styles.checkmark,
+                      isDarkMode && { color: colors.background }
+                    ]}>
+                      ✓
+                    </Text>
                   )}
                 </View>
               </TouchableOpacity>
@@ -313,16 +283,28 @@ export default function SendItemScreen({
         )}
       </View>
 
-      {/* Send Button */}
       <Button
         mode="contained"
         onPress={handleSend}
-        style={styles.sendButton}
-        labelStyle={styles.sendButtonLabel}
+        style={[
+          styles.sendButton,
+          isDarkMode && {
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.border,
+            shadowColor: colors.shadowColor,
+            shadowOpacity: colors.shadowOpacity,
+            shadowRadius: 15,
+            elevation: 8,
+          }
+        ]}
+        labelStyle={[
+          styles.sendButtonLabel,
+          isDarkMode && { color: DM_TEXT }
+        ]}
         disabled={selectedPeople.length === 0 || isSending} 
       >
         {isSending 
-          ? <ActivityIndicator color="#fff" size="small" /> 
+          ? <ActivityIndicator color={isDarkMode ? DM_TEXT : "#fff"} size="small" /> 
           : `Send to ${selectedPeople.length || 0} ${selectedPeople.length === 1 ? 'person' : 'people'}`
         }
       </Button>
@@ -331,7 +313,10 @@ export default function SendItemScreen({
 
   return (
     <Layout navigation={navigation} subtitle={`Send ${itemType}`}>
-      <View style={styles.backgroundWrapper}>
+      <View style={[
+        styles.backgroundWrapper,
+        isDarkMode && { backgroundColor: colors.background }
+      ]}>
         {backgroundImage ? (
           <ImageBackground
             source={backgroundImage}
@@ -354,7 +339,7 @@ export default function SendItemScreen({
 const styles = StyleSheet.create({
   backgroundWrapper: {
     flex: 1,
-    backgroundColor: '#eaddf7ff', 
+    backgroundColor: '#eaddf7ff',
   },
   background: {
     flex: 1,
@@ -386,10 +371,12 @@ const styles = StyleSheet.create({
     width: '90%',
     flex: 1,
     minHeight: screenHeight * 0.3,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)', 
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 15,
     padding: 15,
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   sectionTitle: {
     fontSize: 20,
@@ -398,7 +385,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     textAlign: 'center',
   },
-
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -409,7 +395,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4a148c',
   },
-
   placeholder: {
     flex: 1,
     justifyContent: 'center',
@@ -425,8 +410,6 @@ const styles = StyleSheet.create({
     color: '#7b1fa2',
     textAlign: 'center',
   },
-
-// People List
   peopleList: {
     flex: 1,
   },
@@ -480,8 +463,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4a148c',
   },
-
-  // Checkbox
   checkbox: {
     width: 24,
     height: 24,
@@ -500,8 +481,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-
-
   sendButton: {
     width: '80%',
     paddingVertical: 8,

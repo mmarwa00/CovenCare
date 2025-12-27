@@ -5,6 +5,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { AuthProvider } from './src/context/AuthContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { db, auth } from './src/config/firebaseConfig';
 
@@ -23,7 +24,6 @@ export default function App() {
 
   // Register for push notifications when user logs in
   useEffect(() => {
-    // Listen for auth state changes
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         console.log('User logged in:', user.uid);
@@ -35,27 +35,26 @@ export default function App() {
   }, []);
 
   // Listen for notifications
-  useEffect(() => {
-    // When notification is received while app is open
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification received:', notification);
-    });
+  // Listen for notifications
+useEffect(() => {
+  notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    console.log('Notification received:', notification);
+  });
 
-    // When user taps on notification
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('User tapped notification:', response);
-      // Handle navigation here if needed
-    });
+  responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    console.log('User tapped notification:', response);
+  });
 
-    return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
-    };
-  }, []);
+  return () => {
+    // FIX: Check if listeners exist before removing
+    if (notificationListener.current && typeof notificationListener.current.remove === 'function') {
+      notificationListener.current.remove();
+    }
+    if (responseListener.current && typeof responseListener.current.remove === 'function') {
+      responseListener.current.remove();
+    }
+  };
+}, []);
 
   async function registerForPushNotifications(userId) {
     try {
@@ -64,7 +63,6 @@ export default function App() {
         return;
       }
 
-      // Request permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -78,19 +76,16 @@ export default function App() {
         return;
       }
 
-      // Get FCM token
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       
       if (!projectId) {
-        console.log('No EAS project ID found. Make sure app.json has extra.eas.projectId');
+        console.log('No EAS project ID found');
         return;
       }
 
       const token = await Notifications.getDevicePushTokenAsync({ projectId });
-
       console.log('FCM Token obtained:', token.data);
 
-      // Save to Firestore
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
         fcmTokens: arrayUnion(token.data),
@@ -107,7 +102,9 @@ export default function App() {
   return (
     <PaperProvider>
       <AuthProvider>
-        <AppNavigator />
+        <ThemeProvider>
+          <AppNavigator />
+        </ThemeProvider>
       </AuthProvider>
     </PaperProvider>
   );

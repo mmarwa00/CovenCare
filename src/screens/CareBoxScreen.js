@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { getReceivedVouchers } from '../services/voucherService';
+import { useTheme } from '../context/ThemeContext'; 
 
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
@@ -49,6 +50,8 @@ export default function CareBoxScreen({ navigation }) {
   const userId = user?.uid;
   const [receivedItems, setReceivedItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { colors, isDarkMode } = useTheme();
+  const styles = createStyles(colors, isDarkMode);
 
   const fetchVouchers = useCallback(async () => {
     if (!userId) return;
@@ -130,50 +133,66 @@ export default function CareBoxScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, isDarkMode) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
-    backgroundColor: '#e3d2f0ff',
+    backgroundColor: colors.background,
     paddingBottom: 100,
   },
+
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#4a148c',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 20,
     marginTop: 10,
   },
+
   grid: {
     padding: 10,
   },
+
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     margin: 5,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadowColor,
+    shadowOpacity: colors.shadowOpacity,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 10,
+    elevation: 5,
   },
+
   cardImage: {
     width: CARD_WIDTH - 10,
     height: CARD_HEIGHT - 30,
     resizeMode: 'contain',
   },
+
   cardCount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4a148c',
+    color: colors.text,
     marginTop: 5,
     textAlign: 'center',
   },
+
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   emptyText: {
     fontSize: 18,
-    color: '#4a148c',
+    color: colors.textSecondary,
   },
 });

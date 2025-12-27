@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator, } from 'react-native-paper';
+import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { createCircle, joinCircle, getUserCircles } from '../services/circleService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-
-// Firebase
+import { useTheme } from '../context/ThemeContext';
 import { auth, db } from '../config/firebaseConfig';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
 export default function CircleScreen({ navigation }) {
   const { user } = useAuth();
   const userId = user?.uid;
+  const { colors, isDarkMode } = useTheme();
+
+  const DM_TEXT = '#e3d2f0ff';
 
   const [circleName, setCircleName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -23,7 +25,6 @@ export default function CircleScreen({ navigation }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Fetch circles for user
   const fetchCircles = async () => {
     if (!userId) return;
     setLoading(true);
@@ -39,7 +40,6 @@ export default function CircleScreen({ navigation }) {
     setLoading(false);
   };
 
-  // Fetch active circle
   const fetchActiveCircle = async () => {
     if (!userId) return;
 
@@ -50,9 +50,7 @@ export default function CircleScreen({ navigation }) {
       if (snap.exists()) {
         setActiveCircleId(snap.data().activeCircleId || null);
       }
-    } catch (err) {
-      console.log('Error fetching active circle:', err);
-    }
+    } catch (err) {}
   };
 
   useEffect(() => {
@@ -119,31 +117,38 @@ export default function CircleScreen({ navigation }) {
 
       setActiveCircleId(circleId);
       alert('Active circle updated!');
-    } catch (error) {
-      console.log('Error setting active circle:', error);
-    }
+    } catch (error) {}
   };
 
   return (
     <View style={{ flex: 1 }}>
       <Header />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          isDarkMode && { backgroundColor: colors.background }
+        ]}
+      >
         <Button
           mode="text"
           onPress={() => navigation.navigate('Dashboard')}
           style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
         >
           ← Back to Dashboard
         </Button>
 
-        <Title style={styles.title}>Coven Circles 🔮</Title>
-        <Paragraph style={styles.subtitle}>
+        <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
+          Coven Circles 🔮
+        </Title>
+
+        <Paragraph style={[styles.subtitle, isDarkMode && { color: DM_TEXT }]}>
           Manage your circles and choose your active one.
         </Paragraph>
 
         {loading && (
-          <ActivityIndicator animating={true} color="#4a148c" size="small" />
+          <ActivityIndicator animating={true} color={isDarkMode ? DM_TEXT : "#4a148c"} size="small" />
         )}
 
         {!!error && (
@@ -159,9 +164,22 @@ export default function CircleScreen({ navigation }) {
         )}
 
         {/* Create Circle */}
-        <Card style={styles.card}>
+        <Card style={[
+          styles.card,
+          isDarkMode && {
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.border,
+            borderWidth: 1,
+            shadowColor: colors.shadowColor,
+            shadowOpacity: colors.shadowOpacity,
+            shadowRadius: 15,
+            elevation: 8,
+          }
+        ]}>
           <Card.Content>
-            <Title style={styles.cardTitle}>Create New Circle</Title>
+            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+              Create New Circle
+            </Title>
 
             <TextInput
               label="Circle Name"
@@ -170,28 +188,55 @@ export default function CircleScreen({ navigation }) {
               mode="outlined"
               style={styles.input}
               disabled={loading}
+              theme={isDarkMode ? { colors: { text: DM_TEXT, placeholder: DM_TEXT } } : {}}
             />
 
-                      {/* Create Circle button: LIGHT color + Dark Shadow + ROUNDED/SIZED CONTENT */}
-                      <View style={styles.buttonShadowWrapper}>
-                          <Button
-                              mode="contained"
-                              onPress={handleCreateCircle}
-                              disabled={loading || !circleName.trim()}
-                              style={styles.shadowButtonContainer}
-                              contentStyle={styles.topButtonContent}
-                              labelStyle={styles.topButtonLabel}
-                          >
-                              Create Circle
-                          </Button>
-                      </View>
-                  </Card.Content>
-              </Card>
+            <View style={styles.buttonShadowWrapper}>
+              <Button
+                mode="contained"
+                onPress={handleCreateCircle}
+                disabled={loading || !circleName.trim()}
+                style={[
+                  styles.shadowButtonContainer,
+                  isDarkMode && {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                    borderWidth: 2,
+                    shadowColor: colors.shadowColor,
+                    shadowOpacity: colors.shadowOpacity,
+                    shadowRadius: 15,
+                    elevation: 8,
+                  }
+                ]}
+                contentStyle={styles.topButtonContent}
+                labelStyle={[
+                  styles.topButtonLabel,
+                  isDarkMode && { color: DM_TEXT }
+                ]}
+              >
+                Create Circle
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
 
         {/* Join Circle */}
-        <Card style={styles.card}>
+        <Card style={[
+          styles.card,
+          isDarkMode && {
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.border,
+            borderWidth: 1,
+            shadowColor: colors.shadowColor,
+            shadowOpacity: colors.shadowOpacity,
+            shadowRadius: 15,
+            elevation: 8,
+          }
+        ]}>
           <Card.Content>
-            <Title style={styles.cardTitle}>Join Circle</Title>
+            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+              Join Circle
+            </Title>
 
             <TextInput
               label="Invite Code"
@@ -202,28 +247,55 @@ export default function CircleScreen({ navigation }) {
               disabled={loading}
               autoCapitalize="characters"
               maxLength={8}
+              theme={isDarkMode ? { colors: { text: DM_TEXT, placeholder: DM_TEXT } } : {}}
             />
 
-                      {/* Join Circle button */}
-                      <View style={styles.buttonShadowWrapper}>
-                          <Button
-                              mode="contained"
-                              onPress={handleJoinCircle}
-                              disabled={loading || inviteCode.length !== 8}
-                              style={styles.shadowButtonContainer}
-                              contentStyle={styles.topButtonContent}
-                              labelStyle={styles.topButtonLabel}
-                          >
-                              Join Circle
-                          </Button>
-                      </View>
-                  </Card.Content>
-              </Card>
+            <View style={styles.buttonShadowWrapper}>
+              <Button
+                mode="contained"
+                onPress={handleJoinCircle}
+                disabled={loading || inviteCode.length !== 8}
+                style={[
+                  styles.shadowButtonContainer,
+                  isDarkMode && {
+                    backgroundColor: colors.cardBackground,
+                    borderColor: colors.border,
+                    borderWidth: 2,
+                    shadowColor: colors.shadowColor,
+                    shadowOpacity: colors.shadowOpacity,
+                    shadowRadius: 15,
+                    elevation: 8,
+                  }
+                ]}
+                contentStyle={styles.topButtonContent}
+                labelStyle={[
+                  styles.topButtonLabel,
+                  isDarkMode && { color: DM_TEXT }
+                ]}
+              >
+                Join Circle
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
 
         {/* Circles List */}
-        <Card style={styles.card}>
+        <Card style={[
+          styles.card,
+          isDarkMode && {
+            backgroundColor: colors.cardBackground,
+            borderColor: colors.border,
+            borderWidth: 1,
+            shadowColor: colors.shadowColor,
+            shadowOpacity: colors.shadowOpacity,
+            shadowRadius: 15,
+            elevation: 8,
+          }
+        ]}>
           <Card.Content>
-            <Title style={styles.cardTitle}>My Circles ({circles.length})</Title>
+            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+              My Circles ({circles.length})
+            </Title>
 
             {circles.map((circle, index) => (
               <TouchableOpacity
@@ -231,196 +303,225 @@ export default function CircleScreen({ navigation }) {
                 style={[
                   styles.circleItem,
                   circle.id === activeCircleId && styles.activeCircle,
+                  circle.id === activeCircleId && isDarkMode && {
+                    backgroundColor: '#4a1f3d',   // medium plum, readable
+                    borderLeftColor: colors.primary,
+                  }
+                  ,
+                  isDarkMode && { borderBottomColor: colors.border }
                 ]}
                 onPress={() => navigation.navigate('CircleDetails', { circle })}
               >
+
                 <Image
-                        source={
-                            index % 3 === 0
-                                ? require('../../assets/icons/circle_small1.png')
-                                : index % 3 === 1
-                                    ? require('../../assets/icons/circle_small2.png')
-                                    : require('../../assets/icons/circle_small3.png')
-                        }
-                        style={styles.circleIcon}
-                    />
+                  source={
+                    index % 3 === 0
+                      ? require('../../assets/icons/circle_small1.png')
+                      : index % 3 === 1
+                        ? require('../../assets/icons/circle_small2.png')
+                        : require('../../assets/icons/circle_small3.png')
+                  }
+                  style={styles.circleIcon}
+                />
 
-                    <View style={styles.circleInfo}>
-                        <Text style={styles.circleName}>{circle.name}</Text>
-                        <Text style={styles.circleDetail}>ID: {circle.id}</Text>
-                        <Text style={styles.circleDetail}>Code: {circle.inviteCode}</Text>
-                        <Text style={styles.circleDetail}>
-                            {Array.isArray(circle.members)
-                                ? `${circle.members.length} members`
-                                : '0 members'}
-                        </Text>
+                <View style={styles.circleInfo}>
+                  <Text style={[styles.circleName, isDarkMode && { color: DM_TEXT }]}>
+                    {circle.name}
+                  </Text>
+                  <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
+                    ID: {circle.id}
+                  </Text>
+                  <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
+                    Code: {circle.inviteCode}
+                  </Text>
+                  <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
+                    {Array.isArray(circle.members)
+                      ? `${circle.members.length} members`
+                      : '0 members'}
+                  </Text>
 
-                        {/* Set Active Button */}
-                        <Button
-                            mode="contained"
-                            onPress={() => handleSetActiveCircle(circle.id)}
-                            style={styles.activeButton}
-                            labelStyle={styles.activeButtonLabel}
-                        >
-                            ⭐ Set as Active
-                        </Button>
+                  <Button
+                    mode="contained"
+                    onPress={() => handleSetActiveCircle(circle.id)}
+                    style={[
+                      styles.activeButton,
+                      isDarkMode && {
+                        backgroundColor: colors.cardBackground,
+                        borderColor: colors.border,
+                        borderWidth: 2,
+                        shadowColor: colors.shadowColor,
+                        shadowOpacity: colors.shadowOpacity,
+                        shadowRadius: 15,
+                        elevation: 8,
+                      }
+                    ]}
+                    labelStyle={[
+                      styles.activeButtonLabel,
+                      isDarkMode && { color: DM_TEXT }
+                    ]}
+                  >
+                    ⭐ Set as Active
+                  </Button>
 
-                        {circle.id === activeCircleId && (
-                            <Text style={styles.activeBadge}>⭐ Active Circle</Text>
-                        )}
-                    </View>
-                </TouchableOpacity>
+                  {circle.id === activeCircleId && (
+                    <Text style={[styles.activeBadge, isDarkMode && { color: DM_TEXT }]}>
+                      ⭐ Active Circle
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
             ))}
 
-                        <Button mode="text" onPress={fetchCircles} style={{ marginTop: 10 }}>
-                            Refresh List
-                        </Button>
-                    </Card.Content>
-                </Card>
-            </ScrollView>
+            <Button
+              mode="text"
+              onPress={fetchCircles}
+              style={{ marginTop: 10 }}
+              labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+            >
+              Refresh List
+            </Button>
+          </Card.Content>
+        </Card>
+      </ScrollView>
 
-            <Footer navigation={navigation} />
-        </View>
-    );
+      <Footer navigation={navigation} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    scrollContainer: {
-        flexGrow: 1,
-        padding: 20,
-        backgroundColor: '#e3d2f0ff',
-        paddingBottom: 100,
-    },
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 20,
+    backgroundColor: '#e3d2f0ff',
+    paddingBottom: 100,
+  },
 
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#4a148c',
-        textAlign: 'center',
-    },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4a148c',
+    textAlign: 'center',
+  },
 
-    subtitle: {
-        fontSize: 14,
-        color: '#5d1264ff',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
+  subtitle: {
+    fontSize: 14,
+    color: '#5d1264ff',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
 
-    card: {
-        width: '100%',
-        marginBottom: 10,
-        borderRadius: 20,
-        backgroundColor: '#d4a5ff',
-        paddingBottom: 5,
-    },
+  card: {
+    width: '100%',
+    marginBottom: 10,
+    borderRadius: 20,
+    backgroundColor: '#d4a5ff',
+    paddingBottom: 5,
+  },
 
-    cardTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#4a148c',
-        marginBottom: 5,
-    },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4a148c',
+    marginBottom: 5,
+  },
 
-    input: {
-        marginBottom: 5,
-    },
+  input: {
+    marginBottom: 5,
+  },
 
-    buttonShadowWrapper: {
-        overflow: 'visible',
-    },
+  buttonShadowWrapper: {
+    overflow: 'visible',
+  },
 
-    // --- TOP BUTTON STYLES (Create / Join) ---
-    // 1. Shadow/Container style (applied to 'style' prop) -> ADDS SHADOW
-    shadowButtonContainer: {
-        marginTop: 10,
-        // Note: React Native Paper often sets its own default borderRadius here,
-        // but the shadow should still render based on the Paper button shape.
-        elevation: 12,
-        shadowColor: '#4a148c',
-        shadowOpacity: 1,
-        shadowRadius: 22,
-        shadowOffset: { width: 0, height: 8 },
-        borderRadius: 12,
-    },
+  shadowButtonContainer: {
+    marginTop: 10,
+    elevation: 12,
+    shadowColor: '#4a148c',
+    shadowOpacity: 1,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 8 },
+    borderRadius: 12,
+  },
 
-    // 2. Content style (applied to 'contentStyle' prop) -> FORCES SHAPE/SIZE
-    topButtonContent: {
-        height: 40,
-        borderRadius: 12,
-    },
+  topButtonContent: {
+    height: 40,
+    borderRadius: 12,
+  },
 
-    topButtonLabel: {
-        color: '#4a148c',
-        fontWeight: 'bold',
-    },
+  topButtonLabel: {
+    color: '#4a148c',
+    fontWeight: 'bold',
+  },
 
-    successText: {
-        backgroundColor: '#c7a5cdff',
-        color: '#6e079eff',
-        borderRadius: 4,
-        padding: 5,
-        marginBottom: 10,
-    },
+  successText: {
+    backgroundColor: '#c7a5cdff',
+    color: '#6e079eff',
+    borderRadius: 4,
+    padding: 5,
+    marginBottom: 10,
+  },
 
-    circleItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
+  circleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
 
-    activeCircle: {
-        backgroundColor: '#f3d9ff',
-        borderLeftWidth: 4,
-        borderLeftColor: '#6a1b9a',
-    },
+  activeCircle: {
+    backgroundColor: '#f3d9ff',
+    borderLeftWidth: 4,
+    borderLeftColor: '#6a1b9a',
+  },
 
-    activeBadge: {
-        marginTop: 5,
-        color: '#6a1b9a',
-        fontWeight: 'bold',
-    },
+  activeBadge: {
+    marginTop: 5,
+    color: '#6a1b9a',
+    fontWeight: 'bold',
+  },
 
-    circleIcon: {
-        width: 50,
-        height: 50,
-        marginRight: 12,
-        resizeMode: 'contain',
-    },
+  circleIcon: {
+    width: 50,
+    height: 50,
+    marginRight: 12,
+    resizeMode: 'contain',
+  },
 
-    circleInfo: {
-        flex: 1,
-    },
+  circleInfo: {
+    flex: 1,
+  },
 
-    circleName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#333',
-    },
+  circleName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
 
-    circleDetail: {
-        fontSize: 12,
-        color: '#4a148c',
-    },
+  circleDetail: {
+    fontSize: 12,
+    color: '#4a148c',
+  },
 
-    activeButton: {
-        marginTop: 8,
-        backgroundColor: '#6a1b9a',
-        borderRadius: 16,
-        height: 40,
-        minWidth: 130,
-        alignSelf: 'flex-start',
-        elevation: 4,
-    },
+  activeButton: {
+    marginTop: 8,
+    backgroundColor: '#6a1b9a',
+    borderRadius: 16,
+    height: 40,
+    minWidth: 130,
+    alignSelf: 'flex-start',
+    elevation: 4,
+  },
 
-    activeButtonLabel: {
-        fontSize: 12,
-        paddingHorizontal: 0,
-    },
+  activeButtonLabel: {
+    fontSize: 12,
+    paddingHorizontal: 0,
+  },
 
-    backButton: {
-        alignSelf: 'flex-start',
-        marginBottom: 5,
-    },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 5,
+  },
 });
+

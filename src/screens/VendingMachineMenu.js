@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { Button } from 'react-native-paper';
-import Layout from '../components/Layout';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useTheme } from '../context/ThemeContext'; 
 
 const screenWidth = Dimensions.get('window').width;
 const IMAGE_ASPECT_RATIO = 1;
@@ -12,8 +12,10 @@ const containerHeight = containerWidth / IMAGE_ASPECT_RATIO;
 
 export default function VendingMachineMenu({ navigation }) {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const { colors, isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+  const styles = createStyles(colors, isDarkMode, DM_TEXT);
 
-  // These percentages are based on the ACTUAL image content
   const buttons = [
     { name: 'Events', top: 8, left: 15, width: 54, height: 12 },
     { name: 'Spells', top: 20, left: 15, width: 54, height: 12 },
@@ -31,9 +33,11 @@ export default function VendingMachineMenu({ navigation }) {
           mode="text"
           onPress={() => navigation.navigate('Dashboard')}
           style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
         >
           ← Back to Dashboard
         </Button>
+
         <Text style={styles.title}>
           Mystical remedies for common woes
         </Text>
@@ -71,10 +75,10 @@ export default function VendingMachineMenu({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, isDarkMode, DM_TEXT) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#e3d2f0ff',
+    backgroundColor: isDarkMode ? colors.background : '#e3d2f0ff',
   },
   scrollContent: {
     paddingHorizontal: 2,
@@ -88,11 +92,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#4a148c',
+    color: isDarkMode ? DM_TEXT : '#4a148c',
     textAlign: 'center',
     marginVertical: 16,
   },
-
   machineContainer: {
     alignSelf: 'center',
   },

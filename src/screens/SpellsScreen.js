@@ -10,6 +10,7 @@ import {
   PanResponder,
 } from 'react-native';
 import Layout from '../components/Layout';
+import { useTheme } from '../context/ThemeContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -59,11 +60,13 @@ const SPELLS = [
 ];
 
 export default function SpellsScreen({ navigation }) {
+  const { colors, isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCard, setExpandedCard] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // separate animated values instead of ValueXY
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
@@ -72,28 +75,17 @@ export default function SpellsScreen({ navigation }) {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => expandedCard === null,
-
       onPanResponderMove: (_, gesture) => {
         translateX.setValue(gesture.dx);
         translateY.setValue(gesture.dy * 0.1);
       },
-
       onPanResponderRelease: (_, gesture) => {
         const swipeThreshold = 120;
-
-        if (gesture.dx > swipeThreshold) {
-          swipeCard('right');
-        } else if (gesture.dx < -swipeThreshold) {
-          swipeCard('left');
-        } else {
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: false,
-          }).start();
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: false,
-          }).start();
+        if (gesture.dx > swipeThreshold) swipeCard('right');
+        else if (gesture.dx < -swipeThreshold) swipeCard('left');
+        else {
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: false }).start();
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: false }).start();
         }
       },
     })
@@ -101,38 +93,26 @@ export default function SpellsScreen({ navigation }) {
 
   const swipeCard = (direction) => {
     const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
-
     Animated.timing(translateX, {
       toValue: x,
       duration: 250,
       useNativeDriver: false,
     }).start(() => {
       if (direction === 'left') {
-        setCurrentIndex((prev) => {
-          if (prev === SPELLS.length - 1) return 0; // last → first
-          return prev + 1; // normal next
-        });
-      } else if (direction === 'right') {
-        setCurrentIndex((prev) => {
-          if (prev === 0) return SPELLS.length - 1; // first → last
-          return prev - 1; // normal previous
-        });
+        setCurrentIndex((prev) => (prev === SPELLS.length - 1 ? 0 : prev + 1));
+      } else {
+        setCurrentIndex((prev) => (prev === 0 ? SPELLS.length - 1 : prev - 1));
       }
-
       translateX.setValue(0);
       translateY.setValue(0);
     });
   };
 
   const handleCardTap = () => {
-    if (expandedCard !== null) {
-      flipCard();
-    } else {
+    if (expandedCard !== null) flipCard();
+    else {
       setExpandedCard(currentIndex);
-      Animated.spring(scaleAnim, {
-        toValue: 1.3,
-        useNativeDriver: false,
-      }).start();
+      Animated.spring(scaleAnim, { toValue: 1.3, useNativeDriver: false }).start();
     }
   };
 
@@ -147,15 +127,8 @@ export default function SpellsScreen({ navigation }) {
 
   const closeCard = () => {
     Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: false,
-      }),
-      Animated.timing(flipAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: false,
-      }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: false }),
+      Animated.timing(flipAnim, { toValue: 0, duration: 300, useNativeDriver: false }),
     ]).start(() => {
       setExpandedCard(null);
       setIsFlipped(false);
@@ -176,12 +149,21 @@ export default function SpellsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Healing Spells">
-      <View style={styles.container}>
-        <Text style={styles.title}>Healing Spells</Text>
-        <Text style={styles.subtitle}>Swipe to browse • Tap to reveal</Text>
+      <View
+        style={[
+          styles.container,
+          isDarkMode && { backgroundColor: colors.background },
+        ]}
+      >
+        <Text style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
+          Healing Spells
+        </Text>
+
+        <Text style={[styles.subtitle, isDarkMode && { color: DM_TEXT }]}>
+          Swipe to browse • Tap to reveal
+        </Text>
 
         <View style={styles.cardContainer}>
-          {/* Stack of cards in background */}
           {SPELLS.map((spell, index) => {
             if (index === currentIndex) return null;
             const offset = (index - currentIndex) * 10;
@@ -207,17 +189,11 @@ export default function SpellsScreen({ navigation }) {
             );
           })}
 
-          {/* Current card */}
           <Animated.View
             {...panResponder.panHandlers}
             style={[
               styles.card,
-              {
-                transform: [
-                  { translateX },
-                  { translateY },
-                ],
-              },
+              { transform: [{ translateX }, { translateY }] },
             ]}
           >
             <Animated.View
@@ -231,47 +207,85 @@ export default function SpellsScreen({ navigation }) {
                 onPress={handleCardTap}
                 style={styles.cardTouchable}
               >
-                {/* Front of card */}
                 <Animated.View
                   style={[
                     styles.cardFace,
                     styles.cardFront,
-                    {
-                      transform: [{ rotateY: frontInterpolate }],
-                    },
+                    isDarkMode && { backgroundColor: colors.cardBackground },
+                    { transform: [{ rotateY: frontInterpolate }] },
                   ]}
                 >
                   <Image source={currentSpell.image} style={styles.cardImage} />
-                  <Text style={styles.cardTitle}>{currentSpell.title}</Text>
+                  <Text
+                    style={[
+                      styles.cardTitle,
+                      isDarkMode && { color: DM_TEXT },
+                    ]}
+                  >
+                    {currentSpell.title}
+                  </Text>
                 </Animated.View>
 
-                {/* Back of card */}
                 <Animated.View
                   style={[
                     styles.cardFace,
                     styles.cardBack,
-                    {
-                      transform: [{ rotateY: backInterpolate }],
-                    },
+                    isDarkMode && { backgroundColor: 'rgba(93, 8, 36, 1)' },
+
+                    { transform: [{ rotateY: backInterpolate }] },
                   ]}
                 >
-                  <Text style={styles.backTitle}>{currentSpell.title}</Text>
-                  <Text style={styles.backDescription}>{currentSpell.description}</Text>
-                  <Text style={styles.backDetails}>{currentSpell.details}</Text>
+                  <Text
+                    style={[
+                      styles.backTitle,
+                      isDarkMode && { color: DM_TEXT },
+                    ]}
+                  >
+                    {currentSpell.title}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.backDescription,
+                      isDarkMode && { color: DM_TEXT },
+                    ]}
+                  >
+                    {currentSpell.description}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.backDetails,
+                      isDarkMode && { color: DM_TEXT },
+                    ]}
+                  >
+                    {currentSpell.details}
+                  </Text>
                 </Animated.View>
               </TouchableOpacity>
             </Animated.View>
           </Animated.View>
         </View>
 
-        {/* Close button when expanded */}
         {expandedCard !== null && (
-          <TouchableOpacity style={styles.closeButton} onPress={closeCard}>
-            <Text style={styles.closeButtonText}>✕</Text>
+          <TouchableOpacity
+            style={[
+              styles.closeButton,
+              isDarkMode && { backgroundColor: colors.cardBackground },
+            ]}
+            onPress={closeCard}
+          >
+            <Text
+              style={[
+                styles.closeButtonText,
+                isDarkMode && { color: DM_TEXT },
+              ]}
+            >
+              ✕
+            </Text>
           </TouchableOpacity>
         )}
 
-        {/* Indicator dots */}
         <View style={styles.dotsContainer}>
           {SPELLS.map((_, index) => (
             <View
@@ -279,6 +293,10 @@ export default function SpellsScreen({ navigation }) {
               style={[
                 styles.dot,
                 index === currentIndex && styles.dotActive,
+                isDarkMode && {
+                  backgroundColor:
+                    index === currentIndex ? DM_TEXT : colors.cardBackground,
+                },
               ]}
             />
           ))}

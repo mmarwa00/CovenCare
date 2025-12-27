@@ -3,20 +3,24 @@ import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Card, Title, Paragraph, ActivityIndicator, Button } from 'react-native-paper';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth } from '../config/firebaseConfig'; // Add this import
+import { auth } from '../config/firebaseConfig';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { leaveCircle } from '../services/circleService';
+import { useTheme } from '../context/ThemeContext';
 
 export default function CircleDetailsScreen({ route, navigation }) {
-
+    const { colors, isDarkMode } = useTheme();
     const { circle } = route.params || {};
 
-    // Safety check: If circle is somehow missing, navigate back
+    const DM_TEXT = '#e3d2f0ff'; // FINAL DARK MODE TEXT COLOR
+
     if (!circle || !circle.id) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorTextTitle}>Error: Circle data missing.</Text>
+            <View style={[styles.container, isDarkMode && { backgroundColor: colors.background }]}>
+                <Text style={[styles.errorTextTitle, isDarkMode && { color: DM_TEXT }]}>
+                    Error: Circle data missing.
+                </Text>
                 <Button onPress={() => navigation.goBack()}>Go Back</Button>
             </View>
         );
@@ -24,29 +28,19 @@ export default function CircleDetailsScreen({ route, navigation }) {
 
     const [memberDetails, setMemberDetails] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [leaveLoading, setLeaveLoading] = useState(false); // Add loading state for leave button
-
-    const witch1 = require('../../assets/Profile_pics/witch1.png');
-    const witch2 = require('../../assets/Profile_pics/witch2.png');
-    const witch3 = require('../../assets/Profile_pics/witch3.png');
-    const witch4 = require('../../assets/Profile_pics/witch4.png');
-    const witch5 = require('../../assets/Profile_pics/witch5.png');
-    const wizz1 = require('../../assets/Profile_pics/wizz1.png');
-    const wizz2 = require('../../assets/Profile_pics/wizz2.png');
-    const wizz3 = require('../../assets/Profile_pics/wizz3.png');
+    const [leaveLoading, setLeaveLoading] = useState(false);
 
     const photoMap = {
-        witch1,
-        witch2,
-        witch3,
-        witch4,
-        witch5,
-        wizz1,
-        wizz2,
-        wizz3,
+        witch1: require('../../assets/Profile_pics/witch1.png'),
+        witch2: require('../../assets/Profile_pics/witch2.png'),
+        witch3: require('../../assets/Profile_pics/witch3.png'),
+        witch4: require('../../assets/Profile_pics/witch4.png'),
+        witch5: require('../../assets/Profile_pics/witch5.png'),
+        wizz1: require('../../assets/Profile_pics/wizz1.png'),
+        wizz2: require('../../assets/Profile_pics/wizz2.png'),
+        wizz3: require('../../assets/Profile_pics/wizz3.png'),
     };
 
-    // Fetch usernames and details for all members
     const fetchMemberDetails = async () => {
         const details = [];
         const memberPromises = circle.members.map(async (memberObject) => {
@@ -69,7 +63,6 @@ export default function CircleDetailsScreen({ route, navigation }) {
                     details.push({ id: uid, displayName: 'User Deleted' });
                 }
             } catch (e) {
-                console.error("Error fetching user detail:", e);
                 details.push({ id: uid, displayName: 'Fetch Error' });
             }
         });
@@ -84,20 +77,26 @@ export default function CircleDetailsScreen({ route, navigation }) {
     }, [circle.members]);
 
     const renderMemberAvatar = (member) => {
-        // If user has profilePhoto and it exists in photoMap, show the image
         if (member.profilePhoto && photoMap[member.profilePhoto]) {
             return (
                 <Image
                     source={photoMap[member.profilePhoto]}
-                    style={styles.memberAvatar}
-                    resizeMode="cover"
+                    style={[
+                        styles.memberAvatar,
+                        isDarkMode && { borderColor: DM_TEXT }
+                    ]}
                 />
             );
         }
-        // Otherwise show circle with first letter
+
         return (
-            <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
+            <View
+                style={[
+                    styles.avatarPlaceholder,
+                    isDarkMode && { backgroundColor: colors.primary }
+                ]}
+            >
+                <Text style={[styles.avatarText, isDarkMode && { color: DM_TEXT }]}>
                     {member.displayName?.charAt(0).toUpperCase() || '?'}
                 </Text>
             </View>
@@ -107,61 +106,95 @@ export default function CircleDetailsScreen({ route, navigation }) {
     const handleLeaveCircle = async () => {
         try {
             setLeaveLoading(true);
-            
-            // Get current user ID from Firebase Auth
             const currentUserId = auth.currentUser?.uid;
-            
+
             if (!currentUserId) {
-                console.error('No user logged in');
                 setLeaveLoading(false);
                 return;
             }
 
-            // Get circle ID from the circle object
-            const circleId = circle.id;
-
-            // Call leaveCircle with userId and circleId
-            await leaveCircle(currentUserId, circleId);
-            
-            // Navigate back to dashboard after successfully leaving
+            await leaveCircle(currentUserId, circle.id);
             navigation.navigate('Dashboard');
         } catch (e) {
-            console.error('Error leaving circle:', e);
             setLeaveLoading(false);
         }
     };
 
     return (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? colors.background : '#fff' }}>
             <Header />
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton}>
+
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContainer,
+                    isDarkMode && { backgroundColor: colors.background }
+                ]}
+            >
+                <Button
+                    mode="text"
+                    onPress={() => navigation.navigate('Dashboard')}
+                    style={styles.backButton}
+                    labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+                >
                     ← Back to Dashboard
                 </Button>
 
-                <Title style={styles.title}>{circle.name}</Title>
-                <Paragraph style={styles.subtitle}>Invite Code: {circle.inviteCode}</Paragraph>
+                <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
+                    {circle.name}
+                </Title>
 
-                <Card style={styles.card}>
+                <Paragraph style={[styles.subtitle, isDarkMode && { color: DM_TEXT }]}>
+                    Invite Code: {circle.inviteCode}
+                </Paragraph>
+
+                <Card
+                    style={[
+                        styles.card,
+                        isDarkMode && {
+                            backgroundColor: colors.cardBackground,
+                            borderColor: colors.border,
+                            borderWidth: 1,
+                            shadowColor: colors.shadowColor,
+                            shadowOpacity: colors.shadowOpacity,
+                            shadowRadius: 15,
+                            elevation: 8,
+                        }
+                    ]}
+                >
                     <Card.Content>
-                        <Title style={styles.sectionTitle}>
+                        <Title style={[styles.sectionTitle, isDarkMode && { color: DM_TEXT }]}>
                             Participants ({memberDetails.length})
                         </Title>
 
                         {loading ? (
-                            <ActivityIndicator animating={true} color="#4a148c" />
+                            <ActivityIndicator
+                                animating={true}
+                                color={isDarkMode ? DM_TEXT : "#4a148c"}
+                            />
                         ) : (
                             memberDetails.map((member) => (
-                                <View key={member.id} style={styles.memberItem}>
+                                <View
+                                    key={member.id}
+                                    style={[
+                                        styles.memberItem,
+                                        isDarkMode && { borderBottomColor: colors.border }
+                                    ]}
+                                >
                                     <View style={styles.memberRow}>
                                         {renderMemberAvatar(member)}
                                         <View style={styles.memberTextWrap}>
-                                            <Text style={styles.memberText}>
-                                                {member.displayName} <Text style={styles.memberRole}>({member.role})</Text>
+                                            <Text style={[styles.memberText, isDarkMode && { color: DM_TEXT }]}>
+                                                {member.displayName}{' '}
                                             </Text>
-                                            <Text style={styles.memberDetail}>Privacy: {member.privacyLevel}</Text>
+
+                                            <Text style={[styles.memberDetail, isDarkMode && { color: DM_TEXT }]}>
+                                                Privacy: {member.privacyLevel}
+                                            </Text>
+
                                             {member.email ? (
-                                                <Text style={styles.memberSmall}>Email: {member.email}</Text>
+                                                <Text style={[styles.memberSmall, isDarkMode && { color: DM_TEXT }]}>
+                                                    Email: {member.email}
+                                                </Text>
                                             ) : null}
                                         </View>
                                     </View>
@@ -171,19 +204,31 @@ export default function CircleDetailsScreen({ route, navigation }) {
                     </Card.Content>
                 </Card>
 
-                {/* --- Leave Circle Button --- */}
                 <Button
                     mode="outlined"
                     onPress={handleLeaveCircle}
-                    style={styles.leaveButton}
-                    labelStyle={styles.leaveLabel}
+                    style={[
+                        styles.leaveButton,
+                        isDarkMode && {
+                            backgroundColor: colors.cardBackground,
+                            borderColor: colors.border,
+                            borderWidth: 2,
+                            shadowColor: colors.shadowColor,
+                            shadowOpacity: colors.shadowOpacity,
+                            shadowRadius: 15,
+                            elevation: 8,
+                        }
+                    ]}
+                    labelStyle={[
+                        styles.leaveLabel,
+                        isDarkMode && { color: DM_TEXT }
+                    ]}
                     icon="exit-to-app"
                     disabled={leaveLoading}
                     loading={leaveLoading}
                 >
                     {leaveLoading ? 'Leaving...' : 'Leave Circle'}
                 </Button>
-
             </ScrollView>
 
             <Footer navigation={navigation} />
@@ -198,19 +243,6 @@ const styles = StyleSheet.create({
         paddingTop: 20,
         paddingBottom: 120,
         backgroundColor: '#e3d2f0ff',
-    },
-    dashboardBox: {
-        backgroundColor: '#d4a5ff',
-        padding: 15,
-        borderRadius: 12,
-        marginVertical: 10,
-        width: '90%',
-        alignSelf: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 3,
     },
     backButton: {
         alignSelf: 'flex-start',
@@ -255,6 +287,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6a1b9a',
     },
+    memberSmall: {
+        fontSize: 12,
+        color: '#6a1b9a',
+    },
     memberAvatar: {
         width: 40,
         height: 40,
@@ -267,7 +303,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#7b1fa2', 
+        backgroundColor: '#7b1fa2',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { Button, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { getActiveEmergencies } from '../services/emergencyService';
@@ -11,6 +12,7 @@ import Footer from '../components/Footer';
 
 export default function DashboardScreen({ navigation }) {
   const { signOutUser, user } = useAuth();
+  const { colors } = useTheme();
   const userId = user?.uid;
 
   const [activeCircle, setActiveCircle] = useState(null);
@@ -146,14 +148,16 @@ export default function DashboardScreen({ navigation }) {
     return 'Just now';
   };
 
+  const styles = createStyles(colors);
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.dashboardBox}>
           {loadingCircle ? (
-            <ActivityIndicator animating={true} color="#4a148c" />
+            <ActivityIndicator animating={true} color={colors.accent} />
           ) : activeCircle ? (
             <View>
               <View style={styles.circleRow}>
@@ -193,7 +197,7 @@ export default function DashboardScreen({ navigation }) {
           </View>
 
           {loadingAlerts ? (
-            <ActivityIndicator animating={true} color="#4a148c" size="small" style={{ marginTop: 10 }} />
+            <ActivityIndicator animating={true} color={colors.accent} size="small" style={{ marginTop: 10 }} />
           ) : alerts.length === 0 ? (
             <Text style={styles.boxSubtitle}>No active alerts.</Text>
           ) : (
@@ -216,8 +220,8 @@ export default function DashboardScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity
-  style={styles.dashboardBox}
-  onPress={() => navigation.navigate('SentVouchers')}
+          style={styles.dashboardBox}
+          onPress={() => navigation.navigate('SentVouchers')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
@@ -228,6 +232,7 @@ export default function DashboardScreen({ navigation }) {
             <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
           </View>
         </TouchableOpacity>
+
         <Button
           mode="outlined"
           onPress={signOutUser}
@@ -244,36 +249,37 @@ export default function DashboardScreen({ navigation }) {
   );
 }
 
-
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   scrollContainer: {
     padding: 10,
     paddingBottom: 30,
-    backgroundColor: '#e3d2f0ff',
+    backgroundColor: colors.background,
   },
 
   dashboardBox: {
-    backgroundColor: '#d4a5ff',
+    backgroundColor: colors.cardBackground,
     padding: 15,
     borderRadius: 18,
     marginVertical: 10,
     width: '90%',
     alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 3,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: colors.shadowOpacity,
+    shadowRadius: 15,
+    elevation: 8,
   },
 
   boxTitle: {
-    color: '#4a148c',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
 
   boxSubtitle: {
-    color: '#4a148c',
+    color: colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -284,7 +290,7 @@ const styles = StyleSheet.create({
   },
 
   circleName: {
-    color: '#4a148c',
+    color: colors.text,
     fontSize: 14,
     marginTop: 8,
     fontWeight: '600',
@@ -318,29 +324,28 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  // Emergency alert styles
   alertItem: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#8b5cb8',
+    borderTopColor: colors.border,
   },
 
   alertType: {
-    color: '#4a148c',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
 
   alertMessage: {
-    color: '#4a148c',
+    color: colors.textSecondary,
     fontSize: 12,
     fontStyle: 'italic',
     marginTop: 4,
   },
 
   answerButton: {
-    backgroundColor: '#4a148c',
+    backgroundColor: colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 25,
@@ -359,7 +364,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 6,
-    backgroundColor: '#4a148c',
+    backgroundColor: colors.accent,
     borderRadius: 50,
     alignSelf: 'flex-start',
   },
@@ -371,47 +376,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Voucher styles
   voucherItem: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#8b5cb8',
+    borderTopColor: colors.border,
   },
 
   voucherType: {
-    color: '#4a148c',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
 
   voucherCode: {
-    color: '#4a148c',
+    color: colors.text,
     fontSize: 11,
     marginTop: 4,
     fontFamily: 'monospace',
-    backgroundColor: '#f0e6ff',
+    backgroundColor: colors.cardBackground,
     padding: 4,
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
-  voucherButton: {
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: '#4a148c',
-    borderRadius: 50,
-    alignSelf: 'flex-start',
-  },
-  voucherLabel: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
 
   viewMore: {
-    color: '#4a148c',
+    color: colors.textSecondary,
     fontSize: 12,
     marginTop: 10,
     fontStyle: 'italic',
@@ -420,26 +410,28 @@ const styles = StyleSheet.create({
   
   redeemButton: {
     marginTop: 8,
-    backgroundColor: '#4a148c',
+    backgroundColor: colors.accent,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
-    shadowColor: '#000',
+    shadowColor: colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
   },
+
   redeemButtonText: {
     color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 14,
   },
+
   logoutButton: {
     marginTop: 20,
-    backgroundColor: '#f8f8ff',
-    borderColor: '#4a148c',
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.border,
     borderWidth: 2,
     width: 200,
     alignSelf: 'center',
@@ -450,7 +442,7 @@ const styles = StyleSheet.create({
 
   logoutLabel: {
     fontSize: 14,
-    color: '#4a148c',
+    color: colors.text,
     fontWeight: 'bold',
   },
 });

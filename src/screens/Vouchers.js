@@ -2,29 +2,34 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
+import { useTheme } from '../context/ThemeContext'; 
 
 const screenWidth = Dimensions.get('window').width;
 
-// Calculate card size based on screen dimensions
-const CARD_ASPECT_RATIO = 1; // square cards
-const GAP = screenWidth * 0.04; // 4% of screen width for gaps
-const HORIZONTAL_PADDING = screenWidth * 0.08; // 8% padding on sides
-const CARD_WIDTH = (screenWidth - (HORIZONTAL_PADDING * 2) - GAP) / 2; // 2 columns
+const CARD_ASPECT_RATIO = 1;
+const GAP = screenWidth * 0.04;
+const HORIZONTAL_PADDING = screenWidth * 0.08;
+const CARD_WIDTH = (screenWidth - (HORIZONTAL_PADDING * 2) - GAP) / 2;
 const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 const voucherOptions = [
-  { image: require('../../assets/Vouchers/tea.png'),    type: 'tea' },      // <-- Added type: 'tea'
-  { image: require('../../assets/Vouchers/coffee.png'), type: 'coffee' },   // <-- Added type: 'coffee'
-  { image: require('../../assets/Vouchers/mask.png'),   type: 'face_mask' }, // <-- Matches VOUCHER_TYPES.FACE_MASK
-  { image: require('../../assets/Vouchers/chips.png'),  type: 'chips' },    // <-- Added type: 'chips'
-  { image: require('../../assets/Vouchers/Love.png'),   type: 'love' },     // <-- Added type: 'love'
-  { image: require('../../assets/Vouchers/choco.png'),  type: 'chocolate' },// <-- Matches VOUCHER_TYPES.CHOCOLATE
+  { image: require('../../assets/Vouchers/tea.png'),    type: 'tea' },
+  { image: require('../../assets/Vouchers/coffee.png'), type: 'coffee' },
+  { image: require('../../assets/Vouchers/mask.png'),   type: 'face_mask' },
+  { image: require('../../assets/Vouchers/chips.png'),  type: 'chips' },
+  { image: require('../../assets/Vouchers/Love.png'),   type: 'love' },
+  { image: require('../../assets/Vouchers/choco.png'),  type: 'chocolate' },
 ];
 
 export default function Vouchers({ navigation }) {
+  const { isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+
   return (
     <Layout navigation={navigation} subtitle="Choose a care voucher:">
-      <Title style={styles.title}>Choose a care voucher:</Title>
+      <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
+        Choose a care voucher:
+      </Title>
 
       <View style={styles.container}>
         <View style={[styles.grid, { maxWidth: CARD_WIDTH * 2 + GAP }]}>
@@ -57,8 +62,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4a148c',
     textAlign: 'center',
-    marginBottom: 10,
-    marginTop: 10,
+    marginBottom: 16,
+    marginTop: 26,   // moved down from header
   },
   container: {
     flex: 1,

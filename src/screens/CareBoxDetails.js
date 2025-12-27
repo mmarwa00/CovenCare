@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Dimensions, 
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { redeemVoucher } from '../services/voucherService';
-
+import { useTheme } from '../context/ThemeContext'; 
 const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = screenWidth * 0.5;
 const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
 export default function CareBoxDetails({ route, navigation }) {
+  const { colors, isDarkMode } = useTheme(); 
+  const styles = createStyles(colors, isDarkMode)
   const { user } = useAuth();
   const userId = user?.uid;
   const { itemImage, itemName, count, senders } = route.params;
@@ -128,7 +130,7 @@ export default function CareBoxDetails({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors, isDarkMode) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 20,

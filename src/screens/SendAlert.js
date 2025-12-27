@@ -1,18 +1,21 @@
 import React from 'react';
 import SendItemScreen from '../components/SendItemScreen';
+import { useTheme } from '../context/ThemeContext'; 
 
 export default function SendAlert({ route, navigation }) {
-  // 🌟 KORREKTUR: Flexible Suche nach dem Datenobjekt (REVISED)
-  // The data object IS the route.params itself if the previous screen passes it directly.
-  const itemData = route.params || {}; 
+  const { isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
+
+  const itemData = route.params || {};
 
   return (
     <SendItemScreen
       navigation={navigation}
-      // Pass the entire parameter object.
-      selectedItem={itemData} 
+      selectedItem={itemData}
       itemType="alert"
       backgroundImage={require('../../assets/icons/BackgroundStars.png')}
+      titleColor={isDarkMode ? DM_TEXT : '#4a148c'}
+      textColor={isDarkMode ? DM_TEXT : '#4a148c'}
     />
   );
 }
