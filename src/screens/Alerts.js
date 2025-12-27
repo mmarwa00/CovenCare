@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
-import { useTheme } from '../context/ThemeContext'; 
+import { useTheme } from '../context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -12,18 +12,46 @@ const HORIZONTAL_PADDING = screenWidth * 0.08;
 const CARD_WIDTH = (screenWidth - (HORIZONTAL_PADDING * 2) - GAP) / 2;
 const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
-const alertOptions = [
-  { image: require('../../assets/Alerts/Heat.png'),      type: 'the_heat' }, 
-  { image: require('../../assets/Alerts/Pad.png'),       type: 'pads' },   
-  { image: require('../../assets/Alerts/tampon.png'),    type: 'tampon' },
-  { image: require('../../assets/Alerts/painkiller.png'),type: 'painkiller'},
-  { image: require('../../assets/Alerts/ear.png'),       type: 'the_ear' },
-  { image: require('../../assets/Alerts/PMS.png'),       type: 'the_pms' }, 
-];
-
 export default function Alerts({ navigation }) {
   const { isDarkMode } = useTheme();
   const DM_TEXT = '#e3d2f0ff';
+
+  // STATIC REQUIRE MAP — React Native requires literal paths
+  const alertImages = {
+    the_heat: {
+      light: require('../../assets/Alerts/Heat.png'),
+      dark: require('../../assets/Alerts/rest.png'), // gothic swap
+    },
+    pads: {
+      light: require('../../assets/Alerts/Pad.png'),
+      dark: require('../../assets/Alerts/Pad.png'),
+    },
+    tampon: {
+      light: require('../../assets/Alerts/tampon.png'),
+      dark: require('../../assets/Alerts/tampon.png'),
+    },
+    painkiller: {
+      light: require('../../assets/Alerts/painkiller.png'),
+      dark: require('../../assets/Alerts/garlic.png'), // gothic swap
+    },
+    the_ear: {
+      light: require('../../assets/Alerts/ear.png'),
+      dark: require('../../assets/Alerts/ear.png'),
+    },
+    the_pms: {
+      light: require('../../assets/Alerts/PMS.png'),
+      dark: require('../../assets/Alerts/PMS.png'),
+    },
+  };
+
+  const alertOptions = [
+    { image: isDarkMode ? alertImages.the_heat.dark : alertImages.the_heat.light, type: 'the_heat' },
+    { image: isDarkMode ? alertImages.pads.dark : alertImages.pads.light, type: 'pads' },
+    { image: isDarkMode ? alertImages.tampon.dark : alertImages.tampon.light, type: 'tampon' },
+    { image: isDarkMode ? alertImages.painkiller.dark : alertImages.painkiller.light, type: 'painkiller' },
+    { image: isDarkMode ? alertImages.the_ear.dark : alertImages.the_ear.light, type: 'the_ear' },
+    { image: isDarkMode ? alertImages.the_pms.dark : alertImages.the_pms.light, type: 'the_pms' },
+  ];
 
   return (
     <Layout navigation={navigation} subtitle="Send an emergency alert:">
@@ -63,7 +91,7 @@ const styles = StyleSheet.create({
     color: '#4a148c',
     textAlign: 'center',
     marginBottom: 16,
-    marginTop: 26, // moved down from header
+    marginTop: 26,
   },
   container: {
     flex: 1,
