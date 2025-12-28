@@ -7,8 +7,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Calendar } from 'react-native-calendars';
 import { db } from '../config/firebaseConfig';
-import { deleteDoc, doc } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
+import { deleteDoc, doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 // Format Firestore Timestamp or JS Date
 const formatDate = (date) => {
@@ -33,7 +33,7 @@ export default function CalendarScreen({ navigation }) {
 
   const { user } = useAuth();
   const userId = user?.uid;
-
+  const [memberInfo, setMemberInfo] = useState({});
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [periods, setPeriods] = useState([]);
@@ -41,6 +41,10 @@ export default function CalendarScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showCirclePeriods, setShowCirclePeriods] = useState(false);
+  const [circlePeriods, setCirclePeriods] = useState([]);
+  const [memberColorMap, setMemberColorMap] = useState({});
+
 
   const fetchData = async () => {
     if (!userId) return;
@@ -66,14 +70,43 @@ export default function CalendarScreen({ navigation }) {
 
   useEffect(() => {
     fetchData();
+    fetchCirclePeriods();
   }, [userId]);
 
   const handleDayPress = (day) => {
     const dateStr = day.dateString;
     const today = new Date();
     const clicked = new Date(dateStr);
-
     const existing = findPeriodByDay(dateStr);
+
+    // ❗️ ONLY react to other users' periods if shared mode is ON
+    if (showCirclePeriods) {
+      const c = new Date(dateStr);
+
+      // find EVERYONE who has period this day
+      const hits = circlePeriods.filter(p => {
+        const s = p.startDate.toDate();
+        const e = p.endDate.toDate();
+        return c >= s && c <= e;
+      });
+
+      if (hits.length > 0) {
+        // build names list
+        const names = hits
+          .map(h => memberInfo[h.userId]?.name || "User")
+          .join(", ");
+
+        Alert.alert(
+          "Shared Calendar",
+          hits.length === 1
+            ? `${names} has period these days 💜`
+            : `These members have period now: ${names} 💜`
+        );
+        return;
+      }
+    }
+
+
     if (existing) {
       Alert.alert(
         "Delete Period?",
@@ -124,7 +157,7 @@ export default function CalendarScreen({ navigation }) {
         marks[key] = {
           customStyles: {
             container: {
-              backgroundColor: '#4a1f3d', // plum
+              backgroundColor: '#c162d8ff',
               borderRadius: 20,
             },
             text: {
@@ -175,6 +208,154 @@ export default function CalendarScreen({ navigation }) {
     return marks;
   };
 
+  const fetchCirclePeriods = async () => {
+    try {
+      if (!userId) return;
+
+      //Get user's active circle
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const activeCircleId = userDoc.data()?.activeCircleId;
+
+      if (!activeCircleId) {
+        console.log("No active circle");
+        return;
+      }
+
+      //Get the circle itself
+      const circleDoc = await getDoc(doc(db, "circles", activeCircleId));
+      const circleData = circleDoc.data();
+
+      if (!circleData || !circleData.members) return;
+
+      const members = circleData.members;
+      let infoMap = {};
+      for (let m of members) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", m.userId));
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            infoMap[m.userId] = {
+              name: data.displayName || "Unknown user",
+              photo: data.profilePhoto || null
+            };
+          }
+        } catch (e) {
+          infoMap[m.userId] = { name: "User", photo: null };
+        }
+      }
+
+      setMemberInfo(infoMap);
+
+      const colors = [
+        "#8eff7fff", 
+        "#ffc26cff", 
+        "#76fff1ff", 
+        "#81c2ffff",
+        //"#e990ffff"
+      ];
+
+      const newColorMap = { ...memberColorMap }; // keep existing colors
+      let colorIndex = 0;
+
+      members.forEach(member => {
+        if (member.userId === userId) return;
+
+        // already has color → keep it
+        if (newColorMap[member.userId]) return;
+
+        // assign new color
+        newColorMap[member.userId] = colors[colorIndex % colors.length];
+        colorIndex++;
+      });
+
+      setMemberColorMap(newColorMap);
+
+      // Collect periods of all members
+      let result = [];
+
+      for (let member of members) {
+        // Skip the current user
+        if (member.userId === userId) continue;
+
+        const periodsQuery = query(
+          collection(db, "periods"),
+          where("userId", "==", member.userId)
+        );
+
+        const periodsSnap = await getDocs(periodsQuery);
+
+        periodsSnap.forEach(docSnap => {
+          result.push({
+            id: docSnap.id,
+            userId: member.userId,
+            ...docSnap.data()
+          });
+        });
+      }
+
+      setCirclePeriods(result);
+      } catch (error) {
+        console.log("Error loading circle periods:", error);
+      }
+    };
+
+
+    const getCircleMarkedDates = () => {
+      if (!showCirclePeriods) return {};
+
+      const marks = {};
+      const dayUsers = {}; // day - Set(userId)
+
+      circlePeriods.forEach(p => {
+        const start = p.startDate.toDate();
+        const end = p.endDate.toDate();
+        let current = new Date(start);
+
+        while (current <= end) {
+          const key = toDateString(current);
+
+          if (!dayUsers[key]) dayUsers[key] = new Set();
+          dayUsers[key].add(p.userId);
+
+          marks[key] = {
+            customStyles: {
+              container: {
+                backgroundColor: memberColorMap[p.userId] || "#888",
+                borderRadius: 20,
+              },
+              text: {
+                color: "white",
+                fontWeight: "bold"
+              }
+            }
+          };
+
+          current.setDate(current.getDate() + 1);
+        }
+      });
+
+      // gold style if 2+ users overlap same day
+      Object.keys(dayUsers).forEach(day => {
+        if (dayUsers[day].size > 1) {
+          marks[day] = {
+            customStyles: {
+              container: {
+                backgroundColor: "#FFD700",
+                borderRadius: 20,
+              },
+              text: {
+                color: "black",
+                fontWeight: "bold"
+              }
+            }
+          };
+        }
+      });
+    return marks;
+  };
+
+
+
   const todayString = new Date().toISOString().split("T")[0];
 
   const getFutureDisabledDates = (existingMarks) => {
@@ -200,12 +381,13 @@ export default function CalendarScreen({ navigation }) {
 
   const getAllMarkedDates = () => {
     let baseMarks = {
-      ...getPeriodMarkedDates(),
+      ...(showCirclePeriods ? {} : getPeriodMarkedDates()),
+      ...getCircleMarkedDates(),
       ...getSelectedRangeMarks(),
       [todayString]: {
         customStyles: {
           container: {
-            backgroundColor: '#7b1fa2', // lilac highlight
+            backgroundColor: '#7b1fa2',
             borderRadius: 20,
           },
           text: {
@@ -219,6 +401,7 @@ export default function CalendarScreen({ navigation }) {
     baseMarks = getFutureDisabledDates(baseMarks);
     return baseMarks;
   };
+
 
   const handleLogPeriod = async () => {
     setLoading(true);
@@ -338,6 +521,14 @@ export default function CalendarScreen({ navigation }) {
                       <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
                           Log New Period
                       </Title>
+
+                      <Button
+                        mode="contained"
+                        onPress={() => setShowCirclePeriods(!showCirclePeriods)}
+                        style={{ marginBottom: 10 }}
+                      >
+                        {showCirclePeriods ? "Hide Circle Periods" : "Show Circle Periods"}
+                      </Button>
 
                       <Calendar
                           firstDay={1}

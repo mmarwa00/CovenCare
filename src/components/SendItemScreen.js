@@ -42,10 +42,10 @@ export default function SendItemScreen({
   const photoMap = { witch1, witch2, witch3, witch4, witch5, wizz1, wizz2, wizz3 };
 
   useEffect(() => {
-    loadPeopleFromActiveCircle();
+    loadPeopleFromAllCircles();
   }, []);
 
-  const loadPeopleFromActiveCircle = async () => {
+  const loadPeopleFromAllCircles = async () => {
     try {
       setLoading(true);
       const userId = auth.currentUser?.uid;
@@ -59,61 +59,65 @@ export default function SendItemScreen({
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) throw new Error('User not found');
 
-      const circleId = userSnap.data().activeCircleId;
-      if (!circleId) {
-        Alert.alert('No Active Circle', 'Please set an active circle first!', [
-          { text: 'Go to Circles', onPress: () => navigation.navigate('CircleScreen') },
-          { text: 'Cancel', onPress: () => navigation.goBack() }
-        ]);
+      const userData = userSnap.data();
+      const circleIds = userData.circles || userData.joinedCircles || [];
+
+      if (!circleIds.length) {
+        Alert.alert('No Circles', 'You are not in any circles yet.');
         return;
       }
 
-      setActiveCircleId(circleId);
+      const uniqueUsers = new Map();
 
-      const membersResult = await getCircleMembers(circleId);
-      if (!membersResult.success) throw new Error(membersResult.error);
+      // Go through all the circles
+      for (const circleId of circleIds) {
+        const membersResult = await getCircleMembers(circleId);
+        if (!membersResult.success) continue;
 
-      const peopleWithDetails = [];
-      for (const member of membersResult.members) {
-        if (member.id !== userId) {
-          try {
-            const userRef = doc(db, 'users', member.id);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-              const userData = userSnap.data();
-              peopleWithDetails.push({
-                id: member.id,
-                displayName: userData.displayName || member.displayName || 'Unknown',
-                profilePhoto: userData.profilePhoto || null,
-                circleId: circleId 
-              });
-            } else {
-              peopleWithDetails.push({
+        for (const member of membersResult.members) {
+          if (member.id === userId) continue; // do not add yourself
+
+          if (!uniqueUsers.has(member.id)) {
+            try {
+              const userRef = doc(db, 'users', member.id);
+              const userSnap = await getDoc(userRef);
+
+              if (userSnap.exists()) {
+                const data = userSnap.data();
+                uniqueUsers.set(member.id, {
+                  id: member.id,
+                  displayName: data.displayName || member.displayName || 'Unknown',
+                  profilePhoto: data.profilePhoto || null
+                });
+              } else {
+                uniqueUsers.set(member.id, {
+                  id: member.id,
+                  displayName: member.displayName || 'Unknown',
+                  profilePhoto: null
+                });
+              }
+
+            } catch {
+              uniqueUsers.set(member.id, {
                 id: member.id,
                 displayName: member.displayName || 'Unknown',
-                profilePhoto: null,
-                circleId: circleId
+                profilePhoto: null
               });
             }
-          } catch {
-            peopleWithDetails.push({
-              id: member.id,
-              displayName: member.displayName || 'Unknown',
-              profilePhoto: null,
-              circleId: circleId
-            });
           }
         }
       }
 
-      if (peopleWithDetails.length === 0) {
-        Alert.alert('No Members', 'Your active circle has no other members yet.');
+      const peopleList = Array.from(uniqueUsers.values());
+
+      if (peopleList.length === 0) {
+        Alert.alert('No Members', 'There are no other people across your circles yet.');
       }
 
-      setAllPeople(peopleWithDetails);
+      setAllPeople(peopleList);
 
     } catch (error) {
-      Alert.alert('Error', 'Failed to load circle members: ' + error.message);
+      Alert.alert('Error', 'Failed to load members: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -138,18 +142,24 @@ export default function SendItemScreen({
     const recipients = selectedPeople;
     const type = String(selectedItem?.type || selectedItem?.name || selectedItem?.id || selectedItem?.value || 'unknown');
 
-    if (!userId || !activeCircleId || !type) {
+    if (!userId || !type) {
       Alert.alert('Sending Blocked', 'Missing required data.');
       return;
+    }
+
+    // pick circle id for sending
+    let circleIdToUse = activeCircleId;
+    if (!circleIdToUse) {
+      circleIdToUse = "multi";
     }
 
     setIsSending(true);
 
     let result;
     if (itemType === 'voucher') {
-      result = await sendVoucher(userId, recipients, activeCircleId, type, message);
+      result = await sendVoucher(userId, recipients, circleIdToUse, type, message);
     } else if (itemType === 'alert') {
-      result = await createEmergency(userId, activeCircleId, type, recipients, message);
+      result = await createEmergency(userId, circleIdToUse, type, recipients, message);
       if (result.success) result.count = recipients.length;
     } else {
       Alert.alert('Error', 'Invalid item type.');
