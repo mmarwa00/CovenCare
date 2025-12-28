@@ -150,7 +150,9 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       marginTop: 10,
     },
     grid: {
-      paddingHorizontal: 10,
+      paddingHorizontal: 0,
+      paddingVertical: 10,
+      alignItems: 'center',
     },
     card: {
       width: CARD_WIDTH,

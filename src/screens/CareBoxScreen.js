@@ -126,7 +126,9 @@ export default function CareBoxScreen({ navigation }) {
             keyExtractor={(item) => item.id.toString()}
             numColumns={3}
             contentContainerStyle={styles.grid}
+            columnWrapperStyle={{ justifyContent: 'center' }}   // ← THIS FIXES THE SHIFT
           />
+
         )}
       </View>
     </Layout>
@@ -151,7 +153,9 @@ const createStyles = (colors, isDarkMode) => StyleSheet.create({
   },
 
   grid: {
-    padding: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
 
   card: {
@@ -160,15 +164,10 @@ const createStyles = (colors, isDarkMode) => StyleSheet.create({
     margin: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.shadowColor,
-    shadowOpacity: colors.shadowOpacity,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
 
   cardImage: {

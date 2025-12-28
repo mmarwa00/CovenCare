@@ -18,7 +18,7 @@ export default function Alerts({ navigation }) {
 
   // STATIC REQUIRE MAP — React Native requires literal paths
   const alertImages = {
-    the_heat: {
+    heating_pad: {
       light: require('../../assets/Alerts/Heat.png'),
       dark: require('../../assets/Alerts/rest.png'), // gothic swap
     },
@@ -44,8 +44,9 @@ export default function Alerts({ navigation }) {
     },
   };
 
+  // Build alert options with correct backend types
   const alertOptions = [
-    { image: isDarkMode ? alertImages.the_heat.dark : alertImages.the_heat.light, type: 'the_heat' },
+    { image: isDarkMode ? alertImages.heating_pad.dark : alertImages.heating_pad.light, type: 'heating_pad' },
     { image: isDarkMode ? alertImages.pads.dark : alertImages.pads.light, type: 'pads' },
     { image: isDarkMode ? alertImages.tampon.dark : alertImages.tampon.light, type: 'tampon' },
     { image: isDarkMode ? alertImages.painkiller.dark : alertImages.painkiller.light, type: 'painkiller' },
