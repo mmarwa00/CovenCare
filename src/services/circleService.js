@@ -231,3 +231,68 @@ export const leaveCircle = async (userId, circleId) => {
     return { success: false, error: error.message };
   }
 };
+
+export const getCircleMembersMoods = async (circleId) => {
+  try {
+    const circleDoc = await getDoc(doc(db, 'circles', circleId));
+    
+    if (!circleDoc.exists()) {
+      throw new Error('Circle not found');
+    }
+
+    const members = circleDoc.data().members || [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const memberMoods = [];
+
+    for (const member of members) {
+      const userDoc = await getDoc(doc(db, 'users', member.userId));
+      
+      if (!userDoc.exists()) continue;
+
+      const userData = userDoc.data();
+
+      // Find today's period/mood
+      const periodsRef = collection(db, 'periods');
+      const q = query(
+        periodsRef,
+        where('userId', '==', member.userId)
+      );
+
+      const snapshot = await getDocs(q);
+      let todaysMood = null;
+
+      for (const periodDoc of snapshot.docs) {
+        const data = periodDoc.data();
+        const start = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+        const end = data.endDate.toDate ? data.endDate.toDate() : new Date(data.endDate);
+        
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        if (today >= start && today <= end) {
+          todaysMood = data.symptoms?.mood || null;
+          break;
+        }
+      }
+
+      // Only include if privacy allows
+      if (member.privacyLevel === 'show_all') {
+        memberMoods.push({
+          userId: member.userId,
+          displayName: userData.displayName,
+          profilePicture: userData.profilePicture,
+          mood: todaysMood
+        });
+      }
+    }
+
+    console.log('Got circle members moods');
+    return { success: true, memberMoods };
+
+  } catch (error) {
+    console.error('Error getting members moods:', error);
+    return { success: false, error: error.message };
+  }
+};

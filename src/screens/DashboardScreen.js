@@ -7,6 +7,8 @@ import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
+import { getCircleMembersMoods } from '../services/circleService';
+import { getCurrentPhase } from '../services/periodService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -21,7 +23,8 @@ export default function DashboardScreen({ navigation }) {
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [vouchers, setVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
-  const [phaseName, setPhaseName] = useState('Follicular');
+  const [memberMoods, setMemberMoods] = useState([]);
+  const [phaseData, setPhaseData] = useState(null);
 
   useEffect(() => {
     const fetchActiveCircle = async () => {
@@ -72,6 +75,19 @@ export default function DashboardScreen({ navigation }) {
   }, [userId]);
 
   useEffect(() => {
+    const fetchMemberMoods = async () => {
+      if (!activeCircle?.id) return;
+      
+      const result = await getCircleMembersMoods(activeCircle.id);
+      if (result.success) {
+        setMemberMoods(result.memberMoods);
+      }
+    };
+    
+    fetchMemberMoods();
+  }, [activeCircle]);
+
+  useEffect(() => {
     const fetchVouchers = async () => {
       if (!userId) return;
       setLoadingVouchers(true);
@@ -84,6 +100,19 @@ export default function DashboardScreen({ navigation }) {
       setLoadingVouchers(false);
     };
     fetchVouchers();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchPhase = async () => {
+      if (!userId) return;
+      
+      const result = await getCurrentPhase(userId);
+      if (result.success) {
+        setPhaseData(result);
+      }
+    };
+    
+    fetchPhase();
   }, [userId]);
 
   const getCircleIcon = (iconId) => {
@@ -112,6 +141,16 @@ export default function DashboardScreen({ navigation }) {
       default:
         return require('../../assets/icons/Log.png');
     }
+  };
+
+  const getPhaseDisplayName = (phase) => {
+    const names = {
+      menstrual: 'Period',
+      follicular: 'Follicular',
+      ovulation: 'Ovulation',
+      luteal: 'Luteal'
+    };
+    return names[phase] || 'Unknown';
   };
 
   const getEmergencyTypeDisplay = (type) => {
@@ -155,6 +194,7 @@ export default function DashboardScreen({ navigation }) {
       <Header navigation={navigation} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Active Circle Box */}
         <View style={styles.dashboardBox}>
           {loadingCircle ? (
             <ActivityIndicator animating={true} color={colors.accent} />
@@ -176,13 +216,46 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
+        {/* Current Phase Box */}
         <View style={styles.dashboardBox}>
           <View style={styles.circleRow}>
-            <Image source={getPhaseIcon(phaseName)} style={styles.phaseIcon} />
-            <Text style={styles.boxTitle}>Current Phase: {phaseName}</Text>
+            <Image 
+              source={getPhaseIcon(phaseData ? getPhaseDisplayName(phaseData.phase) : 'Follicular')} 
+              style={styles.phaseIcon} 
+            />
+            <Text style={styles.boxTitle}>
+              Current Phase: {phaseData ? getPhaseDisplayName(phaseData.phase) : 'Loading...'}
+            </Text>
           </View>
+          {phaseData && (
+            <Text style={styles.boxSubtitle}>
+              Day {phaseData.phaseDay} of {phaseData.phase} phase
+            </Text>
+          )}
         </View>
 
+        {/* Circle Moods Box */}
+        <View style={styles.dashboardBox}>
+          <Text style={styles.boxTitle}>Circle Moods Today</Text>
+          {memberMoods.length === 0 ? (
+            <Text style={styles.boxSubtitle}>No moods logged today</Text>
+          ) : (
+            memberMoods.map(member => (
+              <View key={member.userId} style={styles.moodItem}>
+                <Text style={styles.memberName}>{member.displayName}</Text>
+                <Text style={styles.moodEmoji}>
+                  {member.mood === 'happy' ? '😊' :
+                   member.mood === 'okay' ? '😐' :
+                   member.mood === 'grumpy' ? '😠' :
+                   member.mood === 'sad' ? '😢' :
+                   member.mood === 'anxious' ? '😰' : '—'}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* Emergency Alerts Box */}
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('AlertBox')}
@@ -219,6 +292,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
+        {/* Sent Vouchers Box */}
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('SentVouchers')}
@@ -233,6 +307,7 @@ export default function DashboardScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
+        {/* Logout Button */}
         <Button
           mode="outlined"
           onPress={signOutUser}
@@ -344,60 +419,24 @@ const createStyles = (colors) => StyleSheet.create({
     marginTop: 4,
   },
 
-  answerButton: {
-    backgroundColor: colors.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    marginTop: 10,
-    alignSelf: 'center',
-  },
-
-  answerLabel: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  voucherButton: {
+  moodItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: colors.accent,
-    borderRadius: 50,
-    alignSelf: 'flex-start',
-  },
-
-  voucherLabel: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  voucherItem: {
-    marginTop: 10,
-    paddingTop: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
 
-  voucherType: {
+  memberName: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 
-  voucherCode: {
-    color: colors.text,
-    fontSize: 11,
-    marginTop: 4,
-    fontFamily: 'monospace',
-    backgroundColor: colors.cardBackground,
-    padding: 4,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
+  moodEmoji: {
+    fontSize: 24,
   },
 
   viewMore: {
@@ -406,26 +445,6 @@ const createStyles = (colors) => StyleSheet.create({
     marginTop: 10,
     fontStyle: 'italic',
     textAlign: 'right',
-  },
-  
-  redeemButton: {
-    marginTop: 8,
-    backgroundColor: colors.accent,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-
-  redeemButtonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
 
   logoutButton: {

@@ -8,6 +8,7 @@ import Footer from '../components/Footer';
 import { Calendar } from 'react-native-calendars';
 import { db } from '../config/firebaseConfig';
 import { useTheme } from '../context/ThemeContext';
+import { logDailySymptoms } from '../services/periodService';
 import { deleteDoc, doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 // Format Firestore Timestamp or JS Date
@@ -109,11 +110,19 @@ export default function CalendarScreen({ navigation }) {
 
     if (existing) {
       Alert.alert(
-        "Delete Period?",
+        "Period Day",
         `${formatDate(existing.startDate)} - ${formatDate(existing.endDate)}`,
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "Delete", style: "destructive", onPress: () => deletePeriod(existing) }
+          { 
+            text: "Log Symptoms", 
+            onPress: () => handleLogSymptoms(clicked) 
+          },
+          { 
+            text: "Delete Period", 
+            style: "destructive", 
+            onPress: () => deletePeriod(existing) 
+          },
+          { text: "Cancel", style: "cancel" }
         ]
       );
       return;
@@ -140,6 +149,68 @@ export default function CalendarScreen({ navigation }) {
 
     setStartDate(dateStr);
     setEndDate('');
+  };
+
+
+  const handleLogSymptoms = async (date) => {
+    // Show a modal or alert to select symptoms
+    Alert.alert(
+      "Log Symptoms",
+      "Select your symptoms for this day",
+      [
+        {
+          text: "Log Cramps",
+          onPress: () => showCrampsSelector(date)
+        },
+        {
+          text: "Log Mood",
+          onPress: () => showMoodSelector(date)
+        },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
+  const showCrampsSelector = (date) => {
+    Alert.alert(
+      "Cramps Level",
+      "How are your cramps?",
+      [
+        { text: "None", onPress: () => submitSymptoms(date, { cramps: 'none' }) },
+        { text: "Mild", onPress: () => submitSymptoms(date, { cramps: 'mild' }) },
+        { text: "Moderate", onPress: () => submitSymptoms(date, { cramps: 'moderate' }) },
+        { text: "Severe", onPress: () => submitSymptoms(date, { cramps: 'severe' }) },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
+  const showMoodSelector = (date) => {
+    Alert.alert(
+      "Mood Today",
+      "How are you feeling?",
+      [
+        { text: "😊 Happy", onPress: () => submitSymptoms(date, { mood: 'happy' }) },
+        { text: "😐 Okay", onPress: () => submitSymptoms(date, { mood: 'okay' }) },
+        { text: "😠 Grumpy", onPress: () => submitSymptoms(date, { mood: 'grumpy' }) },
+        { text: "😢 Sad", onPress: () => submitSymptoms(date, { mood: 'sad' }) },
+        { text: "😰 Anxious", onPress: () => submitSymptoms(date, { mood: 'anxious' }) },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
+  const submitSymptoms = async (date, symptoms) => {
+    // Convert Date to YYYY-MM-DD string if needed
+    const dateStr = date instanceof Date ? toDateString(date) : date;
+    
+    const result = await logDailySymptoms(userId, dateStr, symptoms);
+    if (result.success) {
+      Alert.alert("Success", "Symptoms logged!");
+      fetchData();
+    } else {
+      Alert.alert("Error", result.error);
+    }
   };
 
   const getPeriodMarkedDates = () => {
@@ -577,6 +648,25 @@ export default function CalendarScreen({ navigation }) {
             >
               Log Flow
             </Button>
+
+            <Button
+              mode="outlined"
+              onPress={() => handleLogSymptoms(new Date())}
+              style={[
+                styles.symptomButton,
+                isDarkMode && {
+                  backgroundColor: colors.cardBackground,
+                  borderColor: colors.border,
+                }
+              ]}
+              labelStyle={[
+                styles.logFlowLabel,
+                isDarkMode && { color: DM_TEXT }
+              ]}
+              icon="emoticon"
+            >
+              Log Today's Symptoms
+            </Button>
           </Card.Content>
         </Card>
 
@@ -697,10 +787,21 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
     },
 
     detailText: {
-    fontSize: 12,
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+      fontSize: 12,
+      color: isDarkMode ? DM_TEXT : '#4a148c',
     },
 
+    symptomButton: {
+      marginTop: 10,
+      backgroundColor: '#f8f8ff',
+      borderColor: '#4a148c',
+      borderWidth: 2,
+      width: 200,
+      alignSelf: 'center',
+      borderRadius: 50,
+      height: 45,
+      justifyContent: 'center',
+    },
 
     predictionBox: {
       padding: 10,
@@ -710,23 +811,23 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       borderLeftColor: isDarkMode ? colors.primary : '#4a148c',
     },
 
-      predictionText: {
-          fontSize: 16,
-          fontWeight: 'bold',
-          color: isDarkMode ? DM_TEXT : '#4a148c',
-      },
+    predictionText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+    },
 
-      predictionDate: {
-          color: isDarkMode ? DM_TEXT : '#4a148c',
-      },
+    predictionDate: {
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+    },
 
-      tipText: {
-          color: isDarkMode ? DM_TEXT : '#4a148c',
-          fontSize: 14,
-      },
+    tipText: {
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      fontSize: 14,
+    },
 
-      backButton: {
-          alignSelf: 'flex-start',
-          marginBottom: 10,
-      },
+    backButton: {
+      alignSelf: 'flex-start',
+      marginBottom: 10,
+    },
   });

@@ -5,6 +5,7 @@ import {
   addDoc, 
   getDocs,
   getDoc,
+  updateDoc,
   query, 
   where,
   orderBy,
@@ -348,6 +349,114 @@ export const predictNextPeriod = async (userId) => {
 
   } catch (error) {
     console.error('Error predicting period:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+
+export const getCurrentPhase = async (userId) => {
+  try {
+    const periods = await getPreviousPeriods(userId, 1);
+    if (periods.length === 0) return { success: false, error: 'No periods' };
+
+    const lastPeriod = periods[0];
+    const startDate = lastPeriod.startDate.toDate ? 
+      lastPeriod.startDate.toDate() : new Date(lastPeriod.startDate);
+    
+    // Use the actual logged length, or default to 5
+    const actualPeriodLength = lastPeriod.periodLength || 5; 
+
+    const today = new Date();
+    const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+
+
+    let phase = 'unknown';
+    let phaseDay = daysSinceStart + 1;
+    
+    if (daysSinceStart < 0) {
+      phase = 'unknown'; // Future date protection
+    } else if (daysSinceStart < actualPeriodLength) {
+      phase = 'menstrual';
+    } else if (daysSinceStart <= 13) {
+      phase = 'follicular';
+    } else if (daysSinceStart <= 16) {
+      phase = 'ovulation';
+    } else {
+      // anything after Day 16 is Luteal until a new period is logged.
+      phase = 'luteal';
+    }
+
+
+    return { success: true, phase, phaseDay: daysSinceStart + 1 };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const logDailySymptoms = async (userId, date, symptoms) => {
+  try {
+    if (!userId || !date) {
+      throw new Error('User ID and date are required');
+    }
+
+    // Validate symptoms
+    const validCramps = ['none', 'mild', 'moderate', 'severe', null];
+    const validMoods = ['happy', 'okay', 'grumpy', 'sad', 'anxious', null];
+
+    if (symptoms.cramps && !validCramps.includes(symptoms.cramps)) {
+      throw new Error('Invalid cramps value');
+    }
+
+    if (symptoms.mood && !validMoods.includes(symptoms.mood)) {
+      throw new Error('Invalid mood value');
+    }
+
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    // Find the period that contains this date
+    const periodsRef = collection(db, 'periods');
+    const q = query(
+      periodsRef,
+      where('userId', '==', userId)
+    );
+
+    const snapshot = await getDocs(q);
+    let periodToUpdate = null;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const start = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+      const end = data.endDate.toDate ? data.endDate.toDate() : new Date(data.endDate);
+      
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      if (targetDate >= start && targetDate <= end) {
+        periodToUpdate = { id: doc.id, ...data };
+        break;
+      }
+    }
+
+    if (!periodToUpdate) {
+      throw new Error('No period found for this date');
+    }
+
+    // Update the period with symptoms
+    await updateDoc(doc(db, 'periods', periodToUpdate.id), {
+      symptoms: {
+        cramps: symptoms.cramps || periodToUpdate.symptoms?.cramps || null,
+        mood: symptoms.mood || periodToUpdate.symptoms?.mood || null,
+        energy: symptoms.energy || periodToUpdate.symptoms?.energy || null
+      },
+      updatedAt: new Date()
+    });
+
+    console.log('Daily symptoms logged');
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error logging symptoms:', error);
     return { success: false, error: error.message };
   }
 };

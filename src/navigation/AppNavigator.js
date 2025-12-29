@@ -14,7 +14,7 @@ import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import Vouchers from '../screens/Vouchers';
 import SendVoucher from '../screens/SendVoucher';
 import SentVouchersScreen from '../screens/SentVouchersScreen';
-import EventsPlaceholder from '../screens/EventsPlaceholder';
+import EventsScreen from '../screens/EventsScreen';
 import CareBoxScreen from '../screens/CareBoxScreen';
 import CareBoxDetails from '../screens/CareBoxDetails';
 import SpellsScreen from '../screens/SpellsScreen';
@@ -44,7 +44,7 @@ export default function AppNavigator() {
             <Stack.Screen name="SentVouchers" component={SentVouchersScreen} />
             <Stack.Screen name="SendAlert" component={SendAlert} />
             <Stack.Screen name="Spells" component={SpellsScreen} />
-            <Stack.Screen name="Events" component={EventsPlaceholder} />
+            <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="CareBox" component={CareBoxScreen} />
             <Stack.Screen name="Alerts" component={Alerts} />
             <Stack.Screen name="CareBoxDetails" component={CareBoxDetails} />
