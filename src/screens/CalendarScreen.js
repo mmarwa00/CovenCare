@@ -319,9 +319,9 @@ export default function CalendarScreen({ navigation }) {
 
       const colors = [
         "#8eff7fff", 
-        "#ffc26cff", 
-        "#76fff1ff", 
-        "#81c2ffff",
+        "#f39e28ff", 
+        "#2cf0ddff", 
+        "#6ca6dcff",
         //"#e990ffff"
       ];
 
@@ -411,7 +411,7 @@ export default function CalendarScreen({ navigation }) {
           marks[day] = {
             customStyles: {
               container: {
-                backgroundColor: "#FFD700",
+                backgroundColor: "#a08a0cff",
                 borderRadius: 20,
               },
               text: {
@@ -590,26 +590,33 @@ export default function CalendarScreen({ navigation }) {
               <Card style={styles.card}>
                   <Card.Content>
                       <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
-                          Log New Period
-                      </Title>
+              Log New Period
+            </Title>
 
-                      <Button
-                        mode="contained"
-                        onPress={() => setShowCirclePeriods(!showCirclePeriods)}
-                        style={{ marginBottom: 10 }}
-                      >
-                        {showCirclePeriods ? "Hide Circle Periods" : "Show Circle Periods"}
-                      </Button>
+            <Button
+              mode="contained"
+              onPress={() => setShowCirclePeriods(!showCirclePeriods)}
+              style={{
+                marginBottom: 10,
+                backgroundColor: isDarkMode ? '#4a001f' : '#4a148c',
+                borderWidth: 3,
+                borderColor: isDarkMode ? '#4a001f' : '#4a148c',
+              }}
+              textColor={DM_TEXT}
+            >
+              {showCirclePeriods ? "Hide Circle Periods" : "Show Circle Periods"}
+            </Button>
 
-                      <Calendar
+
+            <Calendar
                           firstDay={1}
                           disableAllTouchEventsForDisabledDays={false}
                           onDayPress={handleDayPress}
                           markedDates={getAllMarkedDates()}
                           markingType="custom"
                           theme={{
-                              backgroundColor: isDarkMode ? '#2a2a2a' : '#ffffff',
-                              calendarBackground: isDarkMode ? '#2a2a2a' : '#ffffff',
+                              backgroundColor: isDarkMode ? '#3c2c4bff' : '#ffffff',
+                              calendarBackground: isDarkMode ? '#1a1a24' : '#ffffff',
 
                               textSectionTitleColor: isDarkMode ? DM_TEXT : '#4a148c',
                               monthTextColor: isDarkMode ? DM_TEXT : '#4a148c',

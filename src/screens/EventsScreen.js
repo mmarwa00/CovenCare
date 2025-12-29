@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Card, TextInput, Title } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -18,13 +18,17 @@ export default function EventsScreen({ navigation }) {
   const { user } = useAuth();
   const userId = user?.uid;
   const { colors, isDarkMode } = useTheme();
+
   const DM_TEXT = '#e3d2f0ff';
+  const BURGUNDY = '#4a001f';
+  const PURPLE = '#4a148c';
+  const DARK_BG = colors.cardBackground;
+  const BORDER_WIDTH = 3;
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCircleId, setActiveCircleId] = useState(null);
-  
-  // Create event states
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -43,27 +47,13 @@ export default function EventsScreen({ navigation }) {
   const fetchEvents = useCallback(async () => {
     if (!activeCircleId) return;
     setLoading(true);
-    
     const result = await getCircleEvents(activeCircleId, true);
-    if (result.success) {
-      setEvents(result.events);
-    }
+    if (result.success) setEvents(result.events);
     setLoading(false);
   }, [activeCircleId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchActiveCircle();
-    }, [fetchActiveCircle])
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (activeCircleId) {
-        fetchEvents();
-      }
-    }, [fetchEvents, activeCircleId])
-  );
+  useFocusEffect(useCallback(() => { fetchActiveCircle(); }, [fetchActiveCircle]));
+  useFocusEffect(useCallback(() => { if (activeCircleId) fetchEvents(); }, [fetchEvents, activeCircleId]));
 
   const handleCreateEvent = async () => {
     if (!eventName || !eventDate || !eventTime) {
@@ -96,7 +86,6 @@ export default function EventsScreen({ navigation }) {
   const handleRSVP = async (eventId, response) => {
     const result = await rsvpToEvent(eventId, userId, response);
     if (result.success) {
-      Alert.alert('Success', 'RSVP updated!');
       fetchEvents();
     } else {
       Alert.alert('Error', result.error);
@@ -109,15 +98,13 @@ export default function EventsScreen({ navigation }) {
     return userRsvp?.response || RSVP_OPTIONS.NO_RESPONSE;
   };
 
-  const styles = createStyles(colors, isDarkMode, DM_TEXT);
+  const styles = createStyles(colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH);
 
   if (!activeCircleId) {
     return (
       <Layout navigation={navigation} subtitle="Events">
         <View style={styles.container}>
-          <Text style={styles.emptyText}>
-            Please select an active circle to see events
-          </Text>
+          <Text style={styles.emptyText}>Please select an active circle to see events</Text>
         </View>
       </Layout>
     );
@@ -125,14 +112,16 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Circle Events">
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 140 }}>
         <Title style={styles.title}>Upcoming Events</Title>
 
+        {/* CREATE EVENT BUTTON */}
         <Button
           mode="contained"
           onPress={() => setShowCreateForm(!showCreateForm)}
           style={styles.createButton}
-          buttonColor={colors.accent}
+          buttonColor={isDarkMode ? DARK_BG : PURPLE}
+          textColor={DM_TEXT}
         >
           {showCreateForm ? 'Cancel' : '+ Create Event'}
         </Button>
@@ -140,44 +129,20 @@ export default function EventsScreen({ navigation }) {
         {showCreateForm && (
           <Card style={styles.card}>
             <Card.Content>
-              <TextInput
-                label="Event Name *"
-                value={eventName}
-                onChangeText={setEventName}
-                mode="outlined"
-                style={styles.input}
-              />
-              <TextInput
-                label="Date (YYYY-MM-DD) *"
-                value={eventDate}
-                onChangeText={setEventDate}
-                mode="outlined"
-                style={styles.input}
-                placeholder="2025-12-31"
-              />
-              <TextInput
-                label="Time (HH:MM) *"
-                value={eventTime}
-                onChangeText={setEventTime}
-                mode="outlined"
-                style={styles.input}
-                placeholder="19:00"
-              />
-              <TextInput
-                label="Description"
-                value={eventDescription}
-                onChangeText={setEventDescription}
-                mode="outlined"
-                style={styles.input}
-                multiline
-                numberOfLines={3}
-              />
+              <TextInput label="Event Name *" value={eventName} onChangeText={setEventName} mode="outlined" style={styles.input} />
+              <TextInput label="Date (YYYY-MM-DD) *" value={eventDate} onChangeText={setEventDate} mode="outlined" style={styles.input} />
+              <TextInput label="Time (HH:MM) *" value={eventTime} onChangeText={setEventTime} mode="outlined" style={styles.input} />
+              <TextInput label="Description" value={eventDescription} onChangeText={setEventDescription} mode="outlined" style={styles.input} multiline numberOfLines={3} />
+
+              {/* SUBMIT BUTTON */}
               <Button
                 mode="contained"
                 onPress={handleCreateEvent}
                 loading={loading}
                 disabled={loading}
-                buttonColor={colors.accent}
+                buttonColor={isDarkMode ? DARK_BG : PURPLE}
+                textColor={DM_TEXT}
+                style={{ borderWidth: BORDER_WIDTH, borderColor: isDarkMode ? BURGUNDY : PURPLE }}
               >
                 Create Event
               </Button>
@@ -192,49 +157,47 @@ export default function EventsScreen({ navigation }) {
         ) : (
           events.map(event => {
             const userRsvp = getUserRSVP(event);
+
+            const rsvpButton = (label, value) => {
+              const selected = userRsvp === value;
+
+              return (
+                <Button
+                  mode={selected ? 'contained' : 'outlined'}
+                  onPress={() => handleRSVP(event.id, value)}
+                  style={styles.rsvpButton}
+                  compact
+                  buttonColor={
+                    selected
+                      ? (isDarkMode ? BURGUNDY : PURPLE)
+                      : 'transparent'
+                  }
+                  textColor={DM_TEXT}
+                  theme={{
+                    colors: {
+                      outline: isDarkMode ? BURGUNDY : PURPLE
+                    }
+                  }}
+                >
+                  {label}
+                </Button>
+              );
+            };
+
             return (
               <Card key={event.id} style={styles.eventCard}>
                 <Card.Content>
                   <Title style={styles.eventTitle}>{event.name}</Title>
-                  <Text style={styles.eventDetail}>
-                    📅 {new Date(event.dateTime).toLocaleString()}
-                  </Text>
-                  {event.description && (
-                    <Text style={styles.eventDescription}>
-                      {event.description}
-                    </Text>
-                  )}
-                  <Text style={styles.eventDetail}>
-                    Created by: {event.creatorName}
-                  </Text>
+                  <Text style={styles.eventDetail}>📅 {new Date(event.dateTime).toLocaleString()}</Text>
+                  {event.description && <Text style={styles.eventDescription}>{event.description}</Text>}
+                  <Text style={styles.eventDetail}>Created by: {event.creatorName}</Text>
 
                   <View style={styles.rsvpContainer}>
                     <Text style={styles.rsvpLabel}>Your RSVP:</Text>
                     <View style={styles.rsvpButtons}>
-                      <Button
-                        mode={userRsvp === RSVP_OPTIONS.GOING ? 'contained' : 'outlined'}
-                        onPress={() => handleRSVP(event.id, RSVP_OPTIONS.GOING)}
-                        style={styles.rsvpButton}
-                        compact
-                      >
-                        Going
-                      </Button>
-                      <Button
-                        mode={userRsvp === RSVP_OPTIONS.MAYBE ? 'contained' : 'outlined'}
-                        onPress={() => handleRSVP(event.id, RSVP_OPTIONS.MAYBE)}
-                        style={styles.rsvpButton}
-                        compact
-                      >
-                        Maybe
-                      </Button>
-                      <Button
-                        mode={userRsvp === RSVP_OPTIONS.NOT_GOING ? 'contained' : 'outlined'}
-                        onPress={() => handleRSVP(event.id, RSVP_OPTIONS.NOT_GOING)}
-                        style={styles.rsvpButton}
-                        compact
-                      >
-                        Can't Go
-                      </Button>
+                      {rsvpButton('Going', RSVP_OPTIONS.GOING)}
+                      {rsvpButton('Maybe', RSVP_OPTIONS.MAYBE)}
+                      {rsvpButton("Can't Go", RSVP_OPTIONS.NOT_GOING)}
                     </View>
                   </View>
 
@@ -260,7 +223,7 @@ export default function EventsScreen({ navigation }) {
   );
 }
 
-const createStyles = (colors, isDarkMode, DM_TEXT) => StyleSheet.create({
+const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH) => StyleSheet.create({
   scrollContainer: {
     flex: 1,
     padding: 20,
@@ -273,12 +236,14 @@ const createStyles = (colors, isDarkMode, DM_TEXT) => StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     textAlign: 'center',
     marginBottom: 20,
   },
   createButton: {
     marginBottom: 20,
+    borderWidth: BORDER_WIDTH,
+    borderColor: isDarkMode ? BURGUNDY : PURPLE,
   },
   card: {
     marginBottom: 20,
@@ -294,30 +259,30 @@ const createStyles = (colors, isDarkMode, DM_TEXT) => StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     marginBottom: 8,
   },
   eventDetail: {
     fontSize: 14,
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     marginBottom: 4,
   },
   eventDescription: {
     fontSize: 14,
-    color: isDarkMode ? DM_TEXT : '#6a1b9a',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     fontStyle: 'italic',
     marginVertical: 8,
   },
   rsvpContainer: {
     marginTop: 15,
     paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopWidth: BORDER_WIDTH,
+    borderTopColor: isDarkMode ? BURGUNDY : PURPLE,
   },
   rsvpLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     marginBottom: 8,
   },
   rsvpButtons: {
@@ -327,34 +292,40 @@ const createStyles = (colors, isDarkMode, DM_TEXT) => StyleSheet.create({
   rsvpButton: {
     flex: 1,
     marginHorizontal: 4,
+    borderWidth: BORDER_WIDTH,
+    borderColor: isDarkMode ? BURGUNDY : PURPLE,
   },
   attendeesContainer: {
     marginTop: 15,
     paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopWidth: BORDER_WIDTH,
+    borderTopColor: isDarkMode ? BURGUNDY : PURPLE,
   },
   attendeesTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     marginBottom: 8,
   },
   attendeeText: {
     fontSize: 13,
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     marginBottom: 4,
   },
   emptyText: {
     fontSize: 16,
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     textAlign: 'center',
     marginTop: 40,
   },
   loadingText: {
     fontSize: 16,
-    color: isDarkMode ? DM_TEXT : '#4a148c',
+    color: isDarkMode ? DM_TEXT : PURPLE,
     textAlign: 'center',
     marginTop: 20,
   },
 });
+
+
+
+
