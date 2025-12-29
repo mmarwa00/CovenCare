@@ -24,11 +24,11 @@ export default function Alerts({ navigation }) {
     },
     pads: {
       light: require('../../assets/Alerts/Pad.png'),
-      dark: require('../../assets/Alerts/Pad.png'),
+      dark: require('../../assets/Alerts/Pad2.png'),
     },
     tampon: {
       light: require('../../assets/Alerts/tampon.png'),
-      dark: require('../../assets/Alerts/tampon.png'),
+      dark: require('../../assets/Alerts/tampon2.png'),
     },
     painkiller: {
       light: require('../../assets/Alerts/painkiller.png'),
@@ -36,7 +36,7 @@ export default function Alerts({ navigation }) {
     },
     the_ear: {
       light: require('../../assets/Alerts/ear.png'),
-      dark: require('../../assets/Alerts/ear.png'),
+      dark: require('../../assets/Alerts/ear2.png'),
     },
     the_pms: {
       light: require('../../assets/Alerts/PMS.png'),

@@ -32,7 +32,7 @@ export default function Vouchers({ navigation }) {
     },
     chips: {
       light: require('../../assets/Vouchers/chips.png'),
-      dark: require('../../assets/Vouchers/chips.png'),
+      dark: require('../../assets/Vouchers/fries.png'),
     },
     love: {
       light: require('../../assets/Vouchers/Love.png'),
