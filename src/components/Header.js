@@ -35,7 +35,14 @@ export default function Header() {
           />
         }
       >
-        <Menu.Item onPress={() => {}} title="Settings" />
+        <Menu.Item
+          onPress={() => {
+            setMenuVisible(false);
+            navigation.navigate('SettingsScreen');
+          }}
+          title="Settings"
+        />
+
         <Menu.Item
           onPress={() => {
             setMenuVisible(false);
@@ -43,8 +50,8 @@ export default function Header() {
           }}
           title="Profile"
         />
-        <Menu.Item onPress={() => {}} title="Privacy Policy" />
-        <Menu.Item onPress={() => {}} title="Terms of Service" />
+        <Menu.Item onPress={() => { }} title="Privacy Policy" />
+        <Menu.Item onPress={() => { }} title="Terms of Service" />
       </Menu>
     </View>
   );

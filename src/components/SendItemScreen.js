@@ -19,8 +19,10 @@ export default function SendItemScreen({
   navigation, 
   selectedItem, 
   itemType,
-  backgroundImage 
+  backgroundImage,
+  forceRecipient   // ⭐ add this here
 }) {
+
   const { colors, isDarkMode } = useTheme();
   const DM_TEXT = '#e3d2f0ff';
 
@@ -58,6 +60,20 @@ export default function SendItemScreen({
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) throw new Error('User not found');
+
+      // ⭐ FORCE RECIPIENT OVERRIDE FOR SENDSILVIA
+      if (forceRecipient) {
+        const me = {
+          id: userId,
+          displayName: userSnap.data().displayName || "You",
+          profilePhoto: userSnap.data().profilePhoto || null
+        };
+
+        setAllPeople([me]);
+        setSelectedPeople([userId]);   // auto-select yourself
+        setLoading(false);
+        return; // stop here, skip circle logic
+      }
 
       const userData = userSnap.data();
       const circleIds = userData.circles || userData.joinedCircles || [];
@@ -136,6 +152,13 @@ export default function SendItemScreen({
       Alert.alert('No Recipients', 'Please select at least one person');
       return;
     }
+    if (itemType === "silvia") {
+      navigation.navigate("SilviaConfetti", {
+        returnTo: "SettingsScreen",
+      });
+      return;
+    }
+
 
     const userId = auth.currentUser?.uid;
     const message = selectedItem?.message || '';

@@ -21,6 +21,10 @@ import SpellsScreen from '../screens/SpellsScreen';
 import Alerts from '../screens/Alerts';
 import SendAlert from '../screens/SendAlert';
 import { useAuth } from '../context/AuthContext';
+import SettingsScreen from '../screens/SettingsScreen';
+import SilviaBirthdayScreen from '../screens/SilviaBirthdayScreen';
+import SendSilvia from '../screens/SendSilvia';
+import SilviaConfettiScreen from '../screens/SilviaConfettiScreen';
 
 const Stack = createStackNavigator();
 
@@ -32,9 +36,13 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
+
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
             <Stack.Screen name="AlertBox" component={AlertBox} />
             <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+            <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
+            <Stack.Screen name="SilviaBirthdayScreen" component={SilviaBirthdayScreen} />
+            <Stack.Screen name="SendSilvia" component={SendSilvia} />
             <Stack.Screen name="CalendarScreen" component={CalendarScreen} />
             <Stack.Screen name="CircleScreen" component={CircleScreen} />
             <Stack.Screen name="CircleDetails" component={CircleDetailsScreen} />
@@ -48,6 +56,11 @@ export default function AppNavigator() {
             <Stack.Screen name="CareBox" component={CareBoxScreen} />
             <Stack.Screen name="Alerts" component={Alerts} />
             <Stack.Screen name="CareBoxDetails" component={CareBoxDetails} />
+            <Stack.Screen
+              name="SilviaConfetti"
+              component={SilviaConfettiScreen}
+              options={{ headerShown: false }}
+            />
           </>
         ) : (
           <>
