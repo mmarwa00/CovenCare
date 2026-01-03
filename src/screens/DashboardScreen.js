@@ -5,12 +5,16 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
 import { getCircleMembersMoods } from '../services/circleService';
 import { getCurrentPhase } from '../services/periodService';
+
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Mascot from '../components/Mascot';
 
 export default function DashboardScreen({ navigation }) {
   const { signOutUser, user } = useAuth();
@@ -19,13 +23,42 @@ export default function DashboardScreen({ navigation }) {
 
   const [activeCircle, setActiveCircle] = useState(null);
   const [loadingCircle, setLoadingCircle] = useState(true);
+
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+
   const [vouchers, setVouchers] = useState([]);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
+
   const [memberMoods, setMemberMoods] = useState([]);
   const [phaseData, setPhaseData] = useState(null);
 
+  const [userMood, setUserMood] = useState("okay");
+
+  // -------------------------------
+  // LOAD USER MOOD (LOCAL STORAGE)
+  // -------------------------------
+  useEffect(() => {
+    const loadMood = async () => {
+      try {
+        const logs = await AsyncStorage.getItem("dailyLogs");
+        if (logs) {
+          const parsed = JSON.parse(logs);
+          const today = new Date().toISOString().split("T")[0];
+          if (parsed[today]?.mood) {
+            setUserMood(parsed[today].mood);
+          }
+        }
+      } catch (e) {
+        console.log("Error loading mood:", e);
+      }
+    };
+    loadMood();
+  }, []);
+
+  // -------------------------------
+  // LOAD ACTIVE CIRCLE
+  // -------------------------------
   useEffect(() => {
     const fetchActiveCircle = async () => {
       if (!userId) return;
@@ -39,10 +72,9 @@ export default function DashboardScreen({ navigation }) {
           const circleSnap = await getDoc(circleRef);
 
           if (circleSnap.exists()) {
-            const circleData = circleSnap.data();
             setActiveCircle({
               id: activeId,
-              ...circleData,
+              ...circleSnap.data(),
             });
           } else {
             setActiveCircle(null);
@@ -59,6 +91,9 @@ export default function DashboardScreen({ navigation }) {
     fetchActiveCircle();
   }, [userId]);
 
+  // -------------------------------
+  // LOAD ALERTS
+  // -------------------------------
   useEffect(() => {
     const fetchAlerts = async () => {
       if (!userId) return;
@@ -66,27 +101,29 @@ export default function DashboardScreen({ navigation }) {
       const result = await getActiveEmergencies(userId);
       if (result.success) {
         setAlerts(result.emergencies);
-      } else {
-        console.error('Error fetching alerts:', result.error);
       }
       setLoadingAlerts(false);
     };
     fetchAlerts();
   }, [userId]);
 
+  // -------------------------------
+  // LOAD CIRCLE MEMBER MOODS
+  // -------------------------------
   useEffect(() => {
     const fetchMemberMoods = async () => {
       if (!activeCircle?.id) return;
-      
       const result = await getCircleMembersMoods(activeCircle.id);
       if (result.success) {
         setMemberMoods(result.memberMoods);
       }
     };
-    
     fetchMemberMoods();
   }, [activeCircle]);
 
+  // -------------------------------
+  // LOAD VOUCHERS
+  // -------------------------------
   useEffect(() => {
     const fetchVouchers = async () => {
       if (!userId) return;
@@ -94,52 +131,45 @@ export default function DashboardScreen({ navigation }) {
       const result = await getSentVouchers(userId);
       if (result.success) {
         setVouchers(result.vouchers);
-      } else {
-        console.error('Error fetching sent vouchers:', result.error);
       }
       setLoadingVouchers(false);
     };
     fetchVouchers();
   }, [userId]);
 
+  // -------------------------------
+  // LOAD PHASE
+  // -------------------------------
   useEffect(() => {
     const fetchPhase = async () => {
       if (!userId) return;
-      
       const result = await getCurrentPhase(userId);
       if (result.success) {
         setPhaseData(result);
       }
     };
-    
     fetchPhase();
   }, [userId]);
 
+  // -------------------------------
+  // HELPERS
+  // -------------------------------
   const getCircleIcon = (iconId) => {
     switch (iconId) {
-      case 1:
-        return require('../../assets/icons/circle_small1.png');
-      case 2:
-        return require('../../assets/icons/circle_small2.png');
-      case 3:
-        return require('../../assets/icons/circle_small3.png');
-      default:
-        return require('../../assets/icons/circle_small2.png');
+      case 1: return require('../../assets/icons/circle_small1.png');
+      case 2: return require('../../assets/icons/circle_small2.png');
+      case 3: return require('../../assets/icons/circle_small3.png');
+      default: return require('../../assets/icons/circle_small2.png');
     }
   };
 
   const getPhaseIcon = (phaseName) => {
     switch (phaseName) {
-      case 'Period':
-        return require('../../assets/phases/period.png');
-      case 'Ovulation':
-        return require('../../assets/phases/ovulation.png');
-      case 'Luteal':
-        return require('../../assets/phases/luteal.png');
-      case 'Follicular':
-        return require('../../assets/phases/follicular.png');
-      default:
-        return require('../../assets/icons/Log.png');
+      case 'Period': return require('../../assets/phases/period.png');
+      case 'Ovulation': return require('../../assets/phases/ovulation.png');
+      case 'Luteal': return require('../../assets/phases/luteal.png');
+      case 'Follicular': return require('../../assets/phases/follicular.png');
+      default: return require('../../assets/icons/Log.png');
     }
   };
 
@@ -189,22 +219,23 @@ export default function DashboardScreen({ navigation }) {
 
   const styles = createStyles(colors);
 
+  // -------------------------------
+  // RENDER
+  // -------------------------------
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Active Circle Box */}
+
+        {/* ACTIVE CIRCLE */}
         <View style={styles.dashboardBox}>
           {loadingCircle ? (
             <ActivityIndicator animating={true} color={colors.accent} />
           ) : activeCircle ? (
             <View>
               <View style={styles.circleRow}>
-                <Image
-                  source={getCircleIcon(activeCircle.iconId)}
-                  style={styles.circleIcon}
-                />
+                <Image source={getCircleIcon(activeCircle.iconId)} style={styles.circleIcon} />
                 <Text style={styles.boxTitle}>Active Circle</Text>
               </View>
               <Text style={styles.circleName}>
@@ -216,7 +247,7 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Current Phase Box */}
+        {/* CURRENT PHASE */}
         <View style={styles.dashboardBox}>
           <View style={styles.circleRow}>
             <Image 
@@ -234,9 +265,17 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Circle Moods Box */}
+        {/* CIRCLE MOODS + mascot */}
         <View style={styles.dashboardBox}>
+
+          {/* Floating Mascot */}
+          <View style={styles.mascotContainer}>
+            <Mascot mood={userMood} />
+          </View>
+
+
           <Text style={styles.boxTitle}>Circle Moods Today</Text>
+
           {memberMoods.length === 0 ? (
             <Text style={styles.boxSubtitle}>No moods logged today</Text>
           ) : (
@@ -255,17 +294,14 @@ export default function DashboardScreen({ navigation }) {
           )}
         </View>
 
-        {/* Emergency Alerts Box */}
+        {/* EMERGENCY ALERTS */}
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('AlertBox')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
-            <Image
-              source={require('../../assets/Alerts/alert.png')}
-              style={styles.emergencyIcon}
-            />
+            <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
             <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
           </View>
 
@@ -292,22 +328,19 @@ export default function DashboardScreen({ navigation }) {
           )}
         </TouchableOpacity>
 
-        {/* Sent Vouchers Box */}
+        {/* SENT VOUCHERS */}
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('SentVouchers')}
           activeOpacity={0.7}
         >
           <View style={styles.circleRow}>
-            <Image
-              source={require('../../assets/Vouchers/voucher.png')}
-              style={styles.voucherIcon}
-            />
+            <Image source={require('../../assets/Vouchers/voucher.png')} style={styles.voucherIcon} />
             <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Logout Button */}
+        {/* LOGOUT */}
         <Button
           mode="outlined"
           onPress={signOutUser}
@@ -317,6 +350,7 @@ export default function DashboardScreen({ navigation }) {
         >
           Log Out
         </Button>
+
       </ScrollView>
 
       <Footer navigation={navigation} />
@@ -345,6 +379,16 @@ const createStyles = (colors) => StyleSheet.create({
     shadowOpacity: colors.shadowOpacity,
     shadowRadius: 15,
     elevation: 8,
+    position: 'relative',
+  },
+
+  mascotContainer: {
+  position: 'absolute',
+  top: -10,
+  right: 55,
+  width: 20,
+  height: 20,
+  zIndex: 20,
   },
 
   boxTitle: {
