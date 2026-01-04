@@ -7,7 +7,6 @@ import grumpy from '../../assets/moth/moth_grumpy.gif';
 import sad from '../../assets/moth/moth_sad.gif';
 import anxious from '../../assets/moth/moth_anxious.gif';
 
-
 const mothByMood = {
   happy,
   okay,
@@ -27,8 +26,8 @@ export default function MothMascot({ mood = 'okay' }) {
 
 const styles = StyleSheet.create({
   mascot: {
-    width: 60,
-    height: 60,
+    width: 90,
+    height: 90,
     resizeMode: 'contain',
   },
 });

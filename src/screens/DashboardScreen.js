@@ -11,15 +11,17 @@ import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
 import { getCircleMembersMoods } from '../services/circleService';
 import { getCurrentPhase } from '../services/periodService';
-
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Mascot from '../components/Mascot';
+import { useColorScheme } from 'react-native';
 
 export default function DashboardScreen({ navigation }) {
   const { signOutUser, user } = useAuth();
   const { colors } = useTheme();
   const userId = user?.uid;
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   const [activeCircle, setActiveCircle] = useState(null);
   const [loadingCircle, setLoadingCircle] = useState(true);
@@ -34,7 +36,7 @@ export default function DashboardScreen({ navigation }) {
   const [phaseData, setPhaseData] = useState(null);
 
   const [userMood, setUserMood] = useState("okay");
-
+  
   // -------------------------------
   // LOAD USER MOOD (LOCAL STORAGE)
   // -------------------------------
@@ -273,7 +275,6 @@ export default function DashboardScreen({ navigation }) {
             <Mascot mood={userMood} />
           </View>
 
-
           <Text style={styles.boxTitle}>Circle Moods Today</Text>
 
           {memberMoods.length === 0 ? (
@@ -384,10 +385,10 @@ const createStyles = (colors) => StyleSheet.create({
 
   mascotContainer: {
   position: 'absolute',
-  top: -10,
-  right: 55,
-  width: 20,
-  height: 20,
+  top: -30,
+  right: 25,
+  width: 50,
+  height: 50,
   zIndex: 20,
   },
 

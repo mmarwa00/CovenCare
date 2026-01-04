@@ -1,12 +1,12 @@
 import React from 'react';
-import { useColorScheme } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import BatMascot from './BatMascot';
 import MothMascot from './MothMascot';
 
 export default function Mascot({ mood }) {
-  const theme = useColorScheme();
+  const { isDarkMode } = useTheme();
 
-  if (theme === 'dark') {
+  if (isDarkMode) {
     return <BatMascot mood={mood} />;
   }
 

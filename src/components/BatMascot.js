@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet } from 'react-native';
+
 import happy from '../../assets/bat/bat_happy.gif';
 import okay from '../../assets/bat/bat_okay.gif';
 import grumpy from '../../assets/bat/bat_grumpy.gif';
@@ -25,8 +26,8 @@ export default function BatMascot({ mood = 'okay' }) {
 
 const styles = StyleSheet.create({
   mascot: {
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     resizeMode: 'contain',
   },
 });
