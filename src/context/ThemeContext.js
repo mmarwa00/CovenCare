@@ -67,9 +67,9 @@ const darkColors = {
   background: '#1a0a1f', // almost black with purple tint
   cardBackground: '#2d1b3d', // dark purple
   text: '#e0d4f0', // light purple/white
-  textSecondary: '#a888c7', // medium purple
-  border: '#8b0a50', // BLOOD RED
-  accent: '#8b0a50', // BLOOD RED
+  textSecondary: '#a888c7',
+  border: '#8b0a50',
+  accent: '#8b0a50', 
   buttonBg: '#8b0a50', // BLOOD RED buttons
   buttonText: '#ffffff',
   
