@@ -10,6 +10,7 @@ import { db } from '../config/firebaseConfig';
 import { useTheme } from '../context/ThemeContext';
 import { logDailySymptoms } from '../services/periodService';
 import { deleteDoc, doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 // Format Firestore Timestamp or JS Date
 const formatDate = (date) => {
@@ -45,7 +46,6 @@ export default function CalendarScreen({ navigation }) {
   const [showCirclePeriods, setShowCirclePeriods] = useState(false);
   const [circlePeriods, setCirclePeriods] = useState([]);
   const [memberColorMap, setMemberColorMap] = useState({});
-
 
   const fetchData = async () => {
     if (!userId) return;
@@ -321,7 +321,7 @@ export default function CalendarScreen({ navigation }) {
         "#8eff7fff", 
         "#f39e28ff", 
         "#2cf0ddff", 
-        "#6ca6dcff",
+        "#5cb0ffff",
         //"#e990ffff"
       ];
 
@@ -411,7 +411,7 @@ export default function CalendarScreen({ navigation }) {
           marks[day] = {
             customStyles: {
               container: {
-                backgroundColor: "#a08a0cff",
+                backgroundColor: "#ffdc15ff",
                 borderRadius: 20,
               },
               text: {
@@ -607,30 +607,46 @@ export default function CalendarScreen({ navigation }) {
               {showCirclePeriods ? "Hide Circle Periods" : "Show Circle Periods"}
             </Button>
 
+            {showCirclePeriods && (
+              <View style={styles.legendContainer}>
+                <Text style={styles.legendTitle}>
+                  Period color legend:
+                </Text>
+
+                {Object.keys(memberColorMap).map((uid) => (
+                  <View key={uid} style={styles.legendRow}>
+                    <View
+                      style={[
+                        styles.legendColor,
+                        { backgroundColor: memberColorMap[uid] }
+                      ]}
+                    />
+                    <Text style={styles.legendText}>
+                      {memberInfo[uid]?.name || 'Circle member'}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
             <Calendar
-                          firstDay={1}
-                          disableAllTouchEventsForDisabledDays={false}
-                          onDayPress={handleDayPress}
-                          markedDates={getAllMarkedDates()}
-                          markingType="custom"
-                          theme={{
-                              backgroundColor: isDarkMode ? '#3c2c4bff' : '#ffffff',
-                              calendarBackground: isDarkMode ? '#1a1a24' : '#ffffff',
-
-                              textSectionTitleColor: isDarkMode ? DM_TEXT : '#4a148c',
-                              monthTextColor: isDarkMode ? DM_TEXT : '#4a148c',
-                              dayTextColor: isDarkMode ? DM_TEXT : '#4a148c',
-
-                              todayTextColor: isDarkMode ? '#ffffff' : '#4a148c',
-                              todayBackgroundColor: isDarkMode ? '#7b1fa2' : '#d4a5ff',
-
-                              arrowColor: isDarkMode ? DM_TEXT : '#4a148c',
-
-                              textDisabledColor: isDarkMode ? '#7a6a8f' : '#aaaaaa',
-                          }}
-
-                      />
+              firstDay={1}
+              disableAllTouchEventsForDisabledDays={false}
+              onDayPress={handleDayPress}
+              markedDates={getAllMarkedDates()}
+              markingType="custom"
+              theme={{
+                backgroundColor: isDarkMode ? '#3c2c4bff' : '#ffffff',
+                calendarBackground: isDarkMode ? '#1a1a24' : '#ffffff',
+                textSectionTitleColor: isDarkMode ? DM_TEXT : '#4a148c',
+                monthTextColor: isDarkMode ? DM_TEXT : '#4a148c',
+                dayTextColor: isDarkMode ? DM_TEXT : '#4a148c',
+                todayTextColor: isDarkMode ? '#ffffff' : '#4a148c',
+                todayBackgroundColor: isDarkMode ? '#7b1fa2' : '#d4a5ff',
+                arrowColor: isDarkMode ? DM_TEXT : '#4a148c',
+                textDisabledColor: isDarkMode ? '#7a6a8f' : '#aaaaaa',
+              }}
+            />
 
             <Paragraph style={[{ marginTop: 10 }, isDarkMode && { color: DM_TEXT }]}>
               Start: {startDate || '-'}   |   End: {endDate || '-'}
@@ -826,6 +842,34 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
 
     predictionDate: {
       color: isDarkMode ? DM_TEXT : '#4a148c',
+    },
+
+     legendContainer: {
+      marginHorizontal: 20,
+      marginBottom: 10,
+    },
+
+    legendTitle: {
+      fontWeight: 'bold',
+      marginBottom: 6,
+      color: isDarkMode ? DM_TEXT : '#000',
+    },
+
+    legendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+
+    legendColor: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      marginRight: 8,
+    },
+
+    legendText: {
+      color: isDarkMode ? DM_TEXT : '#000',
     },
 
     tipText: {

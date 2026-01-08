@@ -25,6 +25,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import SilviaBirthdayScreen from '../screens/SilviaBirthdayScreen';
 import SendSilvia from '../screens/SendSilvia';
 import SilviaConfettiScreen from '../screens/SilviaConfettiScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 
 const Stack = createStackNavigator();
 
@@ -61,6 +63,8 @@ export default function AppNavigator() {
               component={SilviaConfettiScreen}
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Privacy Policy' }} />
+            <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ title: 'Terms of Service' }} />
           </>
         ) : (
           <>

@@ -30,7 +30,7 @@ export default function SettingsScreen() {
 
       <Button
         mode="outlined"
-        onPress={() => {}}
+        onPress={() => navigation.navigate('PrivacyPolicy')}
         style={styles.item}
         textColor="#4a148c"
       >
@@ -39,7 +39,7 @@ export default function SettingsScreen() {
 
       <Button
         mode="outlined"
-        onPress={() => {}}
+        onPress={() => navigation.navigate('TermsOfService')}
         style={styles.item}
         textColor="#4a148c"
       >

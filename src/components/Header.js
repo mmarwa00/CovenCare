@@ -50,8 +50,6 @@ export default function Header() {
           }}
           title="Profile"
         />
-        <Menu.Item onPress={() => { }} title="Privacy Policy" />
-        <Menu.Item onPress={() => { }} title="Terms of Service" />
       </Menu>
     </View>
   );
