@@ -72,12 +72,12 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 120,
-    height: 40,
+    height: 30,
     resizeMode: 'contain',
     marginRight: 5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 12,
     flexShrink: 1,
     flexWrap: 'wrap',
     maxWidth: 200,

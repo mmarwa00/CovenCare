@@ -230,7 +230,11 @@ export default function DashboardScreen({ navigation }) {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* ACTIVE CIRCLE */}
         <View style={styles.dashboardBox}>
@@ -333,6 +337,7 @@ export default function DashboardScreen({ navigation }) {
           Log Out
         </Button>
 
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       <Footer navigation={navigation} />

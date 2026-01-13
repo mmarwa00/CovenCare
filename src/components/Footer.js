@@ -49,7 +49,10 @@ export default function FooterNav({ navigation }) {
           }
           style={styles.icon}
         />
-        <Text style={[styles.label, { color: colors.text }]}>Potions</Text>
+        <View style={styles.labelWrapper}>
+          <Text style={styles.label}>Home</Text>
+        </View>
+
       </TouchableOpacity>
     </View>
   );
@@ -77,14 +80,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   icon: {
-    width: 70,
-    height: 70,
+    width: 45,
+    height: 45,
     resizeMode: 'contain',
-    marginBottom: 4,
-    marginTop: 10,
+    marginBottom: 55,
+    marginTop: 5,
   },
   label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  fontSize: 14,
+  fontWeight: 'bold',
+  position: 'absolute',
+  bottom: 35,
+  }
+  
+
 });
