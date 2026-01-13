@@ -8,7 +8,7 @@ import {
   Text,
   Dimensions
 } from 'react-native';
-import { Title } from 'react-native-paper';
+import { Title, Button } from 'react-native-paper';   // ✅ FIXED IMPORT
 import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -19,7 +19,7 @@ const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
 const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
-// STATIC ICON MAP (with dark-mode variants)
+// DARK/LIGHT ICON MAP
 const voucherIcons = {
   chocolate: {
     light: require('../../assets/Vouchers/choco.png'),
@@ -65,18 +65,23 @@ const getVoucherName = (type) => {
 export default function CareBoxScreen({ navigation }) {
   const { user } = useAuth();
   const userId = user?.uid;
+
   const [receivedItems, setReceivedItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const { colors, isDarkMode } = useTheme();
+  const DM_TEXT = '#e3d2f0ff';
   const styles = createStyles(colors, isDarkMode);
 
   const fetchVouchers = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
+
     const result = await getReceivedVouchers(userId, 'unredeemed');
 
     if (result.success) {
       const grouped = {};
+
       result.vouchers.forEach(voucher => {
         if (!grouped[voucher.type]) {
           grouped[voucher.type] = {
@@ -88,14 +93,13 @@ export default function CareBoxScreen({ navigation }) {
             senders: []
           };
         }
+
         grouped[voucher.type].count++;
         grouped[voucher.type].senders.push({
           voucherId: voucher.id,
           senderId: voucher.senderId,
           senderName: voucher.senderName,
-          sentAt: voucher.sentAt instanceof Date
-            ? voucher.sentAt.toLocaleDateString()
-            : new Date(voucher.sentAt).toLocaleDateString(),
+          sentAt: new Date(voucher.sentAt).toLocaleDateString(),
           code: voucher.code,
           redeemed: voucher.status === 'redeemed'
         });
@@ -105,8 +109,9 @@ export default function CareBoxScreen({ navigation }) {
     } else {
       console.error('Error fetching vouchers:', result.error);
     }
+
     setLoading(false);
-  }, [userId, isDarkMode]); // include isDarkMode so icons update when theme changes
+  }, [userId, isDarkMode]);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,7 +132,21 @@ export default function CareBoxScreen({ navigation }) {
   return (
     <Layout navigation={navigation} subtitle="Your Care Box">
       <View style={styles.scrollContainer}>
+
+        {/* BACK BUTTON */}
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+        >
+          ← Back to Dashboard
+        </Button>
+
+        {/* TITLE */}
         <Title style={styles.title}>Your Care Box</Title>
+
+        {/* CONTENT */}
         {loading ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Loading...</Text>
@@ -159,8 +178,15 @@ const createStyles = (colors, isDarkMode) => StyleSheet.create({
     paddingBottom: 100,
   },
 
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     textAlign: 'center',
@@ -169,7 +195,6 @@ const createStyles = (colors, isDarkMode) => StyleSheet.create({
   },
 
   grid: {
-    paddingHorizontal: 0,
     paddingVertical: 10,
     alignItems: 'center',
   },
@@ -180,10 +205,6 @@ const createStyles = (colors, isDarkMode) => StyleSheet.create({
     margin: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    shadowOpacity: 0,
-    elevation: 0,
   },
 
   cardImage: {

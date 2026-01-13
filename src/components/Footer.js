@@ -20,7 +20,7 @@ export default function FooterNav({ navigation }) {
           }
           style={styles.icon}
         />
-        <Text style={[styles.label, { color: colors.text }]}>Circles</Text>
+        <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>Circles</Text>
       </TouchableOpacity>
 
       {/* Log */}
@@ -36,11 +36,14 @@ export default function FooterNav({ navigation }) {
           }
           style={styles.icon}
         />
-        <Text style={[styles.label, { color: colors.text }]}>Log</Text>
+        <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>Log</Text>
       </TouchableOpacity>
 
       {/* Potions */}
-      <TouchableOpacity onPress={() => navigation.navigate('VendingMachineMenu')}>
+      <TouchableOpacity
+        style={styles.footerItem}
+        onPress={() => navigation.navigate('VendingMachineMenu')}
+      >
         <Image
           source={
             isDarkMode
@@ -49,10 +52,7 @@ export default function FooterNav({ navigation }) {
           }
           style={styles.icon}
         />
-        <View style={styles.labelWrapper}>
-          <Text style={styles.label}>Home</Text>
-        </View>
-
+        <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>Potions</Text>
       </TouchableOpacity>
     </View>
   );
@@ -74,24 +74,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 10,
+    paddingBottom: 10,
   },
   footerItem: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: 100,
   },
   icon: {
-    width: 45,
-    height: 45,
+    width: 50,
+    height: 50,
     resizeMode: 'contain',
-    marginBottom: 55,
-    marginTop: 5,
+    marginBottom: 2,
+    marginTop: -8,
   },
   label: {
-  fontSize: 14,
-  fontWeight: 'bold',
-  position: 'absolute',
-  bottom: 35,
-  }
-  
-
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
+  },
 });

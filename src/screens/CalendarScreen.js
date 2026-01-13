@@ -570,16 +570,6 @@ export default function CalendarScreen({ navigation }) {
           </HelperText>
         )}
 
-        {/* Prediction Card */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
-              Next Cycle Prediction
-            </Title>
-            {renderPrediction()}
-          </Card.Content>
-        </Card>
-
         {/* Log Period */}
               <Card style={styles.card}>
                   <Card.Content>
@@ -686,7 +676,15 @@ export default function CalendarScreen({ navigation }) {
             </Button>
           </Card.Content>
         </Card>
-
+        {/* Prediction Card */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+              Next Cycle Prediction
+            </Title>
+            {renderPrediction()}
+          </Card.Content>
+        </Card>
         {/* History */}
         <Card style={styles.card}>
           <Card.Content>
@@ -801,22 +799,22 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
   StyleSheet.create({
     scrollContainer: {
       flexGrow: 1,
-      paddingTop: 20,
+      paddingTop: 10,
       paddingBottom: 120,
       backgroundColor: isDarkMode ? colors.background : '#e3d2f0ff',
     },
 
     title: {
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: 'bold',
       color: '#4a148c',
-      marginBottom: 5,
+      marginBottom: 3,
       textAlign: 'center',
     },
 
     subtitle: {
-      fontSize: 16,
-      color: '#4a148c',
+      fontSize: 14,
+      color: '#5d1264ff',
       textAlign: 'center',
       marginBottom: 20,
     },
@@ -837,7 +835,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
     },
 
     cardTitle: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: 'bold',
       color: '#4a148c',
       marginBottom: 10,
@@ -845,10 +843,10 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
 
     logFlowButton: {
       marginTop: 10,
-      backgroundColor: '#f8f8ff',
+      backgroundColor: '#e3d2f0ff',
       borderColor: '#4a148c',
       borderWidth: 2,
-      width: 200,
+      width: 150,
       alignSelf: 'center',
       borderRadius: 50,
       height: 45,
@@ -876,7 +874,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
     },
 
     historyText: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '600',
       color: '#4a148c',
     },
@@ -888,7 +886,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
 
     symptomButton: {
       marginTop: 10,
-      backgroundColor: '#f8f8ff',
+      backgroundColor: '#e3d2f0ff',
       borderColor: '#4a148c',
       borderWidth: 2,
       width: 200,

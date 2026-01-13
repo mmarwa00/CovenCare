@@ -87,11 +87,11 @@ export default function Vouchers({ navigation }) {
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4a148c',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
     marginTop: 26,
   },
   container: {

@@ -87,7 +87,7 @@ export default function Alerts({ navigation }) {
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4a148c',
     textAlign: 'center',

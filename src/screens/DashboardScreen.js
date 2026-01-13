@@ -15,6 +15,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Mascot from '../components/Mascot';
 import { useColorScheme } from 'react-native';
+import { collection, query, where, getDocs, limit, Timestamp } from 'firebase/firestore';
 
 export default function DashboardScreen({ navigation }) {
   const { signOutUser, user } = useAuth();
@@ -36,27 +37,81 @@ export default function DashboardScreen({ navigation }) {
   const [phaseData, setPhaseData] = useState(null);
 
   const [userMood, setUserMood] = useState("okay");
+
+
+useEffect(() => {
+  const loadMoodFromFirebase = async () => {
+    if (!userId) return;
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTimestamp = Timestamp.fromDate(today); // ✅ Convert to Timestamp!
+      
+      const symptomsRef = collection(db, "dailySymptoms");
+      const q = query(
+        symptomsRef,
+        where("userId", "==", userId),
+        where("date", "==", todayTimestamp), // ✅ Use Timestamp for comparison
+        limit(1)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const moodData = snapshot.docs[0].data();
+        console.log("🦇 Found mood data:", moodData);
+        if (moodData.mood) {
+          setUserMood(moodData.mood);
+          console.log("🦇 Set mood to:", moodData.mood);
+        }
+      } else {
+        console.log("🦇 No mood logged for today yet");
+      }
+    } catch (e) {
+      console.log("Error loading mood:", e);
+    }
+  };
   
-  // -------------------------------
-  // LOAD USER MOOD (LOCAL STORAGE)
-  // -------------------------------
-  useEffect(() => {
-    const loadMood = async () => {
+  loadMoodFromFirebase();
+}, [userId]);
+
+// Refresh when screen focuses
+useEffect(() => {
+  const unsubscribe = navigation.addListener('focus', () => {
+    const loadMoodFromFirebase = async () => {
+      if (!userId) return;
       try {
-        const logs = await AsyncStorage.getItem("dailyLogs");
-        if (logs) {
-          const parsed = JSON.parse(logs);
-          const today = new Date().toISOString().split("T")[0];
-          if (parsed[today]?.mood) {
-            setUserMood(parsed[today].mood);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = Timestamp.fromDate(today);
+        
+        const symptomsRef = collection(db, "dailySymptoms");
+        const q = query(
+          symptomsRef,
+          where("userId", "==", userId),
+          where("date", "==", todayTimestamp),
+          limit(1)
+        );
+        
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          const moodData = snapshot.docs[0].data();
+          if (moodData.mood) {
+            setUserMood(moodData.mood);
+            console.log("🦇 Refreshed mood:", moodData.mood);
           }
         }
       } catch (e) {
         console.log("Error loading mood:", e);
       }
     };
-    loadMood();
-  }, []);
+    loadMoodFromFirebase();
+  });
+
+  return unsubscribe;
+}, [navigation, userId]);
 
   // -------------------------------
   // LOAD ACTIVE CIRCLE
@@ -483,11 +538,12 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderColor: colors.border,
     borderWidth: 2,
-    width: 200,
+    width: 150,
     alignSelf: 'center',
-    borderRadius: 50,
+    borderRadius: 40,
     height: 45,
     justifyContent: 'center',
+    marginTop: 4,
   },
 
   logoutLabel: {

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Layout from '../components/Layout';
 import { useTheme } from '../context/ThemeContext';
+import { Button } from 'react-native-paper';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -149,6 +150,14 @@ export default function SpellsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Healing Spells">
+      <Button
+        mode="text"
+        onPress={() => navigation.navigate('Dashboard')}
+        style={styles.backButton}
+        labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+      >
+        ← Back to Dashboard
+      </Button>
       <View
         style={[
           styles.container,
@@ -313,15 +322,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 20,
   },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4a148c',
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,
-    color: '#8b5cb8',
+    color: '#8707a3',
     marginBottom: 30,
   },
   cardContainer: {

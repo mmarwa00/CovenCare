@@ -181,11 +181,20 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Circle Events">
+
       <ScrollView
         ref={scrollRef}
         style={styles.scrollContainer}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+        >
+          ← Back to Dashboard
+        </Button>
 
         <Title style={styles.title}>All Your Circle Events</Title>
 
@@ -375,6 +384,12 @@ const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BO
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   title: {
     fontSize: 24,
