@@ -46,7 +46,7 @@ useEffect(() => {
   });
 
   return () => {
-    // FIX: Check if listeners exist before removing
+    // Check if listeners exist before removing
     if (notificationListener.current && typeof notificationListener.current.remove === 'function') {
       notificationListener.current.remove();
     }

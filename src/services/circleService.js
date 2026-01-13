@@ -235,60 +235,48 @@ export const leaveCircle = async (userId, circleId) => {
 export const getCircleMembersMoods = async (circleId) => {
   try {
     const circleDoc = await getDoc(doc(db, 'circles', circleId));
-    
-    if (!circleDoc.exists()) {
-      throw new Error('Circle not found');
-    }
+    if (!circleDoc.exists()) throw new Error('Circle not found');
 
     const members = circleDoc.data().members || [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0); // Normalize date to match the Calendar logic
 
     const memberMoods = [];
 
     for (const member of members) {
+      // 1. Get user name/pic
       const userDoc = await getDoc(doc(db, 'users', member.userId));
-      
       if (!userDoc.exists()) continue;
-
       const userData = userDoc.data();
 
-      // Find today's period/mood
-      const periodsRef = collection(db, 'periods');
+      // 2. 🔥 THE FIX: Look in 'dailySymptoms' instead of 'periods'
+      const symptomsRef = collection(db, 'dailySymptoms');
       const q = query(
-        periodsRef,
-        where('userId', '==', member.userId)
+        symptomsRef,
+        where('userId', '==', member.userId),
+        where('date', '==', todayMidnight) 
       );
 
       const snapshot = await getDocs(q);
       let todaysMood = null;
 
-      for (const periodDoc of snapshot.docs) {
-        const data = periodDoc.data();
-        const start = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
-        const end = data.endDate.toDate ? data.endDate.toDate() : new Date(data.endDate);
-        
-        start.setHours(0, 0, 0, 0);
-        end.setHours(0, 0, 0, 0);
-
-        if (today >= start && today <= end) {
-          todaysMood = data.symptoms?.mood || null;
-          break;
-        }
+      if (!snapshot.empty) {
+        // Grab the mood from the first symptom log found for today
+        todaysMood = snapshot.docs[0].data().mood || null;
       }
 
-      // Only include if privacy allows
+      // Only add if they allow sharing
       if (member.privacyLevel === 'show_all') {
         memberMoods.push({
           userId: member.userId,
-          displayName: userData.displayName,
-          profilePicture: userData.profilePicture,
+          displayName: userData.displayName || 'User',
+          profilePicture: userData.profilePicture || null,
           mood: todaysMood
         });
       }
     }
 
-    console.log('Got circle members moods');
+    console.log('Successfully fetched circle moods from dailySymptoms!');
     return { success: true, memberMoods };
 
   } catch (error) {

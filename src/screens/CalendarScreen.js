@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph } from 'react-native-paper';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { 
+  Title, 
+  Button, 
+  Card, 
+  TextInput, 
+  HelperText, 
+  ActivityIndicator, 
+  Paragraph,
+  Portal,
+  Modal,
+  Provider as PaperProvider 
+} from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { logPreviousPeriods, getUserPeriods, predictNextPeriod } from '../services/periodService';
 import Header from '../components/Header';
@@ -46,6 +57,10 @@ export default function CalendarScreen({ navigation }) {
   const [showCirclePeriods, setShowCirclePeriods] = useState(false);
   const [circlePeriods, setCirclePeriods] = useState([]);
   const [memberColorMap, setMemberColorMap] = useState({});
+
+  const [symptomModalVisible, setSymptomModalVisible] = useState(false);
+  const [selectedLogDate, setSelectedLogDate] = useState(null);
+  const [tempSymptoms, setTempSymptoms] = useState({ cramps: null, mood: null });
 
   const fetchData = async () => {
     if (!userId) return;
@@ -159,67 +174,29 @@ export default function CalendarScreen({ navigation }) {
     setStartDate(dateStr);
     setEndDate('');
   };
-
-
-  const handleLogSymptoms = async (date) => {
-    // Show a modal or alert to select symptoms
-    Alert.alert(
-      "Log Symptoms",
-      "Select your symptoms for this day",
-      [
-        {
-          text: "Log Cramps",
-          onPress: () => showCrampsSelector(date)
-        },
-        {
-          text: "Log Mood",
-          onPress: () => showMoodSelector(date)
-        },
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
+  
+  const handleLogSymptoms = (date) => {
+    setSelectedLogDate(date);
+    setTempSymptoms({ cramps: null, mood: null }); // Reset to fresh draft
+    setSymptomModalVisible(true); // Open the One-List Modal!
   };
 
-  const showCrampsSelector = (date) => {
-    Alert.alert(
-      "Cramps Level",
-      "How are your cramps?",
-      [
-        { text: "None", onPress: () => submitSymptoms(date, { cramps: 'none' }) },
-        { text: "Mild", onPress: () => submitSymptoms(date, { cramps: 'mild' }) },
-        { text: "Moderate", onPress: () => submitSymptoms(date, { cramps: 'moderate' }) },
-        { text: "Severe", onPress: () => submitSymptoms(date, { cramps: 'severe' }) },
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
-  };
-
-  const showMoodSelector = (date) => {
-    Alert.alert(
-      "Mood Today",
-      "How are you feeling?",
-      [
-        { text: "😊 Happy", onPress: () => submitSymptoms(date, { mood: 'happy' }) },
-        { text: "😐 Okay", onPress: () => submitSymptoms(date, { mood: 'okay' }) },
-        { text: "😠 Grumpy", onPress: () => submitSymptoms(date, { mood: 'grumpy' }) },
-        { text: "😢 Sad", onPress: () => submitSymptoms(date, { mood: 'sad' }) },
-        { text: "😰 Anxious", onPress: () => submitSymptoms(date, { mood: 'anxious' }) },
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
-  };
-
-  const submitSymptoms = async (date, symptoms) => {
-    // Convert Date to YYYY-MM-DD string if needed
-    const dateStr = date instanceof Date ? toDateString(date) : date;
+  const saveAllSymptoms = async () => {
+    setLoading(true);
+    // Physically convert the date to the string format our DB expects
+    const dateStr = selectedLogDate instanceof Date ? toDateString(selectedLogDate) : selectedLogDate;
     
-    const result = await logDailySymptoms(userId, dateStr, symptoms);
+    const result = await logDailySymptoms(userId, dateStr, tempSymptoms);
+    
     if (result.success) {
-      Alert.alert("Success", "Symptoms logged!");
-      fetchData();
+      setSuccess("Daily log updated! 💜");
+      setSymptomModalVisible(false); // Close modal
+      fetchData(); // Refresh UI
+      setTimeout(() => setSuccess(''), 3000);
     } else {
       Alert.alert("Error", result.error);
     }
+    setLoading(false);
   };
 
   const getPeriodMarkedDates = () => {
@@ -737,6 +714,84 @@ export default function CalendarScreen({ navigation }) {
         </Card>
       </ScrollView>
 
+
+      {/* --- SYMPTOM SELECTION MODAL --- */}
+      <Portal>
+        <Modal 
+          visible={symptomModalVisible} 
+          onDismiss={() => setSymptomModalVisible(false)}
+          contentContainerStyle={{
+            backgroundColor: isDarkMode ? '#1a1a24' : '#f8f8ff', 
+            padding: 20, margin: 20, borderRadius: 25, borderWidth: 3, borderColor: '#4a148c'
+          }}
+        >
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Title style={{ color: '#4a148c', textAlign: 'center', fontWeight: 'bold' }}>Daily Log</Title>
+            <Paragraph style={{ textAlign: 'center', marginBottom: 15 }}>{formatDate(selectedLogDate)}</Paragraph>
+
+            {/* --- CRAMPS SECTION --- */}
+            <Text style={styles.modalSectionTitle}>Physical Symptoms</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {['none', 'mild', 'moderate', 'severe'].map((level) => (
+                <TouchableOpacity 
+                  key={level}
+                  onPress={() => setTempSymptoms({ ...tempSymptoms, cramps: level })}
+                  style={{
+                    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 15, borderWidth: 1, 
+                    borderColor: '#4a148c', margin: 4,
+                    backgroundColor: tempSymptoms.cramps === level ? '#4a148c' : 'white'
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: tempSymptoms.cramps === level ? 'white' : '#4a148c', textTransform: 'uppercase' }}>
+                    {level}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* --- MOOD SECTION --- */}
+            <Text style={styles.modalSectionTitle}>How are you feeling?</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[
+                { l: '😊', v: 'happy' }, { l: '😐', v: 'okay' }, { l: '😠', v: 'grumpy' }, 
+                { l: '😢', v: 'sad' }, { l: '😰', v: 'anxious' }
+              ].map((item) => (
+                <TouchableOpacity 
+                  key={item.v}
+                  onPress={() => setTempSymptoms({ ...tempSymptoms, mood: item.v })}
+                  style={{
+                    padding: 10, borderRadius: 15, margin: 5, backgroundColor: 'white', 
+                    borderWidth: 2, borderColor: tempSymptoms.mood === item.v ? '#4a148c' : '#ccc',
+                    backgroundColor: tempSymptoms.mood === item.v ? '#d4a5ff' : 'white'
+                  }}
+                >
+                  <Text style={{ fontSize: 24 }}>{item.l}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* --- ACTION BUTTONS --- */}
+            <Button 
+              mode="contained" 
+              onPress={saveAllSymptoms}
+              style={{ marginTop: 20, backgroundColor: '#4a148c', borderRadius: 50 }}
+              labelStyle={{ fontWeight: 'bold', color: 'white' }}
+              disabled={!tempSymptoms.cramps && !tempSymptoms.mood}
+            >
+              Save All Logs
+            </Button>
+            
+            <Button 
+              onPress={() => setSymptomModalVisible(false)} 
+              textColor="red" 
+              style={{ marginTop: 5 }}
+            >
+              Cancel
+            </Button>
+          </ScrollView>
+        </Modal>
+      </Portal>
+
       <Footer navigation={navigation} />
     </View>
   );
@@ -898,4 +953,14 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       alignSelf: 'flex-start',
       marginBottom: 10,
     },
+
+    modalSectionTitle: { 
+    fontWeight: 'bold', 
+    color: '#4a148c', 
+    marginTop: 15, 
+    marginBottom: 10, 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
+
   });
