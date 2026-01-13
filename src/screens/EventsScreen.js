@@ -4,15 +4,12 @@ import { Button, Card, TextInput, Title } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { 
-  createCircleEvent, 
-  getCircleEvents, 
-  rsvpToEvent,
-  RSVP_OPTIONS 
-} from '../services/eventsService';
+import { createCircleEvent, getCircleEvents, rsvpToEvent, RSVP_OPTIONS } from '../services/eventsService';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import Layout from '../components/Layout';
+import { Image, TouchableOpacity } from 'react-native';
+import { useRef } from 'react';
 
 export default function EventsScreen({ navigation }) {
   const { user } = useAuth();
@@ -35,6 +32,10 @@ export default function EventsScreen({ navigation }) {
   const [eventDate, setEventDate] = useState('');
   const [eventTime, setEventTime] = useState('');
   const [eventDescription, setEventDescription] = useState('');
+  const scrollRef = useRef(null);
+
+  const [orbPositions, setOrbPositions] = useState([]);
+  const [highlightedEventId, setHighlightedEventId] = useState(null);
 
   // ✅ Fetch active circle AND all user circles
   const fetchActiveCircle = useCallback(async () => {
@@ -78,6 +79,11 @@ export default function EventsScreen({ navigation }) {
       allEvents.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
       
       setEvents(allEvents);
+
+      const positions = allEvents.map((_, index) =>
+        getOrbPosition(index, allEvents.length)
+      );
+      setOrbPositions(positions);
     } catch (error) {
       console.error('Error fetching events:', error);
     }
@@ -148,6 +154,19 @@ export default function EventsScreen({ navigation }) {
     }
   };
 
+  const getOrbPosition = (index, total) => {
+    const baseRadius = 130;
+
+    const angle =
+      (index * 2 * Math.PI) / Math.max(total, 1);
+
+    return {
+      top: 150 + baseRadius * Math.sin(angle),
+      left: 150 + baseRadius * Math.cos(angle),
+    };
+  };
+
+
   const styles = createStyles(colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH);
 
   if (!activeCircleId) {
@@ -162,19 +181,70 @@ export default function EventsScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Circle Events">
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 140 }}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+
         <Title style={styles.title}>All Your Circle Events</Title>
 
         {/* CREATE EVENT BUTTON */}
-        <Button
-          mode="contained"
-          onPress={() => setShowCreateForm(!showCreateForm)}
-          style={styles.createButton}
-          buttonColor={isDarkMode ? DARK_BG : PURPLE}
-          textColor={DM_TEXT}
-        >
-          {showCreateForm ? 'Cancel' : '+ Create Event (Active Circle)'}
-        </Button>
+          <View
+            style={{
+              width: 360,
+              height: 360,
+              alignSelf: 'center',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              marginBottom: 0,
+              marginTop: -10,
+            }}
+          >
+          <TouchableOpacity onPress={() => setShowCreateForm(p => !p)}>
+            <Image
+              source={require('../../assets/Event/Magic_portal.png')}
+              style={{ width: 340, height: 340, resizeMode: 'contain', transform: [{ translateX: -5 }] }}
+            />
+          </TouchableOpacity>
+
+          {events.map((event, index) => {
+            const pos = orbPositions[index];
+            if (!pos) return null;
+
+            return (
+              <TouchableOpacity
+                key={event.id}
+                onPress={() => {
+                  const yPos = 420 + index * 200;
+
+                  scrollRef.current?.scrollTo({
+                    y: yPos,
+                    animated: true,
+                  });
+
+                  setHighlightedEventId(event.id);
+
+                  setTimeout(() => {
+                    setHighlightedEventId(null);
+                  }, 2000);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: pos.top,
+                  left: pos.left,
+                }}
+              >
+                <Image
+                  source={require('../../assets/Event/Event.png')}
+                  style={{ width: 60, height: 60, opacity: 0.9 }}
+                />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
 
         {showCreateForm && (
           <Card style={styles.card}>
@@ -238,7 +308,19 @@ export default function EventsScreen({ navigation }) {
             };
 
             return (
-              <Card key={event.id} style={styles.eventCard}>
+              <Card
+                key={event.id}
+                style={[ styles.eventCard,
+                  highlightedEventId === event.id && {
+                    borderWidth: 3,
+                    borderColor: isDarkMode ? BURGUNDY : PURPLE,
+                    shadowOpacity: 0.8,
+                    shadowRadius: 10,
+                    elevation: 10,
+                  },
+                ]}
+              >
+
                 <Card.Content>
                   {/* ✅ Show circle badge */}
                   {isActiveCircle && (
@@ -286,7 +368,8 @@ export default function EventsScreen({ navigation }) {
 const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH) => StyleSheet.create({
   scrollContainer: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   container: {
     flex: 1,
@@ -298,7 +381,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BO
     fontWeight: 'bold',
     color: isDarkMode ? DM_TEXT : PURPLE,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   createButton: {
     marginBottom: 20,
@@ -313,7 +396,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BO
     marginBottom: 15,
   },
   eventCard: {
-    marginBottom: 15,
+    marginBottom: 9,
     backgroundColor: colors.cardBackground,
   },
   eventTitle: {
@@ -401,7 +484,3 @@ const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BO
     fontWeight: 'bold',
   },
 });
-
-
-
-
