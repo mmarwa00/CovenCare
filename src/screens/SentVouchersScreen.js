@@ -28,6 +28,34 @@ const namesByType = {
   chips: 'Chips',
   love: 'Love',
 };
+const voucherIcons = {
+  chocolate: {
+    light: require('../../assets/Vouchers/choco.png'),
+    dark: require('../../assets/Vouchers/choco2.png'),
+  },
+  coffee: {
+    light: require('../../assets/Vouchers/coffee.png'),
+    dark: require('../../assets/Vouchers/coffee2.png'),
+  },
+  face_mask: {
+    light: require('../../assets/Vouchers/mask.png'),
+    dark: require('../../assets/Vouchers/mask2.png'),
+  },
+  tea: {
+    light: require('../../assets/Vouchers/tea.png'),
+    dark: require('../../assets/Vouchers/tea2.png'),
+  },
+  chips: {
+    light: require('../../assets/Vouchers/chips.png'),
+    dark: require('../../assets/Vouchers/fries.png'),
+  },
+  love: {
+    light: require('../../assets/Vouchers/Love.png'),
+    dark: require('../../assets/Vouchers/love2.png'),
+  },
+};
+const getVoucherImage = (type, isDarkMode) =>
+  isDarkMode ? voucherIcons[type].dark : voucherIcons[type].light;
 
 export default function SentVouchersScreen({ navigation }) {
   const { user } = useAuth();
@@ -60,7 +88,7 @@ export default function SentVouchersScreen({ navigation }) {
         if (!grouped[voucher.type]) {
           grouped[voucher.type] = {
             id: voucher.type,
-            itemImage: imagesByType[voucher.type],
+            itemImage: getVoucherImage(voucher.type, isDarkMode),
             itemName: namesByType[voucher.type],
             type: voucher.type,
             count: 0,
@@ -99,7 +127,6 @@ export default function SentVouchersScreen({ navigation }) {
         <View key={r.voucherId} style={styles.detailBlock}>
           <Text style={styles.detailText}>To: {r.recipientName}</Text>
           <Text style={styles.detailText}>Sent: {r.sentAt}</Text>
-          <Text style={styles.detailText}>Code: {r.code}</Text>
           {r.redeemed && <Text style={styles.redeemed}>Redeemed ✔</Text>}
         </View>
       ))}
@@ -108,27 +135,32 @@ export default function SentVouchersScreen({ navigation }) {
 
   return (
     <Layout navigation={navigation} subtitle="Your Sent Vouchers">
-      <View style={styles.scrollContainer}>
-        <Title style={styles.title}>Your Sent Vouchers</Title>
+      <FlatList
+        data={loading ? [] : sentItems}
+        ListHeaderComponent={
+          <>
+            <Title style={styles.title}>Your Sent Vouchers</Title>
 
-        {loading ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Loading...</Text>
-          </View>
-        ) : sentItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No vouchers sent yet</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={sentItems}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={3}
-            contentContainerStyle={styles.grid}
-          />
-        )}
-      </View>
+            {loading && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Loading...</Text>
+              </View>
+            )}
+
+            {!loading && sentItems.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No vouchers sent yet</Text>
+              </View>
+            )}
+          </>
+        }
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={3}
+        contentContainerStyle={styles.grid}
+        style={{ flex: 1 }}
+      />
+
     </Layout>
   );
 }

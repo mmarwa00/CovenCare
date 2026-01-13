@@ -19,20 +19,37 @@ const screenWidth = Dimensions.get('window').width;
 const CARD_WIDTH = (screenWidth - 60) / 3;
 const CARD_HEIGHT = CARD_WIDTH * 1.4;
 
-// Map voucher types to images
-const getVoucherImage = (type) => {
-  const images = {
-    chocolate: require('../../assets/Vouchers/choco.png'),
-    coffee: require('../../assets/Vouchers/coffee.png'),
-    face_mask: require('../../assets/Vouchers/mask.png'),
-    tea: require('../../assets/Vouchers/tea.png'),
-    chips: require('../../assets/Vouchers/chips.png'),
-    love: require('../../assets/Vouchers/Love.png'),
-  };
-  return images[type] || require('../../assets/Vouchers/choco.png');
+// STATIC ICON MAP (with dark-mode variants)
+const voucherIcons = {
+  chocolate: {
+    light: require('../../assets/Vouchers/choco.png'),
+    dark: require('../../assets/Vouchers/choco2.png'),
+  },
+  coffee: {
+    light: require('../../assets/Vouchers/coffee.png'),
+    dark: require('../../assets/Vouchers/coffee2.png'),
+  },
+  face_mask: {
+    light: require('../../assets/Vouchers/mask.png'),
+    dark: require('../../assets/Vouchers/mask2.png'),
+  },
+  tea: {
+    light: require('../../assets/Vouchers/tea.png'),
+    dark: require('../../assets/Vouchers/tea2.png'),
+  },
+  chips: {
+    light: require('../../assets/Vouchers/chips.png'),
+    dark: require('../../assets/Vouchers/fries.png'),
+  },
+  love: {
+    light: require('../../assets/Vouchers/Love.png'),
+    dark: require('../../assets/Vouchers/love2.png'),
+  },
 };
 
-// Map voucher types to display names
+const getVoucherImage = (type, isDarkMode) =>
+  isDarkMode ? voucherIcons[type].dark : voucherIcons[type].light;
+
 const getVoucherName = (type) => {
   const names = {
     chocolate: 'Chocolate',
@@ -64,7 +81,7 @@ export default function CareBoxScreen({ navigation }) {
         if (!grouped[voucher.type]) {
           grouped[voucher.type] = {
             id: voucher.type,
-            itemImage: getVoucherImage(voucher.type),
+            itemImage: getVoucherImage(voucher.type, isDarkMode),
             itemName: getVoucherName(voucher.type),
             type: voucher.type,
             count: 0,
@@ -89,7 +106,7 @@ export default function CareBoxScreen({ navigation }) {
       console.error('Error fetching vouchers:', result.error);
     }
     setLoading(false);
-  }, [userId]);
+  }, [userId, isDarkMode]); // include isDarkMode so icons update when theme changes
 
   useFocusEffect(
     useCallback(() => {
@@ -100,7 +117,7 @@ export default function CareBoxScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('CareBoxDetails', { ...item })}
+      onPress={() => navigation.navigate('CareBoxDetails', item)}
     >
       <Image source={item.itemImage} style={styles.cardImage} />
       <Text style={styles.cardCount}>{item.count}x</Text>
@@ -126,9 +143,8 @@ export default function CareBoxScreen({ navigation }) {
             keyExtractor={(item) => item.id.toString()}
             numColumns={3}
             contentContainerStyle={styles.grid}
-            columnWrapperStyle={{ justifyContent: 'center' }}   // ← THIS FIXES THE SHIFT
+            columnWrapperStyle={{ justifyContent: 'center' }}
           />
-
         )}
       </View>
     </Layout>
