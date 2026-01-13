@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Modal, Switch } from 'react-native';
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  Image, Modal, Switch, KeyboardAvoidingView, Platform, 
+  TouchableWithoutFeedback, Keyboard, Alert 
+} from 'react-native';
 import { Button, TextInput, HelperText, ActivityIndicator, Avatar, Card, Title as PaperTitle } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; 
@@ -9,6 +13,7 @@ import { auth } from '../config/firebaseConfig';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+// Keep your photoMap as is
 const photoMap = {
   witch1: require('../../assets/Profile_pics/witch1.png'),
   witch2: require('../../assets/Profile_pics/witch2.png'),
@@ -24,7 +29,7 @@ const photoOptions = Object.keys(photoMap);
 
 export default function ProfileScreen({ navigation }) {
   const { user } = useAuth();
-  const { isDarkMode, toggleTheme, colors } = useTheme(); // ADD THIS
+  const { isDarkMode, toggleTheme, colors } = useTheme();
 
   const [displayName, setDisplayName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
@@ -38,23 +43,16 @@ export default function ProfileScreen({ navigation }) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.uid) return;
-
     setLoading(true);
     setError('');
-
     const result = await getUserProfile(user.uid);
-
     if (result.success) {
       const doc = result.user;
       setFirestoreData(doc);
       setDisplayName(doc.displayName || '');
       setProfileEmail(doc.email || '');
-
       const key = doc.profilePhoto;
-      const resolved = key ? photoMap[key] : null;
-      setSelectedPhoto(resolved || null);
-
-      setSuccess('');
+      setSelectedPhoto(key ? photoMap[key] : null);
     } else {
       setError(`Failed to load profile: ${result.error}`);
     }
@@ -66,223 +64,152 @@ export default function ProfileScreen({ navigation }) {
   }, [fetchProfile]);
 
   const handleSave = async () => {
-    setLoading(true);
     setError('');
     setSuccess('');
 
-    if (displayName.length < 3) {
+    // TOUGH LOVE VALIDATION: Stop the hang and tell the user!
+    if (displayName.trim().length < 3) {
       setError('Display name must be at least 3 characters.');
-      setLoading(false);
-      return;
+      Alert.alert('Short Name', 'Your magical name must be at least 3 characters long! 🔮');
+      return; 
     }
 
-    if (firestoreData && displayName === firestoreData.displayName) {
-      setSuccess('No changes detected.');
-      setLoading(false);
-      setIsEditing(false);
-      return;
-    }
-
+    setLoading(true);
     try {
-      await updateUserProfile(user.uid, { displayName });
-      await updateProfile(auth.currentUser, { displayName });
-      user.displayName = displayName;
-
-      setSuccess('Profile updated successfully!');
+      await updateUserProfile(user.uid, { displayName: displayName.trim() });
+      await updateProfile(auth.currentUser, { displayName: displayName.trim() });
+      
+      setSuccess('Profile updated successfully! ✨');
       setIsEditing(false);
       await fetchProfile();
     } catch (e) {
       setError(e.message || 'Failed to save changes.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handlePhotoSelect = async (photoName) => {
-    const resolved = photoMap[photoName] || null;
-    setSelectedPhoto(resolved);
+    setSelectedPhoto(photoMap[photoName]);
     setShowPhotoPicker(false);
-
     try {
       await updateUserProfile(user.uid, { profilePhoto: photoName });
-      setSuccess('Avatar updated!');
+      setSuccess('Avatar updated! 🎭');
     } catch (e) {
       setError('Failed to save avatar');
     }
   };
 
-  const renderAvatar = () => {
-    if (selectedPhoto) {
-      return (
-        <TouchableOpacity onPress={isEditing ? () => setShowPhotoPicker(true) : null} disabled={!isEditing}>
-          <Image source={selectedPhoto} style={styles.avatar} />
-        </TouchableOpacity>
-      );
-    }
-    return (
-      <TouchableOpacity onPress={isEditing ? () => setShowPhotoPicker(true) : null} disabled={!isEditing}>
-        <Avatar.Icon size={100} icon="account-circle" style={[styles.defaultAvatar, { backgroundColor: colors.accent }]} />
-      </TouchableOpacity>
-    );
-  };
+  const styles = createStyles(colors, isDarkMode);
 
-  const styles = createStyles(colors, isDarkMode); 
-
-  if (!firestoreData) {
-    if (loading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.loadingText}>Loading Coven identity...</Text>
-        </View>
-      );
-    }
-    if (error) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorTextTitle}>Profile Load Error</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorTip}>Tip: Publish the correct Firestore rule if this is a permissions error.</Text>
-          <Button onPress={fetchProfile} mode="contained" style={{ marginTop: 20, backgroundColor: colors.accent }}>
-            Try Again
-          </Button>
-        </View>
-      );
-    }
-  }
+  // Loading & Error States... (Keep your existing if(!firestoreData) logic here)
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <Header />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton} labelStyle={styles.backButtonLabel}>
-          ← Back to Dashboard
-        </Button>
+      
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Back Button */}
+          <Button mode="text" onPress={() => navigation.navigate('Dashboard')} style={styles.backButton} labelStyle={{color: colors.accent}}>
+            ← Back to Dashboard
+          </Button>
 
-        {/* VAMPIRE MODE TOGGLE CARD - ADD THIS */}
-        <Card style={styles.themeCard}>
-          <View style={styles.themeToggleRow}>
-            <View style={styles.themeTextContainer}>
-              <PaperTitle style={styles.themeTitle}>
-                {isDarkMode ? '🦇 Vampire Mode' : '☀️ Light Mode'}
-              </PaperTitle>
-              <Text style={styles.themeSubtitle}>
-                {isDarkMode 
-                  ? 'Embrace the darkness with blood-red accents' 
-                  : 'Soft purples and gentle vibes'}
-              </Text>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: '#d4a5ff', true: '#8b0a50' }}
-              thumbColor={isDarkMode ? '#1a0a1f' : '#4a148c'}
-              ios_backgroundColor="#d4a5ff"
-            />
-          </View>
-        </Card>
-
-        <Card style={styles.profileCard}>
-          <View style={styles.header}>
-            {renderAvatar()}
-            <PaperTitle style={styles.cardTitle}>Your Coven Profile</PaperTitle>
-          </View>
-
-          {success ? (
-            <HelperText type="info" visible={!!success} style={styles.successText}>
-              {success}
-            </HelperText>
-          ) : null}
-          {error && <HelperText type="error" visible={!!error}>{error}</HelperText>}
-
-          <TextInput 
-            label="Email (Read Only)" 
-            value={profileEmail} 
-            mode="outlined" 
-            style={styles.input} 
-            disabled 
-            textColor={colors.text}
-            theme={{ colors: { text: colors.text, placeholder: colors.textSecondary } }}
-          />
-
-          <TextInput
-            label="Display Name"
-            value={displayName}
-            onChangeText={setDisplayName}
-            mode="outlined"
-            style={styles.input}
-            disabled={!isEditing || loading}
-            textColor={colors.text}
-            theme={{ colors: { text: colors.text, placeholder: colors.textSecondary } }}
-          />
-
-          <Text style={styles.uidText}>UID: {user?.uid}</Text>
-
-          {isEditing ? (
-            <Button
-              mode="contained"
-              onPress={handleSave}
-              loading={loading}
-              disabled={loading || displayName.length < 3}
-              style={styles.saveButton}
-              buttonColor={colors.accent}
-            >
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          ) : (
-            <Button
-              mode="outlined"
-              onPress={() => setIsEditing(true)}
-              style={styles.editButton}
-              labelStyle={{
-                fontWeight: 'bold',
-                color: colors.accent,
-              }}
-            >
-              Edit Profile
-            </Button>
-
-
-          )}
-
-          {isEditing && (
-            <Button
-              mode="text"
-              onPress={() => {
-                setIsEditing(false);
-                fetchProfile();
-              }}
-              disabled={loading}
-              style={{ marginTop: 10 }}
-              textColor={colors.textSecondary}
-            >
-              Cancel
-            </Button>
-          )}
-        </Card>
-
-        <Modal visible={showPhotoPicker} transparent animationType="fade" onRequestClose={() => setShowPhotoPicker(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.photoPickerModal}>
-              <PaperTitle style={styles.modalTitle}>Choose Your Avatar</PaperTitle>
-
-              <View style={styles.photoGrid}>
-                {photoOptions.map((name) => (
-                  <TouchableOpacity key={name} onPress={() => handlePhotoSelect(name)} style={styles.photoOption}>
-                    <Image source={photoMap[name]} style={styles.photoOptionImage} />
-                    <Text style={styles.photoLabel}>{name}</Text>
-                  </TouchableOpacity>
-                ))}
+          {/* Theme Toggle */}
+          <Card style={styles.themeCard}>
+            <View style={styles.themeToggleRow}>
+              <View style={styles.themeTextContainer}>
+                <PaperTitle style={styles.themeTitle}>
+                  {isDarkMode ? '🦇 Vampire Mode' : '☀️ Light Mode'}
+                </PaperTitle>
               </View>
+              <Switch
+                value={isDarkMode}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#d4a5ff', true: '#8b0a50' }}
+                thumbColor={isDarkMode ? '#1a0a1f' : '#4a148c'}
+              />
+            </View>
+          </Card>
 
-              <Button mode="outlined" onPress={() => setShowPhotoPicker(false)} style={styles.cancelButton} textColor={colors.accent}>
+          <Card style={styles.profileCard}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={isEditing ? () => setShowPhotoPicker(true) : null} disabled={!isEditing}>
+                {selectedPhoto ? (
+                  <Image source={selectedPhoto} style={styles.avatar} />
+                ) : (
+                  <Avatar.Icon size={100} icon="account-circle" style={{ backgroundColor: colors.accent }} />
+                )}
+              </TouchableOpacity>
+              <PaperTitle style={[styles.cardTitle, { color: colors.text }]}>Your Coven Profile</PaperTitle>
+            </View>
+
+            {success ? <HelperText type="info" style={{color: 'green'}}>{success}</HelperText> : null}
+            {error ? <HelperText type="error">{error}</HelperText> : null}
+
+            <TextInput 
+              label="Email (Read Only)" 
+              value={profileEmail} 
+              mode="outlined" 
+              style={styles.input} 
+              disabled 
+              textColor={colors.text}
+            />
+
+            <TextInput
+              label="Display Name"
+              value={displayName}
+              onChangeText={setDisplayName}
+              mode="outlined"
+              style={styles.input}
+              disabled={!isEditing || loading}
+              textColor={colors.text}
+              error={displayName.length > 0 && displayName.length < 3}
+            />
+
+            {isEditing ? (
+              <Button
+                mode="contained"
+                onPress={handleSave}
+                loading={loading}
+                style={styles.saveButton}
+                buttonColor={colors.accent}
+              >
+                Save Changes
+              </Button>
+            ) : (
+              <Button
+                mode="outlined"
+                onPress={() => setIsEditing(true)}
+                style={styles.editButton}
+                textColor={colors.accent}
+              >
+                Edit Profile
+              </Button>
+            )}
+
+            {isEditing && (
+              <Button mode="text" onPress={() => { setIsEditing(false); fetchProfile(); }} textColor={colors.textSecondary}>
                 Cancel
               </Button>
-            </View>
-          </View>
-        </Modal>
-      </ScrollView>
+            )}
+          </Card>
+
+          {/* Spacer for bottom so keyboard doesn't hide content */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </TouchableWithoutFeedback>
+
       <Footer navigation={navigation} />
-    </View>
+
+      {/* Photo Picker Modal... (Keep your existing Modal code) */}
+    </KeyboardAvoidingView>
   );
 }
 

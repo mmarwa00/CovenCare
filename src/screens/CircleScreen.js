@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Clipboard, Alert } from 'react-native';
 import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { createCircle, joinCircle, getUserCircles } from '../services/circleService';
@@ -118,6 +118,11 @@ export default function CircleScreen({ navigation }) {
       setActiveCircleId(circleId);
       alert('Active circle updated!');
     } catch (error) {}
+  };
+
+  const copyToClipboard = (code) => {
+    Clipboard.setString(code);
+    Alert.alert('Copied!', `Invite code ${code} copied to clipboard`);
   };
 
   return (
@@ -304,7 +309,7 @@ export default function CircleScreen({ navigation }) {
                   styles.circleItem,
                   circle.id === activeCircleId && styles.activeCircle,
                   circle.id === activeCircleId && isDarkMode && {
-                    backgroundColor: '#4a1f3d',   // medium plum, readable
+                    backgroundColor: '#4a1f3d',
                     borderLeftColor: colors.primary,
                   }
                   ,
@@ -331,9 +336,30 @@ export default function CircleScreen({ navigation }) {
                   <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
                     ID: {circle.id}
                   </Text>
-                  <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
-                    Code: {circle.inviteCode}
-                  </Text>
+
+                  <TouchableOpacity
+                    onPress={() => copyToClipboard(circle.inviteCode)}
+                    style={[
+                      styles.copyButton,
+                      isDarkMode && {
+                        backgroundColor:
+                          circle.id === activeCircleId
+                            ? '#0a1a3f'   // dark blue for ACTIVE
+                            : '#8b0a50',  // dark red for INACTIVE
+                      }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.copyButtonLabel,
+                        isDarkMode && { color: '#ffffff' }
+                      ]}
+                    >
+                      📋 Copy
+                    </Text>
+                  </TouchableOpacity>
+
+
                   <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
                     {Array.isArray(circle.members)
                       ? `${circle.members.length} members`
@@ -504,6 +530,37 @@ const styles = StyleSheet.create({
     color: '#4a148c',
   },
 
+  inviteCodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 2,
+  },
+
+  copyButton: {
+  backgroundColor: '#6a1b9a',
+  elevation: 12,
+  shadowColor: '#4a148c',
+  shadowOpacity: 1,
+  shadowRadius: 22,
+  shadowOffset: { width: 0, height: 8 },
+  minWidth: 16,
+  minHeight: 8,
+  paddingHorizontal: 4,
+  paddingVertical: 1,
+  borderRadius: 8,
+  flexShrink: 1,
+  flexGrow: 0,
+  alignSelf: 'flex-start',
+},
+
+
+  copyButtonLabel: {
+  fontSize: 9,
+  fontWeight: 'bold',
+  color: '#e3d2f0ff', // light lilac for light mode
+  },
+
   activeButton: {
     marginTop: 8,
     backgroundColor: '#6a1b9a',
@@ -524,4 +581,3 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 });
-

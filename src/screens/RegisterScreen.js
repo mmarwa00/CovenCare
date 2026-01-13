@@ -35,14 +35,13 @@ export default function RegisterScreen({ navigation }) {
         // Don't block registration if push notifications fail
       }
 
-      // Alert the user and navigate back to the Login screen
+      // Alert the user and navigate back to the Dashboard screen
       Alert.alert(
         'Registration Success',
-        'Your account has been created! Please log in.',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Login'),
+            onPress: () => navigation.navigate('Dashboard'),
           },
         ],
       );
@@ -62,6 +61,7 @@ export default function RegisterScreen({ navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Display Name (Your Coven Identity)"
+        placeholderTextColor="#999"
         value={displayName}
         onChangeText={setDisplayName}
         autoCapitalize="words"
@@ -72,6 +72,7 @@ export default function RegisterScreen({ navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor="#999"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -83,6 +84,7 @@ export default function RegisterScreen({ navigation }) {
       <TextInput
         style={styles.input}
         placeholder="Password (min 8 characters)"
+        placeholderTextColor="#999"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -97,12 +99,13 @@ export default function RegisterScreen({ navigation }) {
       ) : null}
 
       {/* Register Button */}
-      <Button 
-        mode="contained" 
-        onPress={handleRegister} 
+      <Button
+        mode="contained"
+        onPress={handleRegister}
         disabled={loading || !email || !password || !displayName}
         style={styles.button}
         contentStyle={styles.buttonContent}
+        labelStyle={styles.buttonLabel} // <--- ADD THIS LINE
       >
         {loading ? <ActivityIndicator color="#fff" /> : 'Register'}
       </Button>
@@ -143,6 +146,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingHorizontal: 15,
     backgroundColor: '#fff',
+    color: '#000',
   },
   button: {
     marginTop: 10,
@@ -152,6 +156,12 @@ const styles = StyleSheet.create({
   buttonContent: {
     height: 50,
   },
+  buttonLabel: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
   errorText: {
     textAlign: 'center',
     fontSize: 14,
