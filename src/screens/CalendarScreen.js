@@ -84,8 +84,13 @@ export default function CalendarScreen({ navigation }) {
     if (showCirclePeriods) {
       const c = new Date(dateStr);
 
-      // find EVERYONE who has period this day
-      const hits = circlePeriods.filter(p => {
+      
+      const allSharedPeriods = [
+        ...circlePeriods,
+        ...periods.map(p => ({ ...p, userId }))
+      ];
+
+      const hits = allSharedPeriods.filter(p => {
         const s = p.startDate.toDate();
         const e = p.endDate.toDate();
         return c >= s && c <= e;
@@ -94,8 +99,12 @@ export default function CalendarScreen({ navigation }) {
       if (hits.length > 0) {
         // build names list
         const names = hits
-          .map(h => memberInfo[h.userId]?.name || "User")
-          .join(", ");
+        .map(h =>
+          h.userId === userId
+            ? "You"
+            : memberInfo[h.userId]?.name || "User"
+        )
+        .join(", ");
 
         Alert.alert(
           "Shared Calendar",
@@ -375,9 +384,14 @@ export default function CalendarScreen({ navigation }) {
       if (!showCirclePeriods) return {};
 
       const marks = {};
-      const dayUsers = {}; // day - Set(userId)
+      const dayUsers = {}; // day -> Set(userId)
 
-      circlePeriods.forEach(p => {
+      const allPeriods = [
+        ...circlePeriods,
+        ...periods.map(p => ({ ...p, userId }))
+      ];
+
+      allPeriods.forEach(p => {
         const start = p.startDate.toDate();
         const end = p.endDate.toDate();
         let current = new Date(start);
@@ -388,10 +402,14 @@ export default function CalendarScreen({ navigation }) {
           if (!dayUsers[key]) dayUsers[key] = new Set();
           dayUsers[key].add(p.userId);
 
+          // default color
           marks[key] = {
             customStyles: {
               container: {
-                backgroundColor: memberColorMap[p.userId] || "#888",
+                backgroundColor:
+                  p.userId === userId
+                    ? "#c162d8ff"
+                    : memberColorMap[p.userId] || "#888",
                 borderRadius: 20,
               },
               text: {
@@ -422,10 +440,9 @@ export default function CalendarScreen({ navigation }) {
           };
         }
       });
-    return marks;
-  };
 
-
+      return marks;
+    };
 
   const todayString = new Date().toISOString().split("T")[0];
 
@@ -452,8 +469,8 @@ export default function CalendarScreen({ navigation }) {
 
   const getAllMarkedDates = () => {
     let baseMarks = {
-      ...(showCirclePeriods ? {} : getPeriodMarkedDates()),
-      ...getCircleMarkedDates(),
+      ...getPeriodMarkedDates(),      // ← My periods
+      ...getCircleMarkedDates(),      // ← other users's
       ...getSelectedRangeMarks(),
       [todayString]: {
         customStyles: {

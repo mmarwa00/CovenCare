@@ -20,7 +20,7 @@ export default function SendItemScreen({
   selectedItem, 
   itemType,
   backgroundImage,
-  forceRecipient   // ⭐ add this here
+  forceRecipient  
 }) {
 
   const { colors, isDarkMode } = useTheme();
@@ -43,97 +43,90 @@ export default function SendItemScreen({
 
   const photoMap = { witch1, witch2, witch3, witch4, witch5, wizz1, wizz2, wizz3 };
 
+    // Load people from ACTIVE circle only
   useEffect(() => {
-    loadPeopleFromAllCircles();
+    loadPeopleFromActiveCircle();
   }, []);
 
-  const loadPeopleFromAllCircles = async () => {
+  const loadPeopleFromActiveCircle = async () => {
     try {
       setLoading(true);
       const userId = auth.currentUser?.uid;
+      
       if (!userId) {
         Alert.alert('Error', 'You must be logged in');
         navigation.goBack();
         return;
       }
 
+      // Get user's active circle ID
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) throw new Error('User not found');
 
-      // ⭐ FORCE RECIPIENT OVERRIDE FOR SENDSILVIA
-      if (forceRecipient) {
-        const me = {
-          id: userId,
-          displayName: userSnap.data().displayName || "You",
-          profilePhoto: userSnap.data().profilePhoto || null
-        };
-
-        setAllPeople([me]);
-        setSelectedPeople([userId]);   // auto-select yourself
-        setLoading(false);
-        return; // stop here, skip circle logic
+      if (!userSnap.exists()) {
+        throw new Error('User not found');
       }
 
-      const userData = userSnap.data();
-      const circleIds = userData.circles || userData.joinedCircles || [];
+      const activeCircleId = userSnap.data().activeCircleId;
 
-      if (!circleIds.length) {
-        Alert.alert('No Circles', 'You are not in any circles yet.');
+      if (!activeCircleId) {
+        Alert.alert('No Active Circle', 'Please set an active circle first!', [
+          {
+            text: 'Go to Circles',
+            onPress: () => navigation.navigate('Circle')
+          },
+          {
+            text: 'Cancel',
+            onPress: () => navigation.goBack()
+          }
+        ]);
         return;
       }
 
-      const uniqueUsers = new Map();
+      // Get members from ACTIVE circle only
+      const membersResult = await getCircleMembers(activeCircleId);
+      
+      if (!membersResult.success) {
+        throw new Error(membersResult.error);
+      }
 
-      // Go through all the circles
-      for (const circleId of circleIds) {
-        const membersResult = await getCircleMembers(circleId);
-        if (!membersResult.success) continue;
-
-        for (const member of membersResult.members) {
-          if (member.id === userId) continue; // do not add yourself
-
-          if (!uniqueUsers.has(member.id)) {
-            try {
-              const userRef = doc(db, 'users', member.id);
-              const userSnap = await getDoc(userRef);
-
-              if (userSnap.exists()) {
-                const data = userSnap.data();
-                uniqueUsers.set(member.id, {
-                  id: member.id,
-                  displayName: data.displayName || member.displayName || 'Unknown',
-                  profilePhoto: data.profilePhoto || null
-                });
-              } else {
-                uniqueUsers.set(member.id, {
-                  id: member.id,
-                  displayName: member.displayName || 'Unknown',
-                  profilePhoto: null
-                });
-              }
-
-            } catch {
-              uniqueUsers.set(member.id, {
+      // Get full user details for each member
+      const peopleWithDetails = [];
+      for (const member of membersResult.members) {
+        if (member.id !== userId) {
+          try {
+            const userRef = doc(db, 'users', member.id);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              peopleWithDetails.push({
                 id: member.id,
-                displayName: member.displayName || 'Unknown',
-                profilePhoto: null
+                displayName: userData.displayName || member.displayName || 'Unknown',
+                profilePhoto: userData.profilePhoto || null,
+                circleId: activeCircleId
               });
+            } else {
+              // Fallback if user document doesn't exist
+              peopleWithDetails.push({ id: member.id, displayName: member.displayName || 'Unknown', profilePhoto: null, circleId: activeCircleId });
             }
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            // Add member even if fetch fails
+            peopleWithDetails.push({ id: member.id, displayName: member.displayName || 'Unknown', profilePhoto: null, circleId: activeCircleId });
           }
         }
       }
 
-      const peopleList = Array.from(uniqueUsers.values());
-
-      if (peopleList.length === 0) {
-        Alert.alert('No Members', 'There are no other people across your circles yet.');
+      if (peopleWithDetails.length === 0) {
+        Alert.alert('No Members', 'Your active circle has no other members yet.');
       }
 
-      setAllPeople(peopleList);
+      setAllPeople(peopleWithDetails);
 
     } catch (error) {
-      Alert.alert('Error', 'Failed to load members: ' + error.message);
+      console.error('Error loading people:', error);
+      Alert.alert('Error', 'Failed to load circle members: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -152,55 +145,45 @@ export default function SendItemScreen({
       Alert.alert('No Recipients', 'Please select at least one person');
       return;
     }
-    if (itemType === "silvia") {
-      navigation.navigate("SilviaConfetti", {
-        returnTo: "SettingsScreen",
-      });
-      return;
-    }
 
+    // TODO: When backend is ready, replace with actual API call
+    console.log('=== SENDING ===');
+    console.log('Type:', itemType);
+    console.log('Item:', selectedItem);
+    console.log('Recipients:', selectedPeople);
+    console.log('===============');
 
-    const userId = auth.currentUser?.uid;
-    const message = selectedItem?.message || '';
-    const recipients = selectedPeople;
-    const type = String(selectedItem?.type || selectedItem?.name || selectedItem?.id || selectedItem?.value || 'unknown');
+    Alert.alert(
+      'Success!',
+      `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${selectedPeople.length} ${selectedPeople.length === 1 ? 'person' : 'people'}!`,
+      [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack()
+        }
+      ]
+    );
+  };
 
-    if (!userId || !type) {
-      Alert.alert('Sending Blocked', 'Missing required data.');
-      return;
-    }
-
-    // pick circle id for sending
-    let circleIdToUse = activeCircleId;
-    if (!circleIdToUse) {
-      circleIdToUse = "multi";
-    }
-
-    setIsSending(true);
-
-    let result;
-    if (itemType === 'voucher') {
-      result = await sendVoucher(userId, recipients, circleIdToUse, type, message);
-    } else if (itemType === 'alert') {
-      result = await createEmergency(userId, circleIdToUse, type, recipients, message);
-      if (result.success) result.count = recipients.length;
-    } else {
-      Alert.alert('Error', 'Invalid item type.');
-      setIsSending(false);
-      return;
-    }
-
-    setIsSending(false);
-
-    if (result?.success) {
-      Alert.alert(
-        'Success!',
-        `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${result.count}!`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+  // Render person's avatar
+  const renderPersonAvatar = (person) => {
+    // If user has profilePhoto and it exists in photoMap, show the image
+    if (person.profilePhoto && photoMap[person.profilePhoto]) {
+      return (
+        <Image 
+          source={photoMap[person.profilePhoto]} 
+          style={styles.avatar} 
+        />
       );
-    } else {
-      Alert.alert('Failed', result?.error || 'Unknown error');
-    }
+   }
+    // Otherwise show circle with first letter
+    return (
+      <View style={styles.avatarPlaceholder}>
+        <Text style={styles.avatarText}>
+          {person.displayName?.charAt(0).toUpperCase() || '?'}
+        </Text>
+      </View>
+    );
   };
 
   const Content = () => (
