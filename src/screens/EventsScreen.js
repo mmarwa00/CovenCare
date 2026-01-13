@@ -10,7 +10,7 @@ import {
   rsvpToEvent,
   RSVP_OPTIONS 
 } from '../services/eventsService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import Layout from '../components/Layout';
 
@@ -28,6 +28,7 @@ export default function EventsScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCircleId, setActiveCircleId] = useState(null);
+  const [userCircles, setUserCircles] = useState([]); // ✅ Store all user's circles
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [eventName, setEventName] = useState('');
@@ -35,29 +36,68 @@ export default function EventsScreen({ navigation }) {
   const [eventTime, setEventTime] = useState('');
   const [eventDescription, setEventDescription] = useState('');
 
+  // ✅ Fetch active circle AND all user circles
   const fetchActiveCircle = useCallback(async () => {
     if (!userId) return;
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
-      setActiveCircleId(userSnap.data().activeCircleId);
+      const userData = userSnap.data();
+      setActiveCircleId(userData.activeCircleId);
+      
+      // Get all circles user belongs to
+      if (userData.circles && userData.circles.length > 0) {
+        setUserCircles(userData.circles);
+      }
     }
   }, [userId]);
 
+  // ✅ Fetch events from ALL user's circles
   const fetchEvents = useCallback(async () => {
-    if (!activeCircleId) return;
+    if (!userCircles || userCircles.length === 0) return;
+    
     setLoading(true);
-    const result = await getCircleEvents(activeCircleId, true);
-    if (result.success) setEvents(result.events);
+    
+    try {
+      // Fetch events from ALL circles the user belongs to
+      const allEvents = [];
+      
+      for (const circleId of userCircles) {
+        const result = await getCircleEvents(circleId, true);
+        if (result.success && result.events) {
+          // Add circle info to each event
+          const eventsWithCircle = result.events.map(event => ({
+            ...event,
+            circleId: circleId
+          }));
+          allEvents.push(...eventsWithCircle);
+        }
+      }
+      
+      // Sort by date (newest first)
+      allEvents.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+      
+      setEvents(allEvents);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+    
     setLoading(false);
-  }, [activeCircleId]);
+  }, [userCircles]);
 
   useFocusEffect(useCallback(() => { fetchActiveCircle(); }, [fetchActiveCircle]));
-  useFocusEffect(useCallback(() => { if (activeCircleId) fetchEvents(); }, [fetchEvents, activeCircleId]));
+  useFocusEffect(useCallback(() => { 
+    if (userCircles.length > 0) fetchEvents(); 
+  }, [fetchEvents, userCircles]));
 
   const handleCreateEvent = async () => {
     if (!eventName || !eventDate || !eventTime) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (!activeCircleId) {
+      Alert.alert('Error', 'Please select an active circle first');
       return;
     }
 
@@ -70,7 +110,7 @@ export default function EventsScreen({ navigation }) {
     });
 
     if (result.success) {
-      Alert.alert('Success', 'Event created!');
+      Alert.alert('Success', 'Event created in your active circle!');
       setShowCreateForm(false);
       setEventName('');
       setEventDate('');
@@ -98,13 +138,23 @@ export default function EventsScreen({ navigation }) {
     return userRsvp?.response || RSVP_OPTIONS.NO_RESPONSE;
   };
 
+  // ✅ Helper to get circle name
+  const getCircleName = async (circleId) => {
+    try {
+      const circleDoc = await getDoc(doc(db, 'circles', circleId));
+      return circleDoc.exists() ? circleDoc.data().name : 'Unknown Circle';
+    } catch {
+      return 'Unknown Circle';
+    }
+  };
+
   const styles = createStyles(colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH);
 
   if (!activeCircleId) {
     return (
       <Layout navigation={navigation} subtitle="Events">
         <View style={styles.container}>
-          <Text style={styles.emptyText}>Please select an active circle to see events</Text>
+          <Text style={styles.emptyText}>Please select an active circle to create events</Text>
         </View>
       </Layout>
     );
@@ -113,7 +163,7 @@ export default function EventsScreen({ navigation }) {
   return (
     <Layout navigation={navigation} subtitle="Circle Events">
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 140 }}>
-        <Title style={styles.title}>Upcoming Events</Title>
+        <Title style={styles.title}>All Your Circle Events</Title>
 
         {/* CREATE EVENT BUTTON */}
         <Button
@@ -123,18 +173,20 @@ export default function EventsScreen({ navigation }) {
           buttonColor={isDarkMode ? DARK_BG : PURPLE}
           textColor={DM_TEXT}
         >
-          {showCreateForm ? 'Cancel' : '+ Create Event'}
+          {showCreateForm ? 'Cancel' : '+ Create Event (Active Circle)'}
         </Button>
 
         {showCreateForm && (
           <Card style={styles.card}>
             <Card.Content>
+              <Text style={[styles.helperText, { color: colors.textSecondary, marginBottom: 10 }]}>
+                Event will be created in your active circle
+              </Text>
               <TextInput label="Event Name *" value={eventName} onChangeText={setEventName} mode="outlined" style={styles.input} />
               <TextInput label="Date (YYYY-MM-DD) *" value={eventDate} onChangeText={setEventDate} mode="outlined" style={styles.input} />
               <TextInput label="Time (HH:MM) *" value={eventTime} onChangeText={setEventTime} mode="outlined" style={styles.input} />
               <TextInput label="Description" value={eventDescription} onChangeText={setEventDescription} mode="outlined" style={styles.input} multiline numberOfLines={3} />
 
-              {/* SUBMIT BUTTON */}
               <Button
                 mode="contained"
                 onPress={handleCreateEvent}
@@ -157,6 +209,7 @@ export default function EventsScreen({ navigation }) {
         ) : (
           events.map(event => {
             const userRsvp = getUserRSVP(event);
+            const isActiveCircle = event.circleId === activeCircleId;
 
             const rsvpButton = (label, value) => {
               const selected = userRsvp === value;
@@ -187,6 +240,13 @@ export default function EventsScreen({ navigation }) {
             return (
               <Card key={event.id} style={styles.eventCard}>
                 <Card.Content>
+                  {/* ✅ Show circle badge */}
+                  {isActiveCircle && (
+                    <View style={[styles.circleBadge, { backgroundColor: isDarkMode ? BURGUNDY : PURPLE }]}>
+                      <Text style={styles.circleBadgeText}>Active Circle</Text>
+                    </View>
+                  )}
+                  
                   <Title style={styles.eventTitle}>{event.name}</Title>
                   <Text style={styles.eventDetail}>📅 {new Date(event.dateTime).toLocaleString()}</Text>
                   {event.description && <Text style={styles.eventDescription}>{event.description}</Text>}
@@ -323,6 +383,22 @@ const createStyles = (colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BO
     color: isDarkMode ? DM_TEXT : PURPLE,
     textAlign: 'center',
     marginTop: 20,
+  },
+  helperText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  circleBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  circleBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
 

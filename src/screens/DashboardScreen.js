@@ -132,7 +132,9 @@ export default function DashboardScreen({ navigation }) {
       setLoadingVouchers(true);
       const result = await getSentVouchers(userId);
       if (result.success) {
-        setVouchers(result.vouchers);
+        // ✅ Filter to only show unredeemed vouchers
+        const unredeemed = result.vouchers.filter(v => v.status !== 'redeemed');
+        setVouchers(unredeemed);
       }
       setLoadingVouchers(false);
     };
@@ -252,9 +254,9 @@ export default function DashboardScreen({ navigation }) {
         {/* CURRENT PHASE */}
         <View style={styles.dashboardBox}>
           <View style={styles.circleRow}>
-            <Image 
-              source={getPhaseIcon(phaseData ? getPhaseDisplayName(phaseData.phase) : 'Follicular')} 
-              style={styles.phaseIcon} 
+            <Image
+              source={getPhaseIcon(phaseData ? getPhaseDisplayName(phaseData.phase) : 'Follicular')}
+              style={styles.phaseIcon}
             />
             <Text style={styles.boxTitle}>
               Current Phase: {phaseData ? getPhaseDisplayName(phaseData.phase) : 'Loading...'}
@@ -285,10 +287,10 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={styles.memberName}>{member.displayName}</Text>
                 <Text style={styles.moodEmoji}>
                   {member.mood === 'happy' ? '😊' :
-                   member.mood === 'okay' ? '😐' :
-                   member.mood === 'grumpy' ? '😠' :
-                   member.mood === 'sad' ? '😢' :
-                   member.mood === 'anxious' ? '😰' : '—'}
+                    member.mood === 'okay' ? '😐' :
+                      member.mood === 'grumpy' ? '😠' :
+                        member.mood === 'sad' ? '😢' :
+                          member.mood === 'anxious' ? '😰' : '—'}
                 </Text>
               </View>
             ))
@@ -296,6 +298,7 @@ export default function DashboardScreen({ navigation }) {
         </View>
 
         {/* EMERGENCY ALERTS */}
+
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('AlertBox')}
@@ -303,31 +306,9 @@ export default function DashboardScreen({ navigation }) {
         >
           <View style={styles.circleRow}>
             <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
-            <Text style={styles.boxTitle}>Emergency Alerts: {alerts.length}</Text>
+            <Text style={styles.boxTitle}>Emergency Alerts: {loadingAlerts ? '...' : alerts.length}</Text>
           </View>
-
-          {loadingAlerts ? (
-            <ActivityIndicator animating={true} color={colors.accent} size="small" style={{ marginTop: 10 }} />
-          ) : alerts.length === 0 ? (
-            <Text style={styles.boxSubtitle}>No active alerts.</Text>
-          ) : (
-            alerts.slice(0, 3).map(alert => (
-              <View key={alert.id} style={styles.alertItem}>
-                <Text style={styles.alertType}>{getEmergencyTypeDisplay(alert.type)}</Text>
-                <Text style={styles.boxSubtitle}>
-                  From: {alert.senderName} • {getTimeAgo(alert.createdAt)}
-                </Text>
-                {alert.message && (
-                  <Text style={styles.alertMessage}>"{alert.message}"</Text>
-                )}
-              </View>
-            ))
-          )}
-
-          {alerts.length > 3 && (
-            <Text style={styles.viewMore}>Tap to view all alerts →</Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
 
         {/* SENT VOUCHERS */}
         <TouchableOpacity
