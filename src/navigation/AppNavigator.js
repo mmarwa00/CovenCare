@@ -27,6 +27,8 @@ import SendSilvia from '../screens/SendSilvia';
 import SilviaConfettiScreen from '../screens/SilviaConfettiScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
+import EmergencyScreen from '../screens/EmergencyScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -58,6 +60,8 @@ export default function AppNavigator() {
             <Stack.Screen name="CareBox" component={CareBoxScreen} />
             <Stack.Screen name="Alerts" component={Alerts} />
             <Stack.Screen name="CareBoxDetails" component={CareBoxDetails} />
+            <Stack.Screen name="MyEmergencies" component={EmergencyScreen} />
+
             <Stack.Screen
               name="SilviaConfetti"
               component={SilviaConfettiScreen}

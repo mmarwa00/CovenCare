@@ -37,6 +37,9 @@ const CANT_PHRASE = "Can't right now but ❤️";
 // Create emergency alert
 export const createEmergency = async (senderId, circleId, type, recipients, message = '') => {
   try {
+    console.log('createEmergency called with:', { senderId, circleId, type, recipients, message });
+
+    
     if (!senderId || !circleId || !type) throw new Error('Sender ID, circle ID, and type are required');
     if (!recipients || recipients.length === 0) throw new Error('At least one recipient is required');
 
@@ -49,6 +52,8 @@ export const createEmergency = async (senderId, circleId, type, recipients, mess
     const now = new Date();
     const autoResolveAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
+    console.log('About to create emergency in Firestore...');
+    
     const emergencyRef = await addDoc(collection(db, 'emergencies'), {
       senderId,
       senderName: senderDoc.data().displayName || '',
@@ -62,10 +67,11 @@ export const createEmergency = async (senderId, circleId, type, recipients, mess
       autoResolveAt: Timestamp.fromDate(autoResolveAt)
     });
 
-    console.log('Emergency created:', emergencyRef.id);
+    console.log('Emergency created successfully:', emergencyRef.id);
     return { success: true, emergencyId: emergencyRef.id, autoResolveAt };
   } catch (error) {
     console.error('Error creating emergency:', error);
+    console.error('Error details:', error.message, error.code);
     return { success: false, error: error.message };
   }
 };

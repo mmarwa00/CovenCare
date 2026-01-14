@@ -16,7 +16,6 @@ Notifications.setNotificationHandler({
 // Register for push notifications
 export const registerForPushNotifications = async (userId) => {
   try {
-    // Check if physical device (push notifications don't work on simulator)
     if (!Device.isDevice) {
       console.log('Push notifications only work on physical devices');
       return null;
@@ -41,7 +40,7 @@ export const registerForPushNotifications = async (userId) => {
       projectId: Constants.expoConfig?.extra?.eas?.projectId,
     })).data;
 
-    console.log('✅ Push token:', token);
+    console.log('Push token:', token);
 
     // Save token to Firestore
     await updateDoc(doc(db, 'users', userId), {

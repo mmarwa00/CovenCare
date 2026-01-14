@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { onAuthStateChanged } from 'firebase/auth'; // Only need this function here
 
-// --- CRITICAL FIX ---
 // We only import the FINAL, initialized 'auth' object.
 // We DO NOT import the Auth Service functions directly into the Context file 
 // to avoid circular dependency issues that cause re-initialization.

@@ -99,6 +99,7 @@ exports.autoExpireEmergencies = onSchedule(
           .get();
 
       if (snapshot.empty) {
+        console.log("No emergencies to expire");
         return;
       }
 
@@ -153,6 +154,44 @@ exports.onEmergencyCreated = onDocumentCreated(
             },
           },
       );
+    },
+);
+
+/**
+ * S5: Emergency response added → notify sender
+ */
+exports.onEmergencyResponse = onDocumentUpdated(
+    "emergencies/{emergencyId}",
+    async (event) => {
+      const before = event.data.before.data();
+      const after = event.data.after.data();
+
+      // Check if responses array was updated
+      const beforeResponses = before.responses || [];
+      const afterResponses = after.responses || [];
+
+      if (afterResponses.length > beforeResponses.length) {
+        // New response was added
+        const newResponse = afterResponses[afterResponses.length - 1];
+
+        const title = "Someone responded to your emergency! 💜";
+        const body = `${newResponse.userName}: ${newResponse.message}`;
+
+        await sendPushToUsers(
+            [after.senderId],
+            {
+              notification: {
+                title,
+                body,
+              },
+              data: {
+                type: "emergency_response",
+                emergencyId: event.params.emergencyId,
+                responderId: newResponse.userId,
+              },
+            },
+        );
+      }
     },
 );
 

@@ -139,30 +139,79 @@ export default function SendItemScreen({
       setSelectedPeople([...selectedPeople, personId]);
     }
   };
-
+  
+  
   const handleSend = async () => {
     if (selectedPeople.length === 0) {
       Alert.alert('No Recipients', 'Please select at least one person');
       return;
     }
 
-    // TODO: When backend is ready, replace with actual API call
     console.log('=== SENDING ===');
     console.log('Type:', itemType);
     console.log('Item:', selectedItem);
     console.log('Recipients:', selectedPeople);
     console.log('===============');
 
-    Alert.alert(
-      'Success!',
-      `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${selectedPeople.length} ${selectedPeople.length === 1 ? 'person' : 'people'}!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
+    setIsSending(true);
+
+    try {
+      // Get user's active circle
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        throw new Error('Not logged in');
+      }
+
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      const activeCircleId = userSnap.data()?.activeCircleId;
+
+      if (!activeCircleId) {
+        throw new Error('No active circle set');
+      }
+
+      let result;
+
+      if (itemType === 'voucher') {
+        // Send voucher
+        result = await sendVoucher(
+          userId,
+          selectedPeople[0], // Vouchers go to one person
+          selectedItem.type,
+          activeCircleId
+        );
+      } else if (itemType === 'alert') {
+        // Send emergency alert
+        result = await createEmergency(
+          userId,
+          activeCircleId,
+          selectedItem.type,
+          selectedPeople,
+          '' // optional message
+        );
+      }
+
+      if (result.success) {
+        Alert.alert(
+          'Success!',
+          `${itemType === 'voucher' ? 'Voucher' : 'Alert'} sent to ${selectedPeople.length} ${selectedPeople.length === 1 ? 'person' : 'people'}!`,
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack()
+            }
+          ]
+        );
+      } else {
+        throw new Error(result.error || 'Failed to send');
+      }
+
+    } catch (error) {
+      console.error('Error sending:', error);
+      Alert.alert('Error', error.message || 'Failed to send. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Render person's avatar
