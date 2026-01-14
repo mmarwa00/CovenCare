@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 export default function Header() {
   const [menuVisible, setMenuVisible] = useState(false);
   const navigation = useNavigation();
-  const { colors } = useTheme();
+  const { colors, isDarkMode, toggleTheme } = useTheme();
 
   return (
     <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
@@ -35,6 +35,7 @@ export default function Header() {
           />
         }
       >
+
         <Menu.Item
           onPress={() => {
             setMenuVisible(false);
@@ -49,6 +50,14 @@ export default function Header() {
             navigation.navigate('ProfileScreen');
           }}
           title="Profile"
+        />
+
+        <Menu.Item
+          onPress={() => {
+            toggleTheme();
+            setMenuVisible(false);
+          }}
+          title={isDarkMode ? "☀️ Light Mode" : "🦇 Vampire Mode"}
         />
       </Menu>
     </View>

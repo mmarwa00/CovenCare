@@ -158,8 +158,18 @@ export default function ProfileScreen({ navigation }) {
               value={profileEmail} 
               mode="outlined" 
               style={styles.input} 
-              disabled 
-              textColor={colors.text}
+              editable={false} 
+              textColor={isDarkMode ? '#ffffff' : '#222222'}
+              theme={{
+                colors: {
+                  text: isDarkMode ? '#ffffff' : '#222222',
+                  placeholder: isDarkMode ? '#ffffff' : '#666666',
+                  primary: isDarkMode ? '#ffffff' : colors.accent,
+                  onSurface: isDarkMode ? '#ffffff' : '#222222',
+                  onSurfaceVariant: isDarkMode ? '#ffffff' : '#666666',
+                  outline: isDarkMode ? '#ffffff' : '#999999',
+                }
+              }}            
             />
 
             <TextInput
@@ -168,9 +178,19 @@ export default function ProfileScreen({ navigation }) {
               onChangeText={setDisplayName}
               mode="outlined"
               style={styles.input}
-              disabled={!isEditing || loading}
-              textColor={colors.text}
+              editable={isEditing && !loading} 
+              textColor={isDarkMode ? '#ffffff' : '#222222'}
               error={displayName.length > 0 && displayName.length < 3}
+              theme={{
+                colors: {
+                  text: isDarkMode ? '#ffffff' : '#222222',
+                  placeholder: isDarkMode ? '#ffffff' : '#666666',
+                  primary: isDarkMode ? '#ffffff' : colors.accent,
+                  onSurface: isDarkMode ? '#ffffff' : '#222222',
+                  onSurfaceVariant: isDarkMode ? '#ffffff' : '#666666',
+                  outline: isDarkMode ? '#ffffff' : '#999999',
+                }
+              }}
             />
 
             {isEditing ? (

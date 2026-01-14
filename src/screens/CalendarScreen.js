@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { 
-  Title, 
-  Button, 
-  Card, 
-  TextInput, 
-  HelperText, 
-  ActivityIndicator, 
-  Paragraph,
-  Portal,
-  Modal,
-  Provider as PaperProvider 
-} from 'react-native-paper';
+import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph, Portal, Modal, Provider as PaperProvider } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { logPreviousPeriods, getUserPeriods, predictNextPeriod } from '../services/periodService';
 import Header from '../components/Header';
@@ -41,27 +30,34 @@ const toDateString = (date) => {
 export default function CalendarScreen({ navigation }) {
   const { colors, isDarkMode } = useTheme();
   const DM_TEXT = '#e3d2f0ff';
-
   const styles = createStyles(colors, isDarkMode, DM_TEXT);
 
   const { user } = useAuth();
   const userId = user?.uid;
-  const [memberInfo, setMemberInfo] = useState({});
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [periods, setPeriods] = useState([]);
-  const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Period data
+  const [periods, setPeriods] = useState([]);
+  const [circlePeriods, setCirclePeriods] = useState([]);
+  const [prediction, setPrediction] = useState(null);
+
+  // Circle sharing
+  const [memberInfo, setMemberInfo] = useState({});
+  const [memberColorMap, setMemberColorMap] = useState({});
+  const [showCirclePeriods, setShowCirclePeriods] = useState(false);
+  
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showCirclePeriods, setShowCirclePeriods] = useState(false);
-  const [circlePeriods, setCirclePeriods] = useState([]);
-  const [memberColorMap, setMemberColorMap] = useState({});
-
+  
   const [symptomModalVisible, setSymptomModalVisible] = useState(false);
   const [selectedLogDate, setSelectedLogDate] = useState(null);
   const [tempSymptoms, setTempSymptoms] = useState({ cramps: null, mood: null });
 
+
+  // Load user periods and prediction
   const fetchData = async () => {
     if (!userId) return;
     setLoading(true);
@@ -84,6 +80,7 @@ export default function CalendarScreen({ navigation }) {
     setLoading(false);
   };
 
+  // Load all data on screen open
   useEffect(() => {
     fetchData();
     fetchCirclePeriods();
@@ -95,16 +92,16 @@ export default function CalendarScreen({ navigation }) {
     const clicked = new Date(dateStr);
     const existing = findPeriodByDay(dateStr);
 
-    // ❗️ ONLY react to other users' periods if shared mode is ON
+    // Check circle periods first
     if (showCirclePeriods) {
       const c = new Date(dateStr);
-
       
       const allSharedPeriods = [
         ...circlePeriods,
         ...periods.map(p => ({ ...p, userId }))
       ];
 
+      // Find periods that include the clicked day
       const hits = allSharedPeriods.filter(p => {
         const s = p.startDate.toDate();
         const e = p.endDate.toDate();
@@ -123,6 +120,7 @@ export default function CalendarScreen({ navigation }) {
 
         Alert.alert(
           "Shared Calendar",
+          // Show which members have periods on this day
           hits.length === 1
             ? `${names} has period these days 💜`
             : `These members have period now: ${names} 💜`
@@ -131,7 +129,7 @@ export default function CalendarScreen({ navigation }) {
       }
     }
 
-
+    // Own period day clicked
     if (existing) {
       Alert.alert(
         "Period Day",
@@ -202,25 +200,22 @@ export default function CalendarScreen({ navigation }) {
   const getPeriodMarkedDates = () => {
     const marks = {};
 
+    // Mark user's own periods
     periods.forEach(p => {
       const start = p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate);
       const end = p.endDate.toDate ? p.endDate.toDate() : new Date(p.endDate);
 
       let current = new Date(start);
 
+      // Mark each day in the period
       while (current <= end) {
         const key = toDateString(current);
 
         marks[key] = {
           customStyles: {
             container: {
-              backgroundColor: '#c162d8ff',
-              borderRadius: 20,
-            },
-            text: {
-              color: DM_TEXT,
-              fontWeight: 'bold',
-            }
+              backgroundColor: '#c162d8ff', borderRadius: 20 },
+            text: { color: DM_TEXT, fontWeight: 'bold' }
           }
         };
         current.setDate(current.getDate() + 1);
@@ -236,35 +231,23 @@ export default function CalendarScreen({ navigation }) {
 
     marks[startDate] = {
       customStyles: {
-        container: {
-          backgroundColor: '#3b1a2b', // deep burgundy
-          borderRadius: 20,
-        },
-        text: {
-          color: '#ffffff',
-          fontWeight: 'bold',
-        }
+        container: { backgroundColor: '#3b1a2b', borderRadius: 20 },
+        text: { color: '#ffffff', fontWeight: 'bold' }
       }
     };
 
     if (endDate) {
       marks[endDate] = {
         customStyles: {
-          container: {
-            backgroundColor: '#3b1a2b',
-            borderRadius: 20,
-          },
-          text: {
-            color: '#ffffff',
-            fontWeight: 'bold',
-          }
+          container: { backgroundColor: '#3b1a2b', borderRadius: 20 },
+          text: { color: '#ffffff', fontWeight: 'bold' }
         }
       };
     }
-
     return marks;
   };
 
+  // Load circle members periods
   const fetchCirclePeriods = async () => {
     try {
       if (!userId) return;
@@ -314,10 +297,11 @@ export default function CalendarScreen({ navigation }) {
       const newColorMap = { ...memberColorMap }; // keep existing colors
       let colorIndex = 0;
 
+      // Assign colors to members
       members.forEach(member => {
         if (member.userId === userId) return;
 
-        // already has color → keep it
+        // already has color -> keep it
         if (newColorMap[member.userId]) return;
 
         // assign new color
@@ -330,10 +314,12 @@ export default function CalendarScreen({ navigation }) {
       // Collect periods of all members
       let result = [];
 
+      // Iterate members to get their periods
       for (let member of members) {
         // Skip the current user
         if (member.userId === userId) continue;
 
+        // Fetch this member's periods to display in the shared calendar view
         const periodsQuery = query(
           collection(db, "periods"),
           where("userId", "==", member.userId)
@@ -341,6 +327,7 @@ export default function CalendarScreen({ navigation }) {
 
         const periodsSnap = await getDocs(periodsQuery);
 
+        // Add each period to the result list
         periodsSnap.forEach(docSnap => {
           result.push({
             id: docSnap.id,
@@ -389,10 +376,7 @@ export default function CalendarScreen({ navigation }) {
                     : memberColorMap[p.userId] || "#888",
                 borderRadius: 20,
               },
-              text: {
-                color: "white",
-                fontWeight: "bold"
-              }
+              text: { color: "white", fontWeight: "bold" }
             }
           };
 
@@ -405,19 +389,12 @@ export default function CalendarScreen({ navigation }) {
         if (dayUsers[day].size > 1) {
           marks[day] = {
             customStyles: {
-              container: {
-                backgroundColor: "#ffdc15ff",
-                borderRadius: 20,
-              },
-              text: {
-                color: "black",
-                fontWeight: "bold"
-              }
+              container: { backgroundColor: "#ffdc15ff", borderRadius: 20 },
+              text: { color: "black", fontWeight: "bold" }
             }
           };
         }
       });
-
       return marks;
     };
 
@@ -436,7 +413,7 @@ export default function CalendarScreen({ navigation }) {
         marks[key] = {
           customStyles: {
             container: { backgroundColor: 'transparent' },
-            text: { color: '#7a6a8f' } // dim lilac
+            text: { color: '#7a6a8f' }
           }
         };
       }
@@ -446,19 +423,13 @@ export default function CalendarScreen({ navigation }) {
 
   const getAllMarkedDates = () => {
     let baseMarks = {
-      ...getPeriodMarkedDates(),      // ← My periods
-      ...getCircleMarkedDates(),      // ← other users's
+      ...getPeriodMarkedDates(),   // My periods
+      ...getCircleMarkedDates(),   // other users's
       ...getSelectedRangeMarks(),
       [todayString]: {
         customStyles: {
-          container: {
-            backgroundColor: '#7b1fa2',
-            borderRadius: 20,
-          },
-          text: {
-            color: '#ffffff',
-            fontWeight: 'bold',
-          },
+          container: { backgroundColor: '#7b1fa2', borderRadius: 20 },
+          text: { color: '#ffffff', fontWeight: 'bold' },
         },
       },
     };
@@ -467,7 +438,7 @@ export default function CalendarScreen({ navigation }) {
     return baseMarks;
   };
 
-
+  // Log the selected period
   const handleLogPeriod = async () => {
     setLoading(true);
     setError('');
@@ -486,9 +457,11 @@ export default function CalendarScreen({ navigation }) {
     setLoading(false);
   };
 
+  // Find if a date falls within any logged period
   const findPeriodByDay = (dateStr) => {
     const clicked = new Date(dateStr);
 
+    // Check user's own periods first 
     return periods.find(p => {
       const start = p.startDate.toDate ? p.startDate.toDate() : new Date(p.startDate);
       const end = p.endDate.toDate ? p.endDate.toDate() : new Date(p.endDate);

@@ -12,10 +12,11 @@ import { Image, TouchableOpacity } from 'react-native';
 import { useRef } from 'react';
 
 export default function EventsScreen({ navigation }) {
+  // Current logged user
   const { user } = useAuth();
   const userId = user?.uid;
-  const { colors, isDarkMode } = useTheme();
 
+  const { colors, isDarkMode } = useTheme();
   const DM_TEXT = '#e3d2f0ff';
   const BURGUNDY = '#4a001f';
   const PURPLE = '#4a148c';
@@ -25,7 +26,7 @@ export default function EventsScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeCircleId, setActiveCircleId] = useState(null);
-  const [userCircles, setUserCircles] = useState([]); // ✅ Store all user's circles
+  const [userCircles, setUserCircles] = useState([]); //  Store all user's circles
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [eventName, setEventName] = useState('');
@@ -37,7 +38,7 @@ export default function EventsScreen({ navigation }) {
   const [orbPositions, setOrbPositions] = useState([]);
   const [highlightedEventId, setHighlightedEventId] = useState(null);
 
-  // ✅ Fetch active circle AND all user circles
+  // Fetch active circle AND all user circles
   const fetchActiveCircle = useCallback(async () => {
     if (!userId) return;
     const userRef = doc(db, 'users', userId);
@@ -53,7 +54,7 @@ export default function EventsScreen({ navigation }) {
     }
   }, [userId]);
 
-  // ✅ Fetch events from ALL user's circles
+  // Fetch events from ALL user's circles
   const fetchEvents = useCallback(async () => {
     if (!userCircles || userCircles.length === 0) return;
     
@@ -91,7 +92,9 @@ export default function EventsScreen({ navigation }) {
     setLoading(false);
   }, [userCircles]);
 
+  // load active circle
   useFocusEffect(useCallback(() => { fetchActiveCircle(); }, [fetchActiveCircle]));
+  // load events
   useFocusEffect(useCallback(() => { 
     if (userCircles.length > 0) fetchEvents(); 
   }, [fetchEvents, userCircles]));
@@ -107,6 +110,7 @@ export default function EventsScreen({ navigation }) {
       return;
     }
 
+    // Send event to Firebase
     setLoading(true);
     const result = await createCircleEvent(userId, activeCircleId, {
       name: eventName,
@@ -117,6 +121,8 @@ export default function EventsScreen({ navigation }) {
 
     if (result.success) {
       Alert.alert('Success', 'Event created in your active circle!');
+
+      // Reset form 
       setShowCreateForm(false);
       setEventName('');
       setEventDate('');
@@ -129,10 +135,12 @@ export default function EventsScreen({ navigation }) {
     setLoading(false);
   };
 
+  // Send user RSVP response (Going/Maybe/Can't Go)
   const handleRSVP = async (eventId, response) => {
     const result = await rsvpToEvent(eventId, userId, response);
     if (result.success) {
-      fetchEvents();
+      // refresh list
+      fetchEvents(); 
     } else {
       Alert.alert('Error', result.error);
     }
@@ -144,7 +152,7 @@ export default function EventsScreen({ navigation }) {
     return userRsvp?.response || RSVP_OPTIONS.NO_RESPONSE;
   };
 
-  // ✅ Helper to get circle name
+  // Helper to get circle name
   const getCircleName = async (circleId) => {
     try {
       const circleDoc = await getDoc(doc(db, 'circles', circleId));
@@ -154,6 +162,7 @@ export default function EventsScreen({ navigation }) {
     }
   };
 
+  // Calculate circular positions for event orbs around center point
   const getOrbPosition = (index, total) => {
     const baseRadius = 130;
 
@@ -169,6 +178,7 @@ export default function EventsScreen({ navigation }) {
 
   const styles = createStyles(colors, isDarkMode, DM_TEXT, BURGUNDY, PURPLE, DARK_BG, BORDER_WIDTH);
 
+  // If no active circle, prompt to select one
   if (!activeCircleId) {
     return (
       <Layout navigation={navigation} subtitle="Events">
@@ -198,7 +208,7 @@ export default function EventsScreen({ navigation }) {
 
         <Title style={styles.title}>All Your Circle Events</Title>
 
-        {/* CREATE EVENT BUTTON */}
+        {/* Orb graphic with event orbs */}
           <View
             style={{
               width: 360,
@@ -211,9 +221,15 @@ export default function EventsScreen({ navigation }) {
               marginTop: -10,
             }}
           >
+          
+          {/* Portal button to open create event form */}
           <TouchableOpacity onPress={() => setShowCreateForm(p => !p)}>
             <Image
-              source={require('../../assets/Event/Magic_portal.png')}
+              source={
+                isDarkMode
+                  ? require('../../assets/Event/Magic_portal_dark.gif')
+                  : require('../../assets/Event/Magic_portal.gif')
+              }
               style={{ width: 340, height: 340, resizeMode: 'contain', transform: [{ translateX: -5 }] }}
             />
           </TouchableOpacity>
@@ -228,6 +244,7 @@ export default function EventsScreen({ navigation }) {
                 onPress={() => {
                   const yPos = 420 + index * 200;
 
+                  // Scroll to event card
                   scrollRef.current?.scrollTo({
                     y: yPos,
                     animated: true,
@@ -331,7 +348,7 @@ export default function EventsScreen({ navigation }) {
               >
 
                 <Card.Content>
-                  {/* ✅ Show circle badge */}
+                  {/* Show circle badge */}
                   {isActiveCircle && (
                     <View style={[styles.circleBadge, { backgroundColor: isDarkMode ? BURGUNDY : PURPLE }]}>
                       <Text style={styles.circleBadgeText}>Active Circle</Text>
