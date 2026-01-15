@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph, Portal, Modal, Provider as PaperProvider } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { logPreviousPeriods, getUserPeriods, predictNextPeriod } from '../services/periodService';
@@ -7,7 +8,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Calendar } from 'react-native-calendars';
 import { db } from '../config/firebaseConfig';
-import { useTheme } from '../context/ThemeContext';
 import { logDailySymptoms } from '../services/periodService';
 import { deleteDoc, doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
@@ -544,9 +544,9 @@ export default function CalendarScreen({ navigation }) {
         )}
 
         {/* Log Period */}
-              <Card style={styles.card}>
-                  <Card.Content>
-                      <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
               Log New Period
             </Title>
 
@@ -649,6 +649,7 @@ export default function CalendarScreen({ navigation }) {
             </Button>
           </Card.Content>
         </Card>
+
         {/* Prediction Card */}
         <Card style={styles.card}>
           <Card.Content>
@@ -658,6 +659,7 @@ export default function CalendarScreen({ navigation }) {
             {renderPrediction()}
           </Card.Content>
         </Card>
+
         {/* History */}
         <Card style={styles.card}>
           <Card.Content>
@@ -685,35 +687,42 @@ export default function CalendarScreen({ navigation }) {
         </Card>
       </ScrollView>
 
-
       {/* --- SYMPTOM SELECTION MODAL --- */}
       <Portal>
-        <Modal 
-          visible={symptomModalVisible} 
+        <Modal
+          visible={symptomModalVisible}
           onDismiss={() => setSymptomModalVisible(false)}
-          contentContainerStyle={{
-            backgroundColor: isDarkMode ? '#1a1a24' : '#f8f8ff', 
-            padding: 20, margin: 20, borderRadius: 25, borderWidth: 3, borderColor: '#4a148c'
-          }}
+          contentContainerStyle={styles.modalContainer}
         >
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Title style={{ color: '#4a148c', textAlign: 'center', fontWeight: 'bold' }}>Daily Log</Title>
-            <Paragraph style={{ textAlign: 'center', marginBottom: 15 }}>{formatDate(selectedLogDate)}</Paragraph>
+            <Title style={styles.modalTitle}>Daily Log</Title>
+            <Paragraph style={styles.modalParagraph}>
+              {formatDate(selectedLogDate)}
+            </Paragraph>
 
             {/* --- CRAMPS SECTION --- */}
             <Text style={styles.modalSectionTitle}>Physical Symptoms</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
               {['none', 'mild', 'moderate', 'severe'].map((level) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={level}
                   onPress={() => setTempSymptoms({ ...tempSymptoms, cramps: level })}
                   style={{
-                    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 15, borderWidth: 1, 
-                    borderColor: '#4a148c', margin: 4,
-                    backgroundColor: tempSymptoms.cramps === level ? '#4a148c' : 'white'
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 15,
+                    borderWidth: 2,
+                    margin: 4,
+                    borderColor: tempSymptoms.cramps === level ? colors.accent : colors.border,
+                    backgroundColor: tempSymptoms.cramps === level ? colors.buttonBg : colors.cardBackground
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: tempSymptoms.cramps === level ? 'white' : '#4a148c', textTransform: 'uppercase' }}>
+                  <Text style={{
+                    fontSize: 12,
+                    color: tempSymptoms.cramps === level ? colors.buttonText : colors.text,
+                    textTransform: 'uppercase',
+                    fontWeight: tempSymptoms.cramps === level ? 'bold' : 'normal'
+                  }}>
                     {level}
                   </Text>
                 </TouchableOpacity>
@@ -721,19 +730,27 @@ export default function CalendarScreen({ navigation }) {
             </View>
 
             {/* --- MOOD SECTION --- */}
-            <Text style={styles.modalSectionTitle}>How are you feeling?</Text>
+            <Text style={styles.modalSectionTitle}>
+              How are you feeling?
+            </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
               {[
-                { l: '😊', v: 'happy' }, { l: '😐', v: 'okay' }, { l: '😠', v: 'grumpy' }, 
-                { l: '😢', v: 'sad' }, { l: '😰', v: 'anxious' }
+                { l: '😊', v: 'happy' },
+                { l: '😐', v: 'okay' },
+                { l: '😠', v: 'grumpy' },
+                { l: '😢', v: 'sad' },
+                { l: '😰', v: 'anxious' }
               ].map((item) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={item.v}
                   onPress={() => setTempSymptoms({ ...tempSymptoms, mood: item.v })}
                   style={{
-                    padding: 10, borderRadius: 15, margin: 5, backgroundColor: 'white', 
-                    borderWidth: 2, borderColor: tempSymptoms.mood === item.v ? '#4a148c' : '#ccc',
-                    backgroundColor: tempSymptoms.mood === item.v ? '#d4a5ff' : 'white'
+                    padding: 10,
+                    borderRadius: 15,
+                    margin: 5,
+                    borderWidth: 2,
+                    borderColor: tempSymptoms.mood === item.v ? colors.accent : colors.border,
+                    backgroundColor: tempSymptoms.mood === item.v ? colors.buttonBg : colors.cardBackground
                   }}
                 >
                   <Text style={{ fontSize: 24 }}>{item.l}</Text>
@@ -742,19 +759,26 @@ export default function CalendarScreen({ navigation }) {
             </View>
 
             {/* --- ACTION BUTTONS --- */}
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={saveAllSymptoms}
-              style={{ marginTop: 20, backgroundColor: '#4a148c', borderRadius: 50 }}
-              labelStyle={{ fontWeight: 'bold', color: 'white' }}
+              style={{
+                marginTop: 20,
+                backgroundColor: colors.buttonBg,
+                borderRadius: 50
+              }}
+              labelStyle={{
+                fontWeight: 'bold',
+                color: colors.buttonText
+              }}
               disabled={!tempSymptoms.cramps && !tempSymptoms.mood}
             >
               Save All Logs
             </Button>
-            
-            <Button 
-              onPress={() => setSymptomModalVisible(false)} 
-              textColor="red" 
+
+            <Button
+              onPress={() => setSymptomModalVisible(false)}
+              textColor={isDarkMode ? colors.textSecondary : 'red'}
               style={{ marginTop: 5 }}
             >
               Cancel
@@ -874,7 +898,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       backgroundColor: isDarkMode ? colors.cardBackground : '#d4a5ff',
       borderRadius: 8,
       borderLeftWidth: 4,
-      borderLeftColor: isDarkMode ? colors.primary : '#4a148c',
+      borderLeftColor: isDarkMode ? colors.accent : '#4a148c',
     },
 
     predictionText: {
@@ -887,7 +911,7 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       color: isDarkMode ? DM_TEXT : '#4a148c',
     },
 
-     legendContainer: {
+    legendContainer: {
       marginHorizontal: 20,
       marginBottom: 10,
     },
@@ -925,13 +949,33 @@ const createStyles = (colors, isDarkMode, DM_TEXT) =>
       marginBottom: 10,
     },
 
-    modalSectionTitle: { 
-    fontWeight: 'bold', 
-    color: '#4a148c', 
-    marginTop: 15, 
-    marginBottom: 10, 
-    fontSize: 16, 
-    textAlign: 'center' 
-  },
+    // Modal styles - ALL THEME-AWARE NOW
+    modalContainer: {
+      backgroundColor: isDarkMode ? colors.background : '#fff',
+      padding: 20,
+      margin: 20,
+      borderRadius: 15,
+      maxHeight: '80%',
+    },
 
-  });
+    modalTitle: {
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      textAlign: 'center',
+      fontWeight: 'bold',
+    },
+
+    modalParagraph: {
+      textAlign: 'center',
+      marginBottom: 15,
+      color: isDarkMode ? DM_TEXT : '#666',
+    },
+
+    modalSectionTitle: { 
+      fontWeight: 'bold', 
+      color: isDarkMode ? DM_TEXT : '#4a148c',
+      marginTop: 15, 
+      marginBottom: 10, 
+      fontSize: 16, 
+      textAlign: 'center' 
+    },
+  })
