@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { Title, Button, Card, TextInput, HelperText, ActivityIndicator, Paragraph, Portal, Modal, Provider as PaperProvider } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
@@ -506,6 +507,7 @@ export default function CalendarScreen({ navigation }) {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
@@ -789,6 +791,7 @@ export default function CalendarScreen({ navigation }) {
 
       <Footer navigation={navigation} />
     </View>
+    </SafeAreaView>
   );
 }
 

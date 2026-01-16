@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Header from '../components/Header';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SilviaBirthdayScreen() {
   const navigation = useNavigation();
@@ -14,6 +15,7 @@ export default function SilviaBirthdayScreen() {
   ];
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={{ flex: 1, backgroundColor: '#e3d2f0ff' }}>
       <Header />
 
@@ -34,6 +36,7 @@ export default function SilviaBirthdayScreen() {
         </View>
       </ScrollView>
     </View>
+    </SafeAreaView>
   );
 }
 

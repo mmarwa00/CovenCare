@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Clipboard, Alert } from 'react-native';
 import { Button, Title, Paragraph, TextInput, Card, HelperText, ActivityIndicator } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { createCircle, joinCircle, getUserCircles } from '../services/circleService';
 import Header from '../components/Header';
@@ -126,6 +127,7 @@ export default function CircleScreen({ navigation }) {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={{ flex: 1 }}>
       <Header />
 
@@ -412,6 +414,7 @@ export default function CircleScreen({ navigation }) {
 
       <Footer navigation={navigation} />
     </View>
+    </SafeAreaView>
   );
 }
 

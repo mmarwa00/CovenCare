@@ -5,6 +5,7 @@ import {
   TouchableWithoutFeedback, Keyboard, Alert 
 } from 'react-native';
 import { Button, TextInput, HelperText, ActivityIndicator, Avatar, Card, Title as PaperTitle } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext'; 
 import { getUserProfile, updateUserProfile } from '../services/userService';
@@ -105,6 +106,7 @@ export default function ProfileScreen({ navigation }) {
   // Loading & Error States... (Keep your existing if(!firestoreData) logic here)
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -230,6 +232,7 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Photo Picker Modal... (Keep your existing Modal code) */}
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

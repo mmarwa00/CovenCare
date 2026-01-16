@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Image, Text, Dimensions } from 'react-native';
 import { Title } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -134,6 +135,7 @@ export default function SentVouchersScreen({ navigation }) {
   );
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Your Sent Vouchers">
       <FlatList
         data={loading ? [] : sentItems}
@@ -162,6 +164,7 @@ export default function SentVouchersScreen({ navigation }) {
       />
 
     </Layout>
+    </SafeAreaView>
   );
 }
 

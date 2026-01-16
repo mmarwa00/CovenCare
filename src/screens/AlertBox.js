@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -201,92 +202,93 @@ export default function AlertBox({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Header navigation={navigation} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Header navigation={navigation} />
 
-      <View style={styles(colors, isDarkMode).tabContainer}>
-        <TouchableOpacity
-          style={[
-            styles(colors, isDarkMode).tab,
-            activeTab === 'received' && styles(colors, isDarkMode).activeTab
-          ]}
-          onPress={() => setActiveTab('received')}
-        >
-          <Text style={[
-            styles(colors, isDarkMode).tabText,
-            activeTab === 'received' && styles(colors, isDarkMode).activeTabText
-          ]}>
-            📥 Received ({receivedAlerts.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles(colors, isDarkMode).tab,
-            activeTab === 'sent' && styles(colors, isDarkMode).activeTab
-          ]}
-          onPress={() => setActiveTab('sent')}
-        >
-          <Text style={[
-            styles(colors, isDarkMode).tabText,
-            activeTab === 'sent' && styles(colors, isDarkMode).activeTabText
-          ]}>
-            📤 Sent ({sentEmergencies.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles(colors, isDarkMode).scrollContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {loading ? (
-          <ActivityIndicator animating={true} color={isDarkMode ? '#e3d2f0ff' : '#4a148c'} />
-        ) : activeTab === 'received' ? (
-          // RECEIVED ALERTS TAB
-          receivedAlerts.length === 0 ? (
-            <Text style={styles(colors, isDarkMode).emptyText}>
-              No active alerts.
+        <View style={styles(colors, isDarkMode).tabContainer}>
+          <TouchableOpacity
+            style={[
+              styles(colors, isDarkMode).tab,
+              activeTab === 'received' && styles(colors, isDarkMode).activeTab
+            ]}
+            onPress={() => setActiveTab('received')}
+          >
+            <Text style={[
+              styles(colors, isDarkMode).tabText,
+              activeTab === 'received' && styles(colors, isDarkMode).activeTabText
+            ]}>
+              📥 Received ({receivedAlerts.length})
             </Text>
-          ) : (
-            receivedAlerts.map(alert => {
-              const processing = !!processingMap[alert.id];
-              const answered = !!alert.answered;
-              const timeRemaining = getTimeRemainingText(alert.autoResolveAt);
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles(colors, isDarkMode).tab,
+              activeTab === 'sent' && styles(colors, isDarkMode).activeTab
+            ]}
+            onPress={() => setActiveTab('sent')}
+        >
+            <Text style={[
+              styles(colors, isDarkMode).tabText,
+              activeTab === 'sent' && styles(colors, isDarkMode).activeTabText
+            ]}>
+              📤 Sent ({sentEmergencies.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles(colors, isDarkMode).scrollContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {loading ? (
+            <ActivityIndicator animating={true} color={isDarkMode ? '#e3d2f0ff' : '#4a148c'} />
+          ) : activeTab === 'received' ? (
+            // RECEIVED ALERTS TAB
+            receivedAlerts.length === 0 ? (
+              <Text style={styles(colors, isDarkMode).emptyText}>
+                No active alerts.
+              </Text>
+            ) : (
+              receivedAlerts.map(alert => {
+                const processing = !!processingMap[alert.id];
+                const answered = !!alert.answered;
+                const timeRemaining = getTimeRemainingText(alert.autoResolveAt);
               
-              return (
-                <View key={alert.id} style={styles(colors, isDarkMode).alertCard}>
-                  <View style={styles(colors, isDarkMode).alertHeader}>
-                    <Text style={styles(colors, isDarkMode).alertType}>
-                      {getEmergencyTypeDisplay(alert.type)}
-                    </Text>
-                    {timeRemaining && (
-                      <Text style={styles(colors, isDarkMode).timeRemaining}>
-                        {timeRemaining}
+                return (
+                  <View key={alert.id} style={styles(colors, isDarkMode).alertCard}>
+                    <View style={styles(colors, isDarkMode).alertHeader}>
+                      <Text style={styles(colors, isDarkMode).alertType}>
+                        {getEmergencyTypeDisplay(alert.type)}
                       </Text>
-                    )}
-                  </View>
-
-                  <Text style={styles(colors, isDarkMode).alertDetail}>
-                    From: {alert.senderName} • {new Date(alert.createdAt).toLocaleString()}
-                  </Text>
-
-                  {alert.message ? (
-                    <Text style={styles(colors, isDarkMode).alertMessage}>"{alert.message}"</Text>
-                  ) : null}
-
-                  {Array.isArray(alert.responses) && alert.responses.length > 0 && (
-                    <View style={styles(colors, isDarkMode).responsesContainer}>
-                      {alert.responses.map((r, i) => (
-                        <Text key={i} style={styles(colors, isDarkMode).responseText}>
-                          <Text style={{ fontWeight: 'bold' }}>{r.userName}: </Text>
-                          {r.message}
+                      {timeRemaining && (
+                        <Text style={styles(colors, isDarkMode).timeRemaining}>
+                          {timeRemaining}
                         </Text>
-                      ))}
+                      )}
                     </View>
-                  )}
+
+                    <Text style={styles(colors, isDarkMode).alertDetail}>
+                      From: {alert.senderName} • {new Date(alert.createdAt).toLocaleString()}
+                    </Text>
+
+                    {alert.message ? (
+                      <Text style={styles(colors, isDarkMode).alertMessage}>"{alert.message}"</Text>
+                    ) : null}
+
+                    {Array.isArray(alert.responses) && alert.responses.length > 0 && (
+                      <View style={styles(colors, isDarkMode).responsesContainer}>
+                        {alert.responses.map((r, i) => (
+                          <Text key={i} style={styles(colors, isDarkMode).responseText}>
+                            <Text style={{ fontWeight: 'bold' }}>{r.userName}: </Text>
+                            {r.message}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
 
                   <View style={styles(colors, isDarkMode).buttonContainer}>
                     {PREDEFINED_RESPONSES.map((resp, idx) => {
@@ -359,76 +361,77 @@ export default function AlertBox({ navigation }) {
                     </Text>
                   )}
 
-                  <View style={styles(colors, isDarkMode).responseSummary}>
-                    <Text style={styles(colors, isDarkMode).responseCount}>
-                      📩 {responses.length} {responses.length === 1 ? 'Response' : 'Responses'}
-                    </Text>
-                    <Text style={styles(colors, isDarkMode).expandText}>
-                      {isExpanded ? '▲ Collapse' : '▼ View Details'}
-                    </Text>
-                  </View>
-
-                  {isExpanded && (
-                    <View style={styles(colors, isDarkMode).expandedContent}>
-                      <View style={styles(colors, isDarkMode).divider} />
-
-                      {responses.length === 0 ? (
-                        <Text style={styles(colors, isDarkMode).noResponses}>
-                          No responses yet. Waiting for help...
-                        </Text>
-                      ) : (
-                        <>
-                          <Text style={styles(colors, isDarkMode).responsesTitle}>
-                            Responses:
-                          </Text>
-                          {responses.map((response, idx) => (
-                            <View key={idx} style={styles(colors, isDarkMode).responseItem}>
-                              <Text style={styles(colors, isDarkMode).responderName}>
-                                {response.userName}
-                              </Text>
-                              <Text style={styles(colors, isDarkMode).responseMessage}>
-                                {response.message}
-                              </Text>
-                              <Text style={styles(colors, isDarkMode).responseTime}>
-                                {(() => {
-                                  try {
-                                    if (response.timestamp?.toDate) {
-                                      return response.timestamp.toDate().toLocaleString();
-                                    } else if (response.timestamp) {
-                                      return new Date(response.timestamp).toLocaleString();
-                                    }
-                                    return 'Unknown time';
-                                  } catch (e) {
-                                    return 'Unknown time';
-                                  }
-                                })()}
-                              </Text>
-                            </View>
-                          ))}
-                        </>
-                      )}
-
-                      {emergency.status === 'active' && (
-                        <Button
-                          mode="contained"
-                          onPress={() => handleResolve(emergency.id)}
-                          style={styles(colors, isDarkMode).resolveButton}
-                          labelStyle={styles(colors, isDarkMode).resolveButtonLabel}
-                        >
-                          ✅ Mark as Resolved
-                        </Button>
-                      )}
+                    <View style={styles(colors, isDarkMode).responseSummary}>
+                      <Text style={styles(colors, isDarkMode).responseCount}>
+                        📩 {responses.length} {responses.length === 1 ? 'Response' : 'Responses'}
+                      </Text>
+                      <Text style={styles(colors, isDarkMode).expandText}>
+                        {isExpanded ? '▲ Collapse' : '▼ View Details'}
+                      </Text>
                     </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })
-          )
-        )}
-      </ScrollView>
 
-      <Footer navigation={navigation} />
-    </View>
+                    {isExpanded && (
+                      <View style={styles(colors, isDarkMode).expandedContent}>
+                        <View style={styles(colors, isDarkMode).divider} />
+
+                        {responses.length === 0 ? (
+                          <Text style={styles(colors, isDarkMode).noResponses}>
+                            No responses yet. Waiting for help...
+                          </Text>
+                        ) : (
+                          <>
+                            <Text style={styles(colors, isDarkMode).responsesTitle}>
+                              Responses:
+                            </Text>
+                            {responses.map((response, idx) => (
+                              <View key={idx} style={styles(colors, isDarkMode).responseItem}>
+                                <Text style={styles(colors, isDarkMode).responderName}>
+                                  {response.userName}
+                                </Text>
+                                <Text style={styles(colors, isDarkMode).responseMessage}>
+                                  {response.message}
+                                </Text>
+                                <Text style={styles(colors, isDarkMode).responseTime}>
+                                  {(() => {
+                                    try {
+                                      if (response.timestamp?.toDate) {
+                                        return response.timestamp.toDate().toLocaleString();
+                                      } else if (response.timestamp) {
+                                        return new Date(response.timestamp).toLocaleString();
+                                      }
+                                      return 'Unknown time';
+                                    } catch (e) {
+                                      return 'Unknown time';
+                                    }
+                                  })()}
+                                </Text>
+                              </View>
+                            ))}
+                          </>
+                        )}
+
+                        {emergency.status === 'active' && (
+                          <Button
+                            mode="contained"
+                            onPress={() => handleResolve(emergency.id)}
+                            style={styles(colors, isDarkMode).resolveButton}
+                            labelStyle={styles(colors, isDarkMode).resolveButtonLabel}
+                          >
+                            ✅ Mark as Resolved
+                          </Button>
+                        )}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })
+            )
+          )}
+        </ScrollView>
+
+        <Footer navigation={navigation} />
+      </View>
+    </SafeAreaView>
   );
 }
 

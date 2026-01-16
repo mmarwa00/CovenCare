@@ -12,6 +12,8 @@ import {
 import Layout from '../components/Layout';
 import { useTheme } from '../context/ThemeContext';
 import { Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = SCREEN_WIDTH * 0.75;
@@ -149,6 +151,7 @@ export default function SpellsScreen({ navigation }) {
   const currentSpell = SPELLS[currentIndex];
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Healing Spells">
       <Button
         mode="text"
@@ -312,6 +315,7 @@ export default function SpellsScreen({ navigation }) {
         </View>
       </View>
     </Layout>
+    </SafeAreaView>
   );
 }
 

@@ -8,7 +8,8 @@ import {
   Text,
   Dimensions
 } from 'react-native';
-import { Title, Button } from 'react-native-paper';   // ✅ FIXED IMPORT
+import { Title, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
@@ -130,6 +131,7 @@ export default function CareBoxScreen({ navigation }) {
   );
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Your Care Box">
       <View style={styles.scrollContainer}>
 
@@ -167,6 +169,7 @@ export default function CareBoxScreen({ navigation }) {
         )}
       </View>
     </Layout>
+    </SafeAreaView>
   );
 }
 

@@ -14,7 +14,7 @@ import {
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
 import { useAuth } from '../context/AuthContext';
 import { registerForPushNotifications } from '../services/notificationService';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('testuser@example.com');
   const [password, setPassword] = useState('password123');
@@ -52,6 +52,7 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
@@ -113,6 +114,7 @@ export default function LoginScreen({ navigation }) {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

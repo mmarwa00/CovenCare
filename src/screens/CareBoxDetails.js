@@ -9,7 +9,7 @@ import {
   Dimensions,
   Alert
 } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { redeemVoucher } from '../services/voucherService';
@@ -104,6 +104,7 @@ export default function CareBoxDetails({ route, navigation }) {
   );
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Voucher Details">
       <FlatList
         style={styles.flatList}
@@ -145,6 +146,7 @@ export default function CareBoxDetails({ route, navigation }) {
         }}
       />
     </Layout>
+    </SafeAreaView>
   );
 }
 

@@ -1,8 +1,11 @@
 import React from 'react';
 import { ScrollView, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 export default function PrivacyPolicyScreen() {
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Privacy Policy</Text>
 
@@ -29,6 +32,7 @@ export default function PrivacyPolicyScreen() {
         By using this app, you agree to this simplified privacy policy.
       </Text>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from 'react-native-paper';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -25,6 +26,7 @@ export default function VendingMachineMenu({ navigation }) {
   ];
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={styles.screen}>
       <Header />
 
@@ -72,6 +74,7 @@ export default function VendingMachineMenu({ navigation }) {
 
       <Footer navigation={navigation} />
     </View>
+    </SafeAreaView>
   );
 }
 

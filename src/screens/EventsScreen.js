@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Button, Card, TextInput, Title } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { createCircleEvent, getCircleEvents, rsvpToEvent, RSVP_OPTIONS } from '../services/eventsService';
@@ -190,6 +191,7 @@ export default function EventsScreen({ navigation }) {
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Circle Events">
 
       <ScrollView
@@ -388,6 +390,7 @@ export default function EventsScreen({ navigation }) {
         )}
       </ScrollView>
     </Layout>
+    </SafeAreaView>
   );
 }
 

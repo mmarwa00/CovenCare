@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { registerUser } from '../services/authService';
 import { registerForPushNotifications } from '../services/notificationService';
 import Header from '../components/Header';
@@ -53,6 +54,7 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={styles.container}>
       <Text style={styles.title}>Join the Coven 🌙</Text>
       <Text style={styles.subtitle}>Create your new magical profile.</Text>
@@ -115,6 +117,7 @@ export default function RegisterScreen({ navigation }) {
         <Text style={styles.link}>Already a member? Log in</Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 }
 

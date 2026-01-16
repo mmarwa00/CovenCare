@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Button, HelperText, ActivityIndicator } from 'react-native-paper'; 
+import { Button, HelperText, ActivityIndicator } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { resetPassword } from '../services/authService';
 
 export default function ResetPasswordScreen({ navigation }) {
@@ -42,6 +43,7 @@ export default function ResetPasswordScreen({ navigation }) {
   };
   
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={styles.container}>
       <Text style={styles.title}>Reset Password 🔑</Text>
       <Text style={styles.subtitle}>Enter the email linked to your Coven account.</Text>
@@ -85,6 +87,7 @@ export default function ResetPasswordScreen({ navigation }) {
         <Text style={styles.link}>← Back to Login</Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 }
 

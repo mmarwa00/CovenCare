@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -282,6 +283,7 @@ useEffect(() => {
   // RENDER
   // -------------------------------
   return (
+  <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header navigation={navigation} />
 
@@ -357,7 +359,6 @@ useEffect(() => {
         </View>
 
         {/* EMERGENCY ALERTS */}
-
         <TouchableOpacity
           style={styles.dashboardBox}
           onPress={() => navigation.navigate('AlertBox')}
@@ -367,7 +368,7 @@ useEffect(() => {
             <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
             <Text style={styles.boxTitle}>Emergency Alerts: {loadingAlerts ? '...' : alerts.length}</Text>
           </View>
-          </TouchableOpacity>
+        </TouchableOpacity>
 
         {/* SENT VOUCHERS */}
         <TouchableOpacity
@@ -397,6 +398,7 @@ useEffect(() => {
 
       <Footer navigation={navigation} />
     </View>
+  </SafeAreaView>
   );
 }
 

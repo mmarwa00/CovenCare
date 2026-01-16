@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Title, Paragraph, ActivityIndicator, Button } from 'react-native-paper';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
@@ -121,6 +122,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
     };
 
     return (
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
         <View style={{ flex: 1, backgroundColor: isDarkMode ? colors.background : '#fff' }}>
             <Header />
 
@@ -233,6 +235,7 @@ export default function CircleDetailsScreen({ route, navigation }) {
 
             <Footer navigation={navigation} />
         </View>
+        </SafeAreaView>
     );
 }
 

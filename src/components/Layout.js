@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, SafeAreaView } from 'react-native';
 import Header from './Header';
 import Footer from './Footer';
 import { useTheme } from '../context/ThemeContext';
@@ -8,21 +8,26 @@ export default function Layout({ children, subtitle, navigation, hideFooter }) {
     const { colors } = useTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Header subtitle={subtitle} />
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.cardBackground }]}>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <Header subtitle={subtitle} />
 
-            <View style={[styles.content, { backgroundColor: colors.background }]}>
-                {children}
+                <View style={[styles.content, { backgroundColor: colors.background }]}>
+                    {children}
+                </View>
+
+                {!hideFooter && (
+                    <Footer navigation={navigation} />
+                )}
             </View>
-
-            {!hideFooter && (
-                <Footer navigation={navigation} />
-            )}
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+    },
     container: {
         flex: 1,
     },
@@ -31,4 +36,3 @@ const styles = StyleSheet.create({
         paddingBottom: 80, // space for footer
     },
 });
-

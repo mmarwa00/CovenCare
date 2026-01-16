@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SilviaConfettiScreen({ navigation, route }) {
   useEffect(() => {
@@ -14,6 +15,7 @@ export default function SilviaConfettiScreen({ navigation, route }) {
 
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={styles.container}>
       <ConfettiCannon
         count={200}
@@ -24,6 +26,7 @@ export default function SilviaConfettiScreen({ navigation, route }) {
       />
       <Text style={styles.text}>THANK YOU!</Text>
     </View>
+    </SafeAreaView>
   );
 }
 

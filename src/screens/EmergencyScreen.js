@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { ActivityIndicator, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { getSentEmergencies, resolveEmergency, getTimeUntilAutoResolve } from '../services/emergencyService';
 import Header from '../components/Header';
@@ -108,6 +109,7 @@ export default function MyEmergenciesScreen({ navigation }) {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header />
 
@@ -229,6 +231,7 @@ export default function MyEmergenciesScreen({ navigation }) {
 
       <Footer navigation={navigation} />
     </View>
+    </SafeAreaView>
   );
 }
 

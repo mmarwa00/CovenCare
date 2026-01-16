@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
 import { useTheme } from '../context/ThemeContext';
@@ -55,6 +56,7 @@ export default function Vouchers({ navigation }) {
   ];
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle="Choose a care voucher:">
       <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
         Choose a care voucher:
@@ -82,6 +84,7 @@ export default function Vouchers({ navigation }) {
         </View>
       </View>
     </Layout>
+    </SafeAreaView>
   );
 }
 

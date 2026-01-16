@@ -2,11 +2,13 @@ import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { Button, Divider } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <View style={styles.container}>
       <Text style={styles.title}>Settings</Text>
 
@@ -58,6 +60,7 @@ export default function SettingsScreen() {
         🎂 Celebrate Silvia's Birthday!
       </Button>
     </View>
+    </SafeAreaView>
   );
 }
 
