@@ -170,10 +170,14 @@ useEffect(() => {
   // -------------------------------
   useEffect(() => {
     const fetchMemberMoods = async () => {
-      if (!activeCircle?.id) return;
+      if (!activeCircle?.id || !userId) return;
       const result = await getCircleMembersMoods(activeCircle.id);
       if (result.success) {
         setMemberMoods(result.memberMoods);
+      } else {
+        if(userId){
+          console.error('Error fetching member moods:', result.error);
+        }
       }
     };
     fetchMemberMoods();
