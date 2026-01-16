@@ -1,6 +1,7 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 
+// Get users details
 export const getUserProfile = async (userId) => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
@@ -19,6 +20,7 @@ export const getUserProfile = async (userId) => {
   }
 };
 
+// Time to update the user
 export const updateUserProfile = async (userId, updates) => {
   try {
     if (updates.displayName) {

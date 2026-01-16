@@ -33,7 +33,7 @@ export const generateVoucherCode = () => {
   return code;
 };
 
-// Check if voucher code already exists (helper)
+// Check if voucher code already exists
 const isCodeUnique = async (code) => {
   const vouchersRef = collection(db, 'vouchers');
   const q = query(vouchersRef, where('code', '==', code));
@@ -55,14 +55,14 @@ const generateUniqueCode = async () => {
   }
 
   if (!isUnique) {
-    // Fallback: add timestamp to ensure uniqueness
+    // add timestamp to ensure uniqueness
     code = `BAT-${Date.now().toString(36).toUpperCase().slice(-4)}`;
   }
 
   return code;
 };
 
-// Send voucher (M26, M27, M28)
+// Send voucher
 export const sendVoucher = async (senderId, recipientIds, circleId, type, message = '') => {
   try {
     // --- VALIDATION ---
@@ -84,7 +84,6 @@ export const sendVoucher = async (senderId, recipientIds, circleId, type, messag
 
     const voucherIds = [];
 
-    // --- LOOP RECIPIENTS ---
     for (const recipientId of recipientIds) {
       try {
         const recipientDoc = await getDoc(doc(db, 'users', recipientId));
@@ -134,7 +133,7 @@ export const sendVoucher = async (senderId, recipientIds, circleId, type, messag
 };
 
 
-// Get received vouchers (M29)
+// Get received vouchers
 export const getReceivedVouchers = async (userId, status = null) => {
   try {
     if (!userId) {
@@ -178,7 +177,7 @@ export const getReceivedVouchers = async (userId, status = null) => {
   }
 };
 
-// Get sent vouchers (helper)
+// Get sent vouchers
 export const getSentVouchers = async (userId) => {
   try {
     if (!userId) {
@@ -209,7 +208,7 @@ export const getSentVouchers = async (userId) => {
   }
 };
 
-// Redeem voucher (S4)
+// Redeem voucher
 export const redeemVoucher = async (voucherId, userId) => {
   try {
     if (!voucherId || !userId) throw new Error('Voucher ID and user ID are required');
@@ -257,7 +256,7 @@ export const redeemVoucher = async (voucherId, userId) => {
   }
 };
 
-// Get voucher details (M30)
+// Get voucher details
 export const getVoucherDetails = async (voucherId) => {
   try {
     if (!voucherId) {
@@ -305,7 +304,7 @@ export const getVoucherDetails = async (voucherId) => {
   }
 };
 
-// Get voucher by code (helper)
+// Get voucher by code
 export const getVoucherByCode = async (code) => {
   try {
     if (!code) {
@@ -339,7 +338,7 @@ export const getVoucherByCode = async (code) => {
   }
 };
 
-// Get voucher type display name (helper for UI)
+// Get voucher type display name
 export const getVoucherTypeName = (type) => {
   const names = {
     chocolate: 'The Choco',

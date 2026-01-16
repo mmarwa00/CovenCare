@@ -21,7 +21,7 @@ export const RSVP_OPTIONS = {
   NO_RESPONSE: 'no_response'
 };
 
-// Create circle event (C5)
+// Create circle event
 export const createCircleEvent = async (userId, circleId, eventData) => {
   try {
     if (!userId || !circleId) {
@@ -109,9 +109,9 @@ export const getCircleEvents = async (circleId, upcoming = true) => {
     // We loop through each event...
     for (let event of events) {
       if (event.rsvps) {
-        // ...and for each RSVP in that event...
+        // and for each RSVP in that event
         for (let rsvp of event.rsvps) {
-          // If the name is "Unknown", we go find it!
+          // If the name is "Unknown", we go find it
           if (rsvp.userName === 'Unknown' || !rsvp.userName) {
             const userSnap = await getDoc(doc(db, 'users', rsvp.userId));
             if (userSnap.exists()) {
@@ -141,7 +141,7 @@ export const getCircleEvents = async (circleId, upcoming = true) => {
   }
 };
 
-// RSVP to event (C6)
+// RSVP to event
 export const rsvpToEvent = async (eventId, userId, response) => {
   try {
     if (!eventId || !userId || !response) {
@@ -153,13 +153,13 @@ export const rsvpToEvent = async (eventId, userId, response) => {
       throw new Error('Invalid RSVP response');
     }
 
-    // 1. Physically fetch the user's name from THEIR profile
+    // Physically fetch the user's name from THEIR profile
     const userSnap = await getDoc(doc(db, 'users', userId));
     
     // We define 'actualName' RIGHT HERE so the computer knows what it is!
     const actualName = userSnap.exists() ? userSnap.data().displayName : 'Unknown Member';
 
-    // 2. Get the event document
+    // Get the event document
     const eventRef = doc(db, 'events', eventId);
     const eventDoc = await getDoc(eventRef);
     
@@ -170,14 +170,14 @@ export const rsvpToEvent = async (eventId, userId, response) => {
     const eventData = eventDoc.data();
     const rsvps = eventData.rsvps || [];
 
-    // 3. Find where the user is in the RSVP list
+    // Find where the user is in the RSVP list
     const userRsvpIndex = rsvps.findIndex(r => r.userId === userId);
 
     if (userRsvpIndex === -1) {
       throw new Error('You are not invited to this event');
     }
 
-    // 4. Update the specific RSVP object using the 'actualName' we defined in Step 1
+    // Update the specific RSVP object using the 'actualName' we defined in Step 1
     rsvps[userRsvpIndex] = {
       userId: userId,
       userName: actualName,
@@ -185,7 +185,7 @@ export const rsvpToEvent = async (eventId, userId, response) => {
       respondedAt: Timestamp.now()
     };
 
-    // 5. Save the updated list back to Firestore
+    // Save the updated list back to Firestore
     await updateDoc(eventRef, {
       rsvps: rsvps
     });
@@ -245,7 +245,7 @@ export const getEventDetails = async (eventId) => {
   }
 };
 
-// Delete event (optional, for creator only)
+// Delete event
 export const deleteEvent = async (eventId, userId) => {
   try {
     if (!eventId || !userId) {

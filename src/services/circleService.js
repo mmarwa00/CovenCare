@@ -12,9 +12,9 @@ import {
   arrayRemove 
 } from 'firebase/firestore';
 
-// Generate random 8-character invite code (M7)
+// Generate random 8-character invite code
 const generateInviteCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No confusing chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 8; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -22,16 +22,17 @@ const generateInviteCode = () => {
   return code;
 };
 
-// Create circle (M6, M7)
+// Time to create Circles
 export const createCircle = async (userId, circleName) => {
   try {
     if (!circleName || circleName.trim().length === 0) {
       throw new Error('Circle name is required');
     }
 
+    // every Circle has a invite Code
     const inviteCode = generateInviteCode();
 
-    // Create circle document
+    // Create circle document for Firbase
     const circleRef = await addDoc(collection(db, 'circles'), {
       name: circleName.trim(),
       inviteCode: inviteCode,
@@ -64,14 +65,14 @@ export const createCircle = async (userId, circleName) => {
   }
 };
 
-// Join circle with invite code (M8, M9)
+// Join circle with invite code
 export const joinCircle = async (userId, inviteCode) => {
   try {
     if (!inviteCode || inviteCode.length !== 8) {
       throw new Error('Invalid invite code');
     }
 
-    // Find circle with this invite code
+    // Find circle in db with this invite code
     const circlesRef = collection(db, 'circles');
     const q = query(circlesRef, where('inviteCode', '==', inviteCode.toUpperCase()));
     const querySnapshot = await getDocs(q);
@@ -84,18 +85,18 @@ export const joinCircle = async (userId, inviteCode) => {
     const circleData = circleDoc.data();
     const circleId = circleDoc.id;
 
-    // Check if user already in circle
+    // Error if user is already in the circle
     const alreadyMember = circleData.members.some(m => m.userId === userId);
     if (alreadyMember) {
       throw new Error('You are already in this circle');
     }
 
-    // Check if circle is full (M9)
+    // Checks if circle is full
     if (circleData.members.length >= circleData.maxMembers) {
       throw new Error('Circle is full (max 5 members)');
     }
 
-    // Add user to circle members
+    // if none of the above is true then add user to circle
     await updateDoc(doc(db, 'circles', circleId), {
       members: arrayUnion({
         userId: userId,
@@ -122,7 +123,7 @@ export const joinCircle = async (userId, inviteCode) => {
   }
 };
 
-// Get all user's circles (M11)
+// Get all user's circles
 export const getUserCircles = async (userId) => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
@@ -158,7 +159,7 @@ export const getUserCircles = async (userId) => {
   }
 };
 
-// Get circle members (M12)
+// Get circle members
 export const getCircleMembers = async (circleId) => {
   try {
     const circleDoc = await getDoc(doc(db, 'circles', circleId));
@@ -197,7 +198,7 @@ export const getCircleMembers = async (circleId) => {
   }
 };
 
-// Leave circle (M13)
+// User should be able to leave the circle
 export const leaveCircle = async (userId, circleId) => {
   try {
     const circleDoc = await getDoc(doc(db, 'circles', circleId));
@@ -232,6 +233,7 @@ export const leaveCircle = async (userId, circleId) => {
   }
 };
 
+// Here we get the mood of the members
 export const getCircleMembersMoods = async (circleId) => {
   try {
     const circleDoc = await getDoc(doc(db, 'circles', circleId));
@@ -239,17 +241,15 @@ export const getCircleMembersMoods = async (circleId) => {
 
     const members = circleDoc.data().members || [];
     const todayMidnight = new Date();
-    todayMidnight.setHours(0, 0, 0, 0); // Normalize date to match the Calendar logic
+    todayMidnight.setHours(0, 0, 0, 0);
 
     const memberMoods = [];
 
     for (const member of members) {
-      // 1. Get user name/pic
       const userDoc = await getDoc(doc(db, 'users', member.userId));
       if (!userDoc.exists()) continue;
       const userData = userDoc.data();
 
-      // 2. 🔥 THE FIX: Look in 'dailySymptoms' instead of 'periods'
       const symptomsRef = collection(db, 'dailySymptoms');
       const q = query(
         symptomsRef,
@@ -266,6 +266,8 @@ export const getCircleMembersMoods = async (circleId) => {
       }
 
       // Only add if they allow sharing
+      // We dont have that anymore in the SRS but i just left it
+      // to lazy to delete 
       if (member.privacyLevel === 'show_all') {
         memberMoods.push({
           userId: member.userId,

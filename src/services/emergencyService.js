@@ -23,7 +23,7 @@ export const EMERGENCY_TYPES = {
   THE_PMS: 'the_pms'
 };
 
-// Predefined response messages (used by UI)
+// Predefined response messages
 export const PREDEFINED_RESPONSES = [
   "On my way! 🏃‍♀️",
   "Sending care package! 📦",

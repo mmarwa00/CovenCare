@@ -428,7 +428,7 @@ export const logDailySymptoms = async (userId, date, symptoms) => {
       end.setHours(0, 0, 0, 0);
 
       if (targetDate >= start && targetDate <= end) {
-        periodId = docSnap.id; // Link it if found!
+        periodId = docSnap.id;
         break;
       }
     }
@@ -451,7 +451,7 @@ export const logDailySymptoms = async (userId, date, symptoms) => {
       await updateDoc(doc(db, 'dailySymptoms', existingDoc.id), {
         cramps: symptoms.cramps || null,
         mood: symptoms.mood || null,
-        periodId: periodId, // Might be null, that's fine!
+        periodId: periodId,
         updatedAt: new Date()
       });
     } else {
@@ -539,7 +539,7 @@ export const getSymptomsForPeriod = async (userId, periodId) => {
   }
 };
 
-// Get shared calendar for circle (M19)
+// Get shared calendar for circle
 export const getCircleCalendar = async (circleId) => {
   try {
     // Get circle members
@@ -551,7 +551,7 @@ export const getCircleCalendar = async (circleId) => {
     const members = circleDoc.data().members || [];
     const calendar = [];
 
-    // Get periods for each member (respecting privacy)
+    // Get periods for each member
     for (const member of members) {
       const memberPeriods = await getUserPeriods(member.userId);
       
@@ -567,7 +567,6 @@ export const getCircleCalendar = async (circleId) => {
             : memberPeriods.periods.map(p => ({ 
                 startDate: p.startDate,
                 endDate: p.endDate
-                // Hide detailed info if privacy is "period_only"
               }))
         });
       }

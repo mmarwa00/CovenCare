@@ -192,7 +192,7 @@ useEffect(() => {
       setLoadingVouchers(true);
       const result = await getSentVouchers(userId);
       if (result.success) {
-        // ✅ Filter to only show unredeemed vouchers
+        // Filter to only show unredeemed vouchers
         const unredeemed = result.vouchers.filter(v => v.status !== 'redeemed');
         setVouchers(unredeemed);
       }

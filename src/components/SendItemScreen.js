@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ImageBackground, Image, ScrollView, Dimensions, TouchableOpacity, Text, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Title, Button } from 'react-native-paper';
 import Layout from './Layout';
 import { getCircleMembers } from '../services/circleService';
@@ -176,9 +177,9 @@ export default function SendItemScreen({
         // Send voucher
         result = await sendVoucher(
           userId,
-          selectedPeople[0], // Vouchers go to one person
-          selectedItem.type,
-          activeCircleId
+          [selectedPeople[0]],
+          activeCircleId,
+          selectedItem.type
         );
       } else if (itemType === 'alert') {
         // Send emergency alert
@@ -377,6 +378,7 @@ export default function SendItemScreen({
   );
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
     <Layout navigation={navigation} subtitle={`Send ${itemType}`}>
       <View style={[
         styles.backgroundWrapper,
@@ -398,6 +400,7 @@ export default function SendItemScreen({
         )}
       </View>
     </Layout>
+    </SafeAreaView>
   );
 }
 
