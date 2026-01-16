@@ -35,7 +35,6 @@ export default function App() {
   }, []);
 
   // Listen for notifications
-  // Listen for notifications
 useEffect(() => {
   notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
     console.log('Notification received:', notification);
