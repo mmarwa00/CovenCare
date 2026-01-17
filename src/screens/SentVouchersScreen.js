@@ -136,34 +136,29 @@ export default function SentVouchersScreen({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-    <Layout navigation={navigation} subtitle="Your Sent Vouchers">
-      <FlatList
-        data={loading ? [] : sentItems}
-        ListHeaderComponent={
-          <>
-            <Title style={styles.title}>Your Sent Vouchers</Title>
+      <Layout navigation={navigation} subtitle="Your Sent Vouchers">
+        {loading && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Loading...</Text>
+          </View>
+        )}
 
-            {loading && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>Loading...</Text>
-              </View>
-            )}
+        {!loading && sentItems.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No vouchers sent yet</Text>
+          </View>
+        )}
 
-            {!loading && sentItems.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No vouchers sent yet</Text>
-              </View>
-            )}
-          </>
-        }
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={3}
-        contentContainerStyle={styles.grid}
-        style={{ flex: 1 }}
-      />
-
-    </Layout>
+        {!loading && sentItems.length > 0 && (
+          <FlatList
+            data={sentItems}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id.toString()}
+            numColumns={3}
+            contentContainerStyle={[styles.grid, { paddingBottom: 100 }]}
+          />
+        )}
+      </Layout>
     </SafeAreaView>
   );
 }
