@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
 import { useTheme } from '../context/ThemeContext';
 
@@ -15,13 +14,11 @@ const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 export default function Alerts({ navigation }) {
   const { isDarkMode } = useTheme();
-  const DM_TEXT = '#e3d2f0ff';
 
-  // STATIC REQUIRE MAP — React Native requires literal paths
   const alertImages = {
     heating_pad: {
       light: require('../../assets/Alerts/Heat.png'),
-      dark: require('../../assets/Alerts/rest.png'), // gothic swap
+      dark: require('../../assets/Alerts/rest.png'),
     },
     pads: {
       light: require('../../assets/Alerts/Pad.png'),
@@ -33,7 +30,7 @@ export default function Alerts({ navigation }) {
     },
     painkiller: {
       light: require('../../assets/Alerts/painkiller.png'),
-      dark: require('../../assets/Alerts/garlic.png'), // gothic swap
+      dark: require('../../assets/Alerts/garlic.png'),
     },
     the_ear: {
       light: require('../../assets/Alerts/ear.png'),
@@ -45,7 +42,6 @@ export default function Alerts({ navigation }) {
     },
   };
 
-  // Build alert options with correct backend types
   const alertOptions = [
     { image: isDarkMode ? alertImages.heating_pad.dark : alertImages.heating_pad.light, type: 'heating_pad' },
     { image: isDarkMode ? alertImages.pads.dark : alertImages.pads.light, type: 'pads' },
@@ -57,37 +53,32 @@ export default function Alerts({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-    <Layout navigation={navigation} subtitle="Send an emergency alert:">
-      <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
-        Send an emergency alert:
-      </Title>
-
-      <View style={styles.container}>
-        <View style={[styles.grid, { maxWidth: CARD_WIDTH * 2 + GAP }]}>
-          {alertOptions.map((alert, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.card,
-                {
-                  width: CARD_WIDTH,
-                  height: CARD_HEIGHT,
-                  marginRight: index % 2 === 0 ? GAP : 0,
-                  marginBottom: index < 4 ? GAP : 0,
-                }
-              ]}
-              onPress={() => navigation.navigate('SendAlert', alert)}
-            >
-              <Image source={alert.image} style={styles.cardImage} />
-            </TouchableOpacity>
-          ))}
+      <Layout navigation={navigation} subtitle="Send an emergency alert:">
+        <View style={styles.container}>
+          <View style={[styles.grid, { maxWidth: CARD_WIDTH * 2 + GAP }]}>
+            {alertOptions.map((alert, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.card,
+                  {
+                    width: CARD_WIDTH,
+                    height: CARD_HEIGHT,
+                    marginRight: index % 2 === 0 ? GAP : 0,
+                    marginBottom: index < 4 ? GAP : 0,
+                  }
+                ]}
+                onPress={() => navigation.navigate('SendAlert', alert)}
+              >
+                <Image source={alert.image} style={styles.cardImage} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
-    </Layout>
+      </Layout>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   title: {
     fontSize: 24,

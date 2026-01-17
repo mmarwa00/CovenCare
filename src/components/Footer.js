@@ -82,11 +82,11 @@ const styles = StyleSheet.create({
     width: 100,
   },
   icon: {
-    width: 50,
-    height: 50,
+    width: 55,
+    height: 55,
     resizeMode: 'contain',
     marginBottom: 2,
-    marginTop: -8,
+    marginTop: 2,
   },
   label: {
     fontSize: 14,

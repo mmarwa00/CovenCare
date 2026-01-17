@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Title } from 'react-native-paper';
 import Layout from '../components/Layout';
 import { useTheme } from '../context/ThemeContext';
 
@@ -15,9 +14,7 @@ const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 export default function Vouchers({ navigation }) {
   const { isDarkMode } = useTheme();
-  const DM_TEXT = '#e3d2f0ff';
 
-  // STATIC REQUIRE MAP — the only method React Native accepts
   const voucherImages = {
     tea: {
       light: require('../../assets/Vouchers/tea.png'),
@@ -45,7 +42,6 @@ export default function Vouchers({ navigation }) {
     },
   };
 
-  // Build the options using the static map
   const voucherOptions = [
     { image: isDarkMode ? voucherImages.tea.dark : voucherImages.tea.light, type: 'tea' },
     { image: isDarkMode ? voucherImages.coffee.dark : voucherImages.coffee.light, type: 'coffee' },
@@ -57,33 +53,29 @@ export default function Vouchers({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-    <Layout navigation={navigation} subtitle="Choose a care voucher:">
-      <Title style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
-        Choose a care voucher:
-      </Title>
-
-      <View style={styles.container}>
-        <View style={[styles.grid, { maxWidth: CARD_WIDTH * 2 + GAP }]}>
-          {voucherOptions.map((voucher, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.card,
-                {
-                  width: CARD_WIDTH,
-                  height: CARD_HEIGHT,
-                  marginRight: index % 2 === 0 ? GAP : 0,
-                  marginBottom: index < 4 ? GAP : 0,
-                }
-              ]}
-              onPress={() => navigation.navigate('SendVoucher', voucher)}
-            >
-              <Image source={voucher.image} style={styles.cardImage} />
-            </TouchableOpacity>
-          ))}
+      <Layout navigation={navigation} subtitle="Choose a care voucher:">
+        <View style={styles.container}>
+          <View style={[styles.grid, { maxWidth: CARD_WIDTH * 2 + GAP }]}>
+            {voucherOptions.map((voucher, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.card,
+                  {
+                    width: CARD_WIDTH,
+                    height: CARD_HEIGHT,
+                    marginRight: index % 2 === 0 ? GAP : 0,
+                    marginBottom: index < 4 ? GAP : 0,
+                  }
+                ]}
+                onPress={() => navigation.navigate('SendVoucher', voucher)}
+              >
+                <Image source={voucher.image} style={styles.cardImage} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
-    </Layout>
+      </Layout>
     </SafeAreaView>
   );
 }

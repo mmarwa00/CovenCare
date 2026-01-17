@@ -74,6 +74,7 @@ export default function SpellsScreen({ navigation }) {
   const translateY = useRef(new Animated.Value(0)).current;
   const flipAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const expandTranslateY = useRef(new Animated.Value(0)).current; // Add this new animation
 
   const panResponder = useRef(
     PanResponder.create({
@@ -115,7 +116,10 @@ export default function SpellsScreen({ navigation }) {
     if (expandedCard !== null) flipCard();
     else {
       setExpandedCard(currentIndex);
-      Animated.spring(scaleAnim, { toValue: 1.3, useNativeDriver: false }).start();
+      Animated.parallel([
+        Animated.spring(scaleAnim, { toValue: 1.3, useNativeDriver: false }),
+        Animated.spring(expandTranslateY, { toValue: -40, useNativeDriver: false }),
+      ]).start();
     }
   };
 
@@ -132,6 +136,7 @@ export default function SpellsScreen({ navigation }) {
     Animated.parallel([
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: false }),
       Animated.timing(flipAnim, { toValue: 0, duration: 300, useNativeDriver: false }),
+      Animated.spring(expandTranslateY, { toValue: 0, useNativeDriver: false }),
     ]).start(() => {
       setExpandedCard(null);
       setIsFlipped(false);
@@ -152,169 +157,168 @@ export default function SpellsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-    <Layout navigation={navigation} subtitle="Healing Spells">
-      <Button
-        mode="text"
-        onPress={() => navigation.navigate('Dashboard')}
-        style={styles.backButton}
-        labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
-      >
-        ← Back to Dashboard
-      </Button>
-      <View
-        style={[
-          styles.container,
-          isDarkMode && { backgroundColor: colors.background },
-        ]}
-      >
-        <Text style={[styles.title, isDarkMode && { color: DM_TEXT }]}>
-          Healing Spells
-        </Text>
+      <Layout navigation={navigation} subtitle="Healing Spells">
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : {}}
+        >
+          ← Back to Dashboard
+        </Button>
+        <View
+          style={[
+            styles.container,
+            isDarkMode && { backgroundColor: colors.background },
+          ]}
+        >
+          <Text style={[styles.subtitle, isDarkMode && { color: DM_TEXT }]}>
+            Swipe to browse • Tap to reveal
+          </Text>
 
-        <Text style={[styles.subtitle, isDarkMode && { color: DM_TEXT }]}>
-          Swipe to browse • Tap to reveal
-        </Text>
+          <View style={styles.cardContainer}>
+            {SPELLS.map((spell, index) => {
+              if (index === currentIndex) return null;
+              const offset = (index - currentIndex) * 10;
+              const opacity = Math.abs(index - currentIndex) === 1 ? 0.5 : 0.2;
 
-        <View style={styles.cardContainer}>
-          {SPELLS.map((spell, index) => {
-            if (index === currentIndex) return null;
-            const offset = (index - currentIndex) * 10;
-            const opacity = Math.abs(index - currentIndex) === 1 ? 0.5 : 0.2;
+              return (
+                <View
+                  key={spell.id}
+                  style={[
+                    styles.card,
+                    {
+                      opacity,
+                      transform: [
+                        { translateX: offset },
+                        { translateY: Math.abs(offset) },
+                        { scale: 0.95 },
+                      ],
+                    },
+                  ]}
+                >
+                  <Image source={spell.image} style={styles.cardImage} />
+                </View>
+              );
+            })}
 
-            return (
-              <View
-                key={spell.id}
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.card,
+                { transform: [{ translateX }, { translateY }] },
+              ]}
+            >
+              <Animated.View
+                style={{
+                  flex: 1,
+                  transform: [
+                    { scale: expandedCard !== null ? scaleAnim : 1 },
+                    { translateY: expandTranslateY },
+                  ],
+                }}
+              >
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={handleCardTap}
+                  style={styles.cardTouchable}
+                >
+                  <Animated.View
+                    style={[
+                      styles.cardFace,
+                      styles.cardFront,
+                      isDarkMode && { backgroundColor: colors.cardBackground },
+                      { transform: [{ rotateY: frontInterpolate }] },
+                    ]}
+                  >
+                    <Image source={currentSpell.image} style={styles.cardImage} />
+                    <Text
+                      style={[
+                        styles.cardTitle,
+                        isDarkMode && { color: DM_TEXT },
+                      ]}
+                    >
+                      {currentSpell.title}
+                    </Text>
+                  </Animated.View>
+
+                  <Animated.View
+                    style={[
+                      styles.cardFace,
+                      styles.cardBack,
+                      isDarkMode && { backgroundColor: 'rgba(93, 8, 36, 1)' },
+
+                      { transform: [{ rotateY: backInterpolate }] },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.backTitle,
+                        isDarkMode && { color: DM_TEXT },
+                      ]}
+                    >
+                      {currentSpell.title}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.backDescription,
+                        isDarkMode && { color: DM_TEXT },
+                      ]}
+                    >
+                      {currentSpell.description}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.backDetails,
+                        isDarkMode && { color: DM_TEXT },
+                      ]}
+                    >
+                      {currentSpell.details}
+                    </Text>
+                  </Animated.View>
+                </TouchableOpacity>
+              </Animated.View>
+            </Animated.View>
+          </View>
+
+          {expandedCard !== null && (
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                isDarkMode && { backgroundColor: colors.cardBackground },
+              ]}
+              onPress={closeCard}
+            >
+              <Text
                 style={[
-                  styles.card,
-                  {
-                    opacity,
-                    transform: [
-                      { translateX: offset },
-                      { translateY: Math.abs(offset) },
-                      { scale: 0.95 },
-                    ],
-                  },
+                  styles.closeButtonText,
+                  isDarkMode && { color: DM_TEXT },
                 ]}
               >
-                <Image source={spell.image} style={styles.cardImage} />
-              </View>
-            );
-          })}
+                ✕
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          <Animated.View
-            {...panResponder.panHandlers}
-            style={[
-              styles.card,
-              { transform: [{ translateX }, { translateY }] },
-            ]}
-          >
-            <Animated.View
-              style={{
-                flex: 1,
-                transform: [{ scale: expandedCard !== null ? scaleAnim : 1 }],
-              }}
-            >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={handleCardTap}
-                style={styles.cardTouchable}
-              >
-                <Animated.View
-                  style={[
-                    styles.cardFace,
-                    styles.cardFront,
-                    isDarkMode && { backgroundColor: colors.cardBackground },
-                    { transform: [{ rotateY: frontInterpolate }] },
-                  ]}
-                >
-                  <Image source={currentSpell.image} style={styles.cardImage} />
-                  <Text
-                    style={[
-                      styles.cardTitle,
-                      isDarkMode && { color: DM_TEXT },
-                    ]}
-                  >
-                    {currentSpell.title}
-                  </Text>
-                </Animated.View>
-
-                <Animated.View
-                  style={[
-                    styles.cardFace,
-                    styles.cardBack,
-                    isDarkMode && { backgroundColor: 'rgba(93, 8, 36, 1)' },
-
-                    { transform: [{ rotateY: backInterpolate }] },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.backTitle,
-                      isDarkMode && { color: DM_TEXT },
-                    ]}
-                  >
-                    {currentSpell.title}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.backDescription,
-                      isDarkMode && { color: DM_TEXT },
-                    ]}
-                  >
-                    {currentSpell.description}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.backDetails,
-                      isDarkMode && { color: DM_TEXT },
-                    ]}
-                  >
-                    {currentSpell.details}
-                  </Text>
-                </Animated.View>
-              </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
+          <View style={styles.dotsContainer}>
+            {SPELLS.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === currentIndex && styles.dotActive,
+                  isDarkMode && {
+                    backgroundColor:
+                      index === currentIndex ? DM_TEXT : colors.cardBackground,
+                  },
+                ]}
+              />
+            ))}
+          </View>
         </View>
-
-        {expandedCard !== null && (
-          <TouchableOpacity
-            style={[
-              styles.closeButton,
-              isDarkMode && { backgroundColor: colors.cardBackground },
-            ]}
-            onPress={closeCard}
-          >
-            <Text
-              style={[
-                styles.closeButtonText,
-                isDarkMode && { color: DM_TEXT },
-              ]}
-            >
-              ✕
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.dotsContainer}>
-          {SPELLS.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentIndex && styles.dotActive,
-                isDarkMode && {
-                  backgroundColor:
-                    index === currentIndex ? DM_TEXT : colors.cardBackground,
-                },
-              ]}
-            />
-          ))}
-        </View>
-      </View>
-    </Layout>
+      </Layout>
     </SafeAreaView>
   );
 }
