@@ -274,3 +274,48 @@ export const deleteEvent = async (eventId, userId) => {
     return { success: false, error: error.message };
   }
 };
+
+// Update event (creator only)
+export const updateEvent = async (eventId, userId, eventData) => {
+  try {
+    if (!eventId || !userId) {
+      throw new Error('Event ID and user ID are required');
+    }
+
+    if (!eventData.name || !eventData.date || !eventData.time) {
+      throw new Error('Event name, date, and time are required');
+    }
+
+    const eventRef = doc(db, 'events', eventId);
+    const eventDoc = await getDoc(eventRef);
+    
+    if (!eventDoc.exists()) {
+      throw new Error('Event not found');
+    }
+
+    const existingData = eventDoc.data();
+    
+    if (existingData.createdBy !== userId) {
+      throw new Error('Only the event creator can edit this event');
+    }
+
+    // Create new event datetime
+    const eventDateTime = new Date(`${eventData.date}T${eventData.time}`);
+
+    await updateDoc(eventRef, {
+      name: eventData.name.trim(),
+      description: eventData.description?.trim() || '',
+      date: eventData.date,
+      time: eventData.time,
+      dateTime: Timestamp.fromDate(eventDateTime),
+      updatedAt: Timestamp.now()
+    });
+
+    console.log('Event updated:', eventId);
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error updating event:', error);
+    return { success: false, error: error.message };
+  }
+};

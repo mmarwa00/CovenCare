@@ -1,4 +1,4 @@
-# CovenCare 🦇
+# CovenCare
 
 Menstrual cycle tracking and support app for circles of friends.
 
@@ -7,52 +7,32 @@ Menstrual cycle tracking and support app for circles of friends.
 - **Backend:** Firebase (Auth + Firestore)
 - **UI Library:** React Native Paper
 
-## Setup
+## Download App
 
-### Prerequisites
-- Node.js (v20+)
-- Expo Go app on your phone
+[Download Latest APK](https://github.com/mmarwa00/CovenCare/releases/tag/v.1.0.0)
 
 ### Installation
+1. Download the APK from releases
+2. Enable "Install from unknown sources"
+3. Install and enjoy!
 
 1. Clone the repository:
-```bash
-git clone https://github.com/YOUR-USERNAME/CovenCare.git
+git clone https://github.com/mmarwa00/CovenCare
 cd CovenCare
-```
 
 2. Install dependencies:
-```bash
 npm install
-```
 
-3. Get Firebase config from team and create:
-```
-src/config/firebaseConfig.js
-```
+3. Start the app:
+ npx expo start --dev-client      
 
-4. Start the app:
-```bash
-npx expo start
-```
+5. Scan QR code 
 
-5. Scan QR code with Expo Go app
-
-## Project Structure
-```
-src/
-├── components/     # Reusable UI components
-├── screens/        # App screens
-├── services/       # Firebase backend functions
-├── config/         # Configuration (Firebase)
-├── navigation/     # Navigation setup
-└── context/        # Global state management
-```
 
 ## Team
-- **Marwa:** Backend/Firebase
-- **Anastasiia:** Frontend/Coordinator
-- **Silvia:** Design
+Marwa: Backend/Firebase Architecture
+Anastasiia: Frontend Development & Coordination
+Silvia: Frontend Development & UI/UX Design
 
 ## Features (Week by Week)
 - Week 1-2: Authentication

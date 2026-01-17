@@ -6,6 +6,8 @@ firebaseConfig.js
 # dependencies
 node_modules/
 
+google-services.json
+
 # Expo
 .expo/
 dist/
