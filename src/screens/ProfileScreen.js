@@ -230,11 +230,53 @@ export default function ProfileScreen({ navigation }) {
 
       <Footer navigation={navigation} />
 
-      {/* Photo Picker Modal... (Keep your existing Modal code) */}
+      {/* Photo Picker Modal */}
+      <Modal
+        visible={showPhotoPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPhotoPicker(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowPhotoPicker(false)}
+        >
+          <View style={styles.photoPickerModal}>
+            <PaperTitle style={styles.modalTitle}>Choose Your Avatar 🎭</PaperTitle>
+            
+            <ScrollView style={{ maxHeight: 400 }}>
+              <View style={styles.photoGrid}>
+                {photoOptions.map((photoName) => (
+                  <TouchableOpacity
+                    key={photoName}
+                    style={styles.photoOption}
+                    onPress={() => handlePhotoSelect(photoName)}
+                  >
+                    <Image source={photoMap[photoName]} style={styles.photoOptionImage} />
+                    <Text style={styles.photoLabel}>{photoName}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Button
+              mode="outlined"
+              onPress={() => setShowPhotoPicker(false)}
+              style={styles.cancelButton}
+              textColor={colors.accent}
+            >
+              Cancel
+            </Button>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
 
 const createStyles = (colors, isDarkMode) => StyleSheet.create({
   scrollContainer: {

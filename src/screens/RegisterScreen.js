@@ -23,11 +23,11 @@ export default function RegisterScreen({ navigation }) {
         return;
     }
     
-    // 1. Call the registerUser function from the service file
+    // Call the registerUser function from the service file
     const result = await registerUser(email, password, displayName);
 
     if (result.success) {
-      // Success! Register for push notifications
+      // Register for push notifications
       try {
         await registerForPushNotifications(result.user.uid);
         console.log('Push notifications registered');
@@ -39,6 +39,7 @@ export default function RegisterScreen({ navigation }) {
       // Alert the user and navigate back to the Dashboard screen
       Alert.alert(
         'Registration Success',
+        'Your account has been created! Welcome to the coven.',
         [
           {
             text: 'OK',

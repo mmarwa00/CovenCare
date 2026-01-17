@@ -79,6 +79,12 @@ export default function SentVouchersScreen({ navigation }) {
       const now = new Date();
 
       result.vouchers.forEach(voucher => {
+
+        //Should the vouchers that are redeemed be also in there???????
+        if (voucher.status === 'redeemed') {
+          return; 
+        }
+
         if (voucher.status === 'redeemed') {
           const sentDate = new Date(voucher.sentAt);
           const diffMs = now - sentDate;

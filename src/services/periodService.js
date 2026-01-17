@@ -375,7 +375,7 @@ export const getCurrentPhase = async (userId) => {
     let phaseDay = daysSinceStart + 1;
     
     if (daysSinceStart < 0) {
-      phase = 'unknown'; // Future date protection
+      phase = 'unknown';
     } else if (daysSinceStart < actualPeriodLength) {
       phase = 'menstrual';
     } else if (daysSinceStart <= 13) {

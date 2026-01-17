@@ -336,7 +336,7 @@ export default function CircleScreen({ navigation }) {
                     {circle.name}
                   </Text>
                   <Text style={[styles.circleDetail, isDarkMode && { color: DM_TEXT }]}>
-                    ID: {circle.id}
+                    Invite Code: {circle.inviteCode}
                   </Text>
 
                   <TouchableOpacity

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ActivityIndicator } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
@@ -39,21 +39,22 @@ export default function DashboardScreen({ navigation }) {
 
   const [userMood, setUserMood] = useState("okay");
 
-
-useEffect(() => {
-  const loadMoodFromFirebase = async () => {
+  // -------------------------------
+  // LOAD USER MOOD
+  // -------------------------------
+  const loadMoodFromFirebase = useCallback(async () => {
     if (!userId) return;
     
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayTimestamp = Timestamp.fromDate(today); // ✅ Convert to Timestamp!
+      const todayTimestamp = Timestamp.fromDate(today);
       
       const symptomsRef = collection(db, "dailySymptoms");
       const q = query(
         symptomsRef,
         where("userId", "==", userId),
-        where("date", "==", todayTimestamp), // ✅ Use Timestamp for comparison
+        where("date", "==", todayTimestamp),
         limit(1)
       );
       
@@ -61,65 +62,23 @@ useEffect(() => {
       
       if (!snapshot.empty) {
         const moodData = snapshot.docs[0].data();
-        console.log("🦇 Found mood data:", moodData);
         if (moodData.mood) {
           setUserMood(moodData.mood);
-          console.log("🦇 Set mood to:", moodData.mood);
         }
-      } else {
-        console.log("🦇 No mood logged for today yet");
       }
     } catch (e) {
       console.log("Error loading mood:", e);
     }
-  };
-  
-  loadMoodFromFirebase();
-}, [userId]);
-
-// Refresh when screen focuses
-useEffect(() => {
-  const unsubscribe = navigation.addListener('focus', () => {
-    const loadMoodFromFirebase = async () => {
-      if (!userId) return;
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayTimestamp = Timestamp.fromDate(today);
-        
-        const symptomsRef = collection(db, "dailySymptoms");
-        const q = query(
-          symptomsRef,
-          where("userId", "==", userId),
-          where("date", "==", todayTimestamp),
-          limit(1)
-        );
-        
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-          const moodData = snapshot.docs[0].data();
-          if (moodData.mood) {
-            setUserMood(moodData.mood);
-            console.log("🦇 Refreshed mood:", moodData.mood);
-          }
-        }
-      } catch (e) {
-        console.log("Error loading mood:", e);
-      }
-    };
-    loadMoodFromFirebase();
-  });
-
-  return unsubscribe;
-}, [navigation, userId]);
+  }, [userId]);
 
   // -------------------------------
   // LOAD ACTIVE CIRCLE
   // -------------------------------
-  useEffect(() => {
-    const fetchActiveCircle = async () => {
-      if (!userId) return;
+  const fetchActiveCircle = useCallback(async () => {
+    if (!userId) return;
+    setLoadingCircle(true);
+    
+    try {
       const userRef = doc(db, "users", userId);
       const userSnap = await getDoc(userRef);
 
@@ -143,77 +102,94 @@ useEffect(() => {
       } else {
         setActiveCircle(null);
       }
-      setLoadingCircle(false);
-    };
-
-    fetchActiveCircle();
+    } catch (error) {
+      console.error("Error fetching active circle:", error);
+    }
+    
+    setLoadingCircle(false);
   }, [userId]);
 
   // -------------------------------
   // LOAD ALERTS
   // -------------------------------
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      if (!userId) return;
-      setLoadingAlerts(true);
-      const result = await getActiveEmergencies(userId);
-      if (result.success) {
-        setAlerts(result.emergencies);
-      }
-      setLoadingAlerts(false);
-    };
-    fetchAlerts();
+  const fetchAlerts = useCallback(async () => {
+    if (!userId) return;
+    setLoadingAlerts(true);
+    
+    const result = await getActiveEmergencies(userId);
+    if (result.success) {
+      setAlerts(result.emergencies);
+    }
+    
+    setLoadingAlerts(false);
   }, [userId]);
 
   // -------------------------------
   // LOAD CIRCLE MEMBER MOODS
   // -------------------------------
-  useEffect(() => {
-    const fetchMemberMoods = async () => {
-      if (!activeCircle?.id || !userId) return;
-      const result = await getCircleMembersMoods(activeCircle.id);
-      if (result.success) {
-        setMemberMoods(result.memberMoods);
-      } else {
-        if(userId){
-          console.error('Error fetching member moods:', result.error);
-        }
+  const fetchMemberMoods = useCallback(async () => {
+    if (!activeCircle?.id || !userId) return;
+    
+    const result = await getCircleMembersMoods(activeCircle.id);
+    if (result.success) {
+      setMemberMoods(result.memberMoods);
+    } else {
+      if (userId) {
+        console.error('Error fetching member moods:', result.error);
       }
-    };
-    fetchMemberMoods();
-  }, [activeCircle]);
+    }
+  }, [activeCircle, userId]);
 
   // -------------------------------
   // LOAD VOUCHERS
   // -------------------------------
-  useEffect(() => {
-    const fetchVouchers = async () => {
-      if (!userId) return;
-      setLoadingVouchers(true);
-      const result = await getSentVouchers(userId);
-      if (result.success) {
-        // Filter to only show unredeemed vouchers
-        const unredeemed = result.vouchers.filter(v => v.status !== 'redeemed');
-        setVouchers(unredeemed);
-      }
-      setLoadingVouchers(false);
-    };
-    fetchVouchers();
+  const fetchVouchers = useCallback(async () => {
+    if (!userId) return;
+    setLoadingVouchers(true);
+    
+    const result = await getSentVouchers(userId);
+    if (result.success) {
+      const unredeemed = result.vouchers.filter(v => v.status !== 'redeemed');
+      setVouchers(unredeemed);
+    }
+    
+    setLoadingVouchers(false);
   }, [userId]);
 
   // -------------------------------
   // LOAD PHASE
   // -------------------------------
-  useEffect(() => {
-    const fetchPhase = async () => {
-      if (!userId) return;
-      const result = await getCurrentPhase(userId);
-      if (result.success) {
-        setPhaseData(result);
-      }
-    };
-    fetchPhase();
+  const fetchPhase = useCallback(async () => {
+    if (!userId) return;
+    
+    const result = await getCurrentPhase(userId);
+    if (result.success) {
+      setPhaseData(result);
+    }
   }, [userId]);
+
+  // -------------------------------
+  // USE FOCUS EFFECT - Refresh on screen focus
+  // -------------------------------
+  useFocusEffect(
+    useCallback(() => {
+      loadMoodFromFirebase();
+      fetchActiveCircle();
+      fetchAlerts();
+      fetchVouchers();
+      fetchPhase();
+    }, [loadMoodFromFirebase, fetchActiveCircle, fetchAlerts, fetchVouchers, fetchPhase])
+  );
+
+  // Fetch member moods when active circle changes
+  useEffect(() => {
+    fetchMemberMoods();
+  }, [fetchMemberMoods]);
+
+    // Early return if no user
+  if (!userId) {
+    return null;
+  }
 
   // -------------------------------
   // HELPERS
@@ -287,122 +263,122 @@ useEffect(() => {
   // RENDER
   // -------------------------------
   return (
-  <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Header navigation={navigation} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Header navigation={navigation} />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
 
-        {/* ACTIVE CIRCLE */}
-        <View style={styles.dashboardBox}>
-          {loadingCircle ? (
-            <ActivityIndicator animating={true} color={colors.accent} />
-          ) : activeCircle ? (
-            <View>
-              <View style={styles.circleRow}>
-                <Image source={getCircleIcon(activeCircle.iconId)} style={styles.circleIcon} />
-                <Text style={styles.boxTitle}>Active Circle</Text>
-              </View>
-              <Text style={styles.circleName}>
-                {activeCircle.name} ({activeCircle.members?.length || 0} members)
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.boxTitle}>No active circle selected.</Text>
-          )}
-        </View>
-
-        {/* CURRENT PHASE */}
-        <View style={styles.dashboardBox}>
-          <View style={styles.circleRow}>
-            <Image
-              source={getPhaseIcon(phaseData ? getPhaseDisplayName(phaseData.phase) : 'Follicular')}
-              style={styles.phaseIcon}
-            />
-            <Text style={styles.boxTitle}>
-              Current Phase: {phaseData ? getPhaseDisplayName(phaseData.phase) : 'Loading...'}
-            </Text>
-          </View>
-          {phaseData && (
-            <Text style={styles.boxSubtitle}>
-              Day {phaseData.phaseDay} of {phaseData.phase} phase
-            </Text>
-          )}
-        </View>
-
-        {/* CIRCLE MOODS + mascot */}
-        <View style={styles.dashboardBox}>
-
-          {/* Floating Mascot */}
-          <View style={styles.mascotContainer}>
-            <Mascot mood={userMood} />
-          </View>
-
-          <Text style={styles.boxTitle}>Circle Moods Today</Text>
-
-          {memberMoods.length === 0 ? (
-            <Text style={styles.boxSubtitle}>No moods logged today</Text>
-          ) : (
-            memberMoods.map(member => (
-              <View key={member.userId} style={styles.moodItem}>
-                <Text style={styles.memberName}>{member.displayName}</Text>
-                <Text style={styles.moodEmoji}>
-                  {member.mood === 'happy' ? '😊' :
-                    member.mood === 'okay' ? '😐' :
-                      member.mood === 'grumpy' ? '😠' :
-                        member.mood === 'sad' ? '😢' :
-                          member.mood === 'anxious' ? '😰' : '—'}
+          {/* ACTIVE CIRCLE */}
+          <View style={styles.dashboardBox}>
+            {loadingCircle ? (
+              <ActivityIndicator animating={true} color={colors.accent} />
+            ) : activeCircle ? (
+              <View>
+                <View style={styles.circleRow}>
+                  <Image source={getCircleIcon(activeCircle.iconId)} style={styles.circleIcon} />
+                  <Text style={styles.boxTitle}>Active Circle</Text>
+                </View>
+                <Text style={styles.circleName}>
+                  {activeCircle.name} ({activeCircle.members?.length || 0} members)
                 </Text>
               </View>
-            ))
-          )}
-        </View>
-
-        {/* EMERGENCY ALERTS */}
-        <TouchableOpacity
-          style={styles.dashboardBox}
-          onPress={() => navigation.navigate('AlertBox')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.circleRow}>
-            <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
-            <Text style={styles.boxTitle}>Emergency Alerts: {loadingAlerts ? '...' : alerts.length}</Text>
+            ) : (
+              <Text style={styles.boxTitle}>No active circle selected.</Text>
+            )}
           </View>
-        </TouchableOpacity>
 
-        {/* SENT VOUCHERS */}
-        <TouchableOpacity
-          style={styles.dashboardBox}
-          onPress={() => navigation.navigate('SentVouchers')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.circleRow}>
-            <Image source={require('../../assets/Vouchers/voucher.png')} style={styles.voucherIcon} />
-            <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
+          {/* CURRENT PHASE */}
+          <View style={styles.dashboardBox}>
+            <View style={styles.circleRow}>
+              <Image
+                source={getPhaseIcon(phaseData ? getPhaseDisplayName(phaseData.phase) : 'Follicular')}
+                style={styles.phaseIcon}
+              />
+              <Text style={styles.boxTitle}>
+                Current Phase: {phaseData ? getPhaseDisplayName(phaseData.phase) : 'Loading...'}
+              </Text>
+            </View>
+            {phaseData && (
+              <Text style={styles.boxSubtitle}>
+                Day {phaseData.phaseDay} of {phaseData.phase} phase
+              </Text>
+            )}
           </View>
-        </TouchableOpacity>
 
-        {/* LOGOUT */}
-        <Button
-          mode="outlined"
-          onPress={signOutUser}
-          icon="logout"
-          style={styles.logoutButton}
-          labelStyle={styles.logoutLabel}
-        >
-          Log Out
-        </Button>
+          {/* CIRCLE MOODS + mascot */}
+          <View style={styles.dashboardBox}>
 
-        <View style={{ height: 120 }} />
-      </ScrollView>
+            {/* Floating Mascot */}
+            <View style={styles.mascotContainer}>
+              <Mascot mood={userMood} />
+            </View>
 
-      <Footer navigation={navigation} />
-    </View>
-  </SafeAreaView>
+            <Text style={styles.boxTitle}>Circle Moods Today</Text>
+
+            {memberMoods.length === 0 ? (
+              <Text style={styles.boxSubtitle}>No moods logged today</Text>
+            ) : (
+              memberMoods.map(member => (
+                <View key={member.userId} style={styles.moodItem}>
+                  <Text style={styles.memberName}>{member.displayName}</Text>
+                  <Text style={styles.moodEmoji}>
+                    {member.mood === 'happy' ? '😊' :
+                      member.mood === 'okay' ? '😐' :
+                        member.mood === 'grumpy' ? '😠' :
+                          member.mood === 'sad' ? '😢' :
+                            member.mood === 'anxious' ? '😰' : '—'}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+
+          {/* EMERGENCY ALERTS */}
+          <TouchableOpacity
+            style={styles.dashboardBox}
+            onPress={() => navigation.navigate('AlertBox')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.circleRow}>
+              <Image source={require('../../assets/Alerts/alert.png')} style={styles.emergencyIcon} />
+              <Text style={styles.boxTitle}>Emergency Alerts: {loadingAlerts ? '...' : alerts.length}</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* SENT VOUCHERS */}
+          <TouchableOpacity
+            style={styles.dashboardBox}
+            onPress={() => navigation.navigate('SentVouchers')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.circleRow}>
+              <Image source={require('../../assets/Vouchers/voucher.png')} style={styles.voucherIcon} />
+              <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* LOGOUT */}
+          <Button
+            mode="outlined"
+            onPress={signOutUser}
+            icon="logout"
+            style={styles.logoutButton}
+            labelStyle={styles.logoutLabel}
+          >
+            Log Out
+          </Button>
+
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        <Footer navigation={navigation} />
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -431,12 +407,12 @@ const createStyles = (colors) => StyleSheet.create({
   },
 
   mascotContainer: {
-  position: 'absolute',
-  top: -30,
-  right: 25,
-  width: 50,
-  height: 50,
-  zIndex: 20,
+    position: 'absolute',
+    top: -30,
+    right: 25,
+    width: 50,
+    height: 50,
+    zIndex: 20,
   },
 
   boxTitle: {
