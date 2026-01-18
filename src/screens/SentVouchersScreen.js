@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Image, Text, Dimensions } from 'react-native';
-import { Title } from 'react-native-paper';
+import { Title, Button } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Layout from '../components/Layout';
@@ -143,6 +143,18 @@ export default function SentVouchersScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
       <Layout navigation={navigation} subtitle="Your Sent Vouchers">
+
+       <View style={{ width: '100%', alignItems: 'flex-start' }}>
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate('Dashboard')}
+          style={styles.backButton}
+          labelStyle={isDarkMode ? { color: DM_TEXT } : { color: '#4a148c' }}
+        >
+          ← Back to Dashboard
+        </Button>
+      </View>
+
         {loading && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Loading...</Text>

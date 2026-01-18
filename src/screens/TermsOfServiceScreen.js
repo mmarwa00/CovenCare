@@ -1,12 +1,14 @@
 import React from 'react';
 import { ScrollView, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 
 export default function TermsOfServiceScreen() {
+  const { colors, isDarkMode } = useTheme();
+  const styles = createStyles(colors, isDarkMode);
+
   return (
-    <SafeAreaView style={styles.safeArea}> 
-      
-      {/* This fills the rest of the screen with white */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Terms of Service</Text>
 
@@ -35,26 +37,23 @@ export default function TermsOfServiceScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  container: { 
-    flex: 1, 
-    backgroundColor: '#ffffff',
-    padding: 20 
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#4a148c',
-  },
-  text: {
-    fontSize: 14,
-    marginBottom: 12,
-    lineHeight: 20,
-    color: '#000000',
-  },
-});
+const createStyles = (colors, isDarkMode) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: colors.background,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginBottom: 15,
+      color: isDarkMode ? colors.accent : colors.text,
+    },
+    text: {
+      fontSize: 14,
+      marginBottom: 12,
+      lineHeight: 20,
+      color: isDarkMode ? '#ffffff' : colors.textSecondary,
+    },
+  });

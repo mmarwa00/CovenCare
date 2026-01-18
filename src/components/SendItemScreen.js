@@ -9,6 +9,7 @@ import { createEmergency } from '../services/emergencyService';
 import { auth, db } from '../config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
@@ -19,7 +20,7 @@ const CARD_HEIGHT = CARD_WIDTH * 1.4;
 export default function SendItemScreen({ 
   navigation, 
   selectedItem, 
-  itemType,
+  itemType, // 'voucher' or 'alert'
   backgroundImage,
   forceRecipient  
 }) {
@@ -46,93 +47,101 @@ export default function SendItemScreen({
 
     // Load people from ACTIVE circle only
   useEffect(() => {
-    loadPeopleFromActiveCircle();
-  }, []);
+    if (itemType === 'alert') {
+      loadPeopleFromAllCircles();
+    } else {
+      loadPeopleFromActiveCircle();
+    }
+  }, [itemType]);
 
   const loadPeopleFromActiveCircle = async () => {
     try {
       setLoading(true);
       const userId = auth.currentUser?.uid;
-      
-      if (!userId) {
-        Alert.alert('Error', 'You must be logged in');
-        navigation.goBack();
-        return;
-      }
 
-      // Get user's active circle ID
-      const userRef = doc(db, 'users', userId);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        throw new Error('User not found');
-      }
-
-      const activeCircleId = userSnap.data().activeCircleId;
+      const userSnap = await getDoc(doc(db, "users", userId));
+      const activeCircleId = userSnap.data()?.activeCircleId;
 
       if (!activeCircleId) {
-        Alert.alert('No Active Circle', 'Please set an active circle first!', [
-          {
-            text: 'Go to Circles',
-            onPress: () => navigation.navigate('Circle')
-          },
-          {
-            text: 'Cancel',
-            onPress: () => navigation.goBack()
-          }
-        ]);
+        Alert.alert("No Active Circle");
         return;
       }
 
-      // Get members from ACTIVE circle only
       const membersResult = await getCircleMembers(activeCircleId);
-      
-      if (!membersResult.success) {
-        throw new Error(membersResult.error);
-      }
 
-      // Get full user details for each member
-      const peopleWithDetails = [];
-      for (const member of membersResult.members) {
+      let list = [];
+
+      for (let member of membersResult.members) {
         if (member.id !== userId) {
-          try {
-            const userRef = doc(db, 'users', member.id);
-            const userSnap = await getDoc(userRef);
-            
-            if (userSnap.exists()) {
-              const userData = userSnap.data();
-              peopleWithDetails.push({
-                id: member.id,
-                displayName: userData.displayName || member.displayName || 'Unknown',
-                profilePhoto: userData.profilePhoto || null,
-                circleId: activeCircleId
-              });
-            } else {
-              // Fallback if user document doesn't exist
-              peopleWithDetails.push({ id: member.id, displayName: member.displayName || 'Unknown', profilePhoto: null, circleId: activeCircleId });
-            }
-          } catch (error) {
-            console.error('Error fetching user details:', error);
-            // Add member even if fetch fails
-            peopleWithDetails.push({ id: member.id, displayName: member.displayName || 'Unknown', profilePhoto: null, circleId: activeCircleId });
+          const snap = await getDoc(doc(db, "users", member.id));
+          if (snap.exists()) {
+            const data = snap.data();
+            list.push({
+              id: member.id,
+              displayName: data.displayName || "Unknown",
+              profilePhoto: data.profilePhoto || null,
+              circleId: activeCircleId
+            });
           }
         }
       }
 
-      if (peopleWithDetails.length === 0) {
-        Alert.alert('No Members', 'Your active circle has no other members yet.');
-      }
-
-      setAllPeople(peopleWithDetails);
-
-    } catch (error) {
-      console.error('Error loading people:', error);
-      Alert.alert('Error', 'Failed to load circle members: ' + error.message);
+      setAllPeople(list);
+    } catch (e) {
+      console.log(e);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadPeopleFromAllCircles = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+
+      const circlesSnap = await getDocs(collection(db, "circles"));
+
+      let peopleMap = {};
+
+      circlesSnap.forEach(docSnap => {
+        const data = docSnap.data();
+
+        const isMember = data.members?.some(m => m.userId === userId);
+
+        if (isMember) {
+          for (let m of data.members) {
+            if (m.userId !== userId && !peopleMap[m.userId]) {
+              peopleMap[m.userId] = {
+                id: m.userId,
+                displayName: m.displayName || "Unknown",
+                profilePhoto: m.profilePhoto || null,
+                circleId: docSnap.id
+              };
+            }
+          }
+        }
+      });
+
+      // load user names
+      for (let id in peopleMap) {
+        const snap = await getDoc(doc(db, "users", id));
+        if (snap.exists()) {
+          const d = snap.data();
+          peopleMap[id].displayName = d.displayName || peopleMap[id].displayName;
+          peopleMap[id].profilePhoto = d.profilePhoto || null;
+        }
+      }
+
+      setAllPeople(Object.values(peopleMap));
+    } catch (e) {
+      console.log(e);
+      Alert.alert("Error", "Failed to load circles");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add or remove person from selection
   const togglePersonSelection = (personId) => {
     if (selectedPeople.includes(personId)) {
       setSelectedPeople(selectedPeople.filter(id => id !== personId));
