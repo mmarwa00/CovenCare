@@ -246,7 +246,7 @@ exports.onVoucherRedeemed = onDocumentUpdated(
         before.status === "unredeemed" &&
       after.status === "redeemed"
       ) {
-        const title = "Voucher redeemed 🎉";
+        const title = "Voucher redeemed ";
         const body =
         "Your care voucher was just redeemed";
 
