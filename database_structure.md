@@ -12,7 +12,7 @@
 
 ### 2. circles
 - name (string)
-- inviteCode (string, 8 chars, unique)
+- inviteCode (string)
 - createdBy (string, userId)
 - members (array of maps)
 - maxMembers (number, default: 5)
@@ -52,18 +52,13 @@
 - status (string: unredeemed/redeemed)
 - sentAt (timestamp)
 - redeemedAt (timestamp or null)
-```
 
----
+### 6. dailySymptoms
+- cramps (string)
+- createdAt (timestamp)
+- date (timestamp)
+- mood (string)
+- periodId (string)
+- updatedAt (timestamp)
+- userId (string)
 
-### **6. Update .gitignore**
-
-**Edit:** `.gitignore` (add this at the end)
-```
-# Firebase config (NEVER COMMIT!)
-src/config/firebaseConfig.js
-firebase-config.txt
-
-# Environment
-.env
-.env.local
