@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../config/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, limit, Timestamp, onSnapshot } from 'firebase/firestore';
 
 import { getActiveEmergencies } from '../services/emergencyService';
 import { getSentVouchers } from '../services/voucherService';
@@ -16,7 +16,6 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Mascot from '../components/Mascot';
 import { useColorScheme } from 'react-native';
-import { collection, query, where, getDocs, limit, Timestamp } from 'firebase/firestore';
 
 export default function DashboardScreen({ navigation }) {
   const { signOutUser, user } = useAuth();
@@ -31,7 +30,7 @@ export default function DashboardScreen({ navigation }) {
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
 
-  const [vouchers, setVouchers] = useState([]);
+  const [voucherCount, setVoucherCount] = useState(0);
   const [loadingVouchers, setLoadingVouchers] = useState(true);
 
   const [memberMoods, setMemberMoods] = useState([]);
@@ -40,45 +39,40 @@ export default function DashboardScreen({ navigation }) {
   const [userMood, setUserMood] = useState("okay");
 
   // -------------------------------
-  // LOAD USER MOOD
+  // FETCH ALL DATA AT ONCE
   // -------------------------------
-  const loadMoodFromFirebase = useCallback(async () => {
-    if (!userId) return;
-    
+  const fetchAllData = useCallback(async () => {
+    if (!userId) {
+      console.log('No userId, skipping fetch');
+      return;
+    }
+
+    console.log('Starting dashboard data fetch...');
+
     try {
+      // Load user mood
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayTimestamp = Timestamp.fromDate(today);
       
       const symptomsRef = collection(db, "dailySymptoms");
-      const q = query(
+      const moodQuery = query(
         symptomsRef,
         where("userId", "==", userId),
         where("date", "==", todayTimestamp),
         limit(1)
       );
       
-      const snapshot = await getDocs(q);
+      const moodSnapshot = await getDocs(moodQuery);
       
-      if (!snapshot.empty) {
-        const moodData = snapshot.docs[0].data();
+      if (!moodSnapshot.empty) {
+        const moodData = moodSnapshot.docs[0].data();
         if (moodData.mood) {
           setUserMood(moodData.mood);
         }
       }
-    } catch (e) {
-      console.log("Error loading mood:", e);
-    }
-  }, [userId]);
 
-  // -------------------------------
-  // LOAD ACTIVE CIRCLE
-  // -------------------------------
-  const fetchActiveCircle = useCallback(async () => {
-    if (!userId) return;
-    setLoadingCircle(true);
-    
-    try {
+      // Load active circle
       const userRef = doc(db, "users", userId);
       const userSnap = await getDoc(userRef);
 
@@ -89,82 +83,54 @@ export default function DashboardScreen({ navigation }) {
           const circleSnap = await getDoc(circleRef);
 
           if (circleSnap.exists()) {
-            setActiveCircle({
+            const circleData = {
               id: activeId,
               ...circleSnap.data(),
-            });
+            };
+            setActiveCircle(circleData);
+
+            // Load circle member moods
+            const moodsResult = await getCircleMembersMoods(activeId);
+            if (moodsResult.success) {
+              setMemberMoods(moodsResult.memberMoods);
+            }
           } else {
             setActiveCircle(null);
           }
         } else {
           setActiveCircle(null);
         }
-      } else {
-        setActiveCircle(null);
       }
+      setLoadingCircle(false);
+
+      // Load alerts - initial load only, real-time listener handles updates
+      const alertsResult = await getActiveEmergencies(userId);
+      if (alertsResult.success) {
+        setAlerts(alertsResult.emergencies);
+      }
+      setLoadingAlerts(false);
+
+      // Load vouchers - initial load only, real-time listener handles updates
+      const vouchersResult = await getSentVouchers(userId);
+      if (vouchersResult.success) {
+        const activeVouchers = vouchersResult.vouchers.filter(v => v.status !== 'redeemed');
+        setVoucherCount(activeVouchers.length);
+        console.log('Active vouchers count:', activeVouchers.length);
+      }
+      setLoadingVouchers(false);
+
+      // Load phase
+      const phaseResult = await getCurrentPhase(userId);
+      if (phaseResult.success) {
+        setPhaseData(phaseResult);
+      }
+
+      console.log('Dashboard data fetch complete');
     } catch (error) {
-      console.error("Error fetching active circle:", error);
-    }
-    
-    setLoadingCircle(false);
-  }, [userId]);
-
-  // -------------------------------
-  // LOAD ALERTS
-  // -------------------------------
-  const fetchAlerts = useCallback(async () => {
-    if (!userId) return;
-    setLoadingAlerts(true);
-    
-    const result = await getActiveEmergencies(userId);
-    if (result.success) {
-      setAlerts(result.emergencies);
-    }
-    
-    setLoadingAlerts(false);
-  }, [userId]);
-
-  // -------------------------------
-  // LOAD CIRCLE MEMBER MOODS
-  // -------------------------------
-  const fetchMemberMoods = useCallback(async () => {
-    if (!activeCircle?.id || !userId) return;
-    
-    const result = await getCircleMembersMoods(activeCircle.id);
-    if (result.success) {
-      setMemberMoods(result.memberMoods);
-    } else {
-      if (userId) {
-        console.error('Error fetching member moods:', result.error);
-      }
-    }
-  }, [activeCircle, userId]);
-
-  // -------------------------------
-  // LOAD VOUCHERS
-  // -------------------------------
-  const fetchVouchers = useCallback(async () => {
-    if (!userId) return;
-    setLoadingVouchers(true);
-    
-    const result = await getSentVouchers(userId);
-    if (result.success) {
-      const unredeemed = result.vouchers.filter(v => v.status !== 'redeemed');
-      setVouchers(unredeemed);
-    }
-    
-    setLoadingVouchers(false);
-  }, [userId]);
-
-  // -------------------------------
-  // LOAD PHASE
-  // -------------------------------
-  const fetchPhase = useCallback(async () => {
-    if (!userId) return;
-    
-    const result = await getCurrentPhase(userId);
-    if (result.success) {
-      setPhaseData(result);
+      console.error('Error fetching dashboard data:', error);
+      setLoadingCircle(false);
+      setLoadingAlerts(false);
+      setLoadingVouchers(false);
     }
   }, [userId]);
 
@@ -173,22 +139,99 @@ export default function DashboardScreen({ navigation }) {
   // -------------------------------
   useFocusEffect(
     useCallback(() => {
-      loadMoodFromFirebase();
-      fetchActiveCircle();
-      fetchAlerts();
-      fetchVouchers();
-      fetchPhase();
-    }, [loadMoodFromFirebase, fetchActiveCircle, fetchAlerts, fetchVouchers, fetchPhase])
+      console.log('Dashboard focused, fetching data...');
+      fetchAllData();
+    }, [fetchAllData])
   );
 
-  // Fetch member moods when active circle changes
+  // -------------------------------
+  // REAL-TIME LISTENER FOR ALERTS
+  // -------------------------------
   useEffect(() => {
-    fetchMemberMoods();
-  }, [fetchMemberMoods]);
+    if (!userId) return;
 
-    // Early return if no user
+    console.log('Setting up real-time alert listener...');
+
+    // Subscribe to active emergencies in real-time
+    const emergenciesRef = collection(db, 'emergencies');
+    const q = query(
+      emergenciesRef,
+      where('recipients', 'array-contains', userId),
+      where('status', '==', 'active')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const emergencies = [];
+      snapshot.forEach((doc) => {
+        emergencies.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      console.log('Real-time alert update:', emergencies.length, 'active alerts');
+      setAlerts(emergencies);
+      setLoadingAlerts(false);
+    }, (error) => {
+      console.error('Error in real-time alert listener:', error);
+    });
+
+    // Cleanup listener when component unmounts
+    return () => {
+      console.log('Cleaning up real-time alert listener');
+      unsubscribe();
+    };
+  }, [userId]);
+
+  // -------------------------------
+  // REAL-TIME LISTENER FOR VOUCHERS
+  // -------------------------------
+  useEffect(() => {
+    if (!userId) return;
+
+    console.log('Setting up real-time voucher listener...');
+
+    // Subscribe to sent vouchers in real-time
+    const vouchersRef = collection(db, 'vouchers');
+    const q = query(
+      vouchersRef,
+      where('senderId', '==', userId)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const vouchers = [];
+      snapshot.forEach((doc) => {
+        vouchers.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      
+      // Only count active (unredeemed) vouchers
+      const activeVouchers = vouchers.filter(v => v.status !== 'redeemed');
+      console.log('Real-time voucher update:', activeVouchers.length, 'active vouchers');
+      setVoucherCount(activeVouchers.length);
+      setLoadingVouchers(false);
+    }, (error) => {
+      console.error('Error in real-time voucher listener:', error);
+    });
+
+    // Cleanup listener when component unmounts
+    return () => {
+      console.log('Cleaning up real-time voucher listener');
+      unsubscribe();
+    };
+  }, [userId]);
+
+  // Early return if no user
   if (!userId) {
-    return null;
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+        <View style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator animating={true} color={colors.accent} />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   // -------------------------------
@@ -221,40 +264,6 @@ export default function DashboardScreen({ navigation }) {
       luteal: 'Luteal'
     };
     return names[phase] || 'Unknown';
-  };
-
-  const getEmergencyTypeDisplay = (type) => {
-    const types = {
-      tampon: '🩸 Tampon Emergency',
-      pads: '🩸 Pad Emergency',
-      painkiller: '💊 Need Painkiller',
-      heating_pad: '♨️ Heating Pad Emergency',
-      the_ear: '👂 Need a Listening Ear',
-      the_pms: '👹 PMS Emergency'
-    };
-    return types[type] || type;
-  };
-
-  const getVoucherTypeDisplay = (type) => {
-    const types = {
-      chocolate: '🍫 Chocolate',
-      coffee: '☕️ Coffee',
-      face_mask: '🧖 Face Mask',
-      tea: '🍵 Hot tea',
-      chips: '🍟 Chips',
-      love: '🫶🏻 Love'
-    };
-    return types[type] || type;
-  };
-
-  const getTimeAgo = (date) => {
-    const now = new Date();
-    const diff = now - date;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(diff / (1000 * 60));
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
   };
 
   const styles = createStyles(colors);
@@ -358,7 +367,7 @@ export default function DashboardScreen({ navigation }) {
           >
             <View style={styles.circleRow}>
               <Image source={require('../../assets/Vouchers/voucher.png')} style={styles.voucherIcon} />
-              <Text style={styles.boxTitle}>Sent Vouchers: {vouchers.length}</Text>
+              <Text style={styles.boxTitle}>Sent Vouchers: {loadingVouchers ? '...' : voucherCount}</Text>
             </View>
           </TouchableOpacity>
 
@@ -467,26 +476,6 @@ const createStyles = (colors) => StyleSheet.create({
     resizeMode: 'contain',
   },
 
-  alertItem: {
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-
-  alertType: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-
-  alertMessage: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-
   moodItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -507,14 +496,6 @@ const createStyles = (colors) => StyleSheet.create({
     fontSize: 24,
   },
 
-  viewMore: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    marginTop: 10,
-    fontStyle: 'italic',
-    textAlign: 'right',
-  },
-
   logoutButton: {
     marginTop: 20,
     backgroundColor: colors.cardBackground,
@@ -525,7 +506,6 @@ const createStyles = (colors) => StyleSheet.create({
     borderRadius: 40,
     height: 45,
     justifyContent: 'center',
-    marginTop: 4,
   },
 
   logoutLabel: {
