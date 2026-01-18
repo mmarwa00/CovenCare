@@ -417,7 +417,7 @@ export default function AlertBox({ navigation }) {
                             style={styles(colors, isDarkMode).resolveButton}
                             labelStyle={styles(colors, isDarkMode).resolveButtonLabel}
                           >
-                            ✅ Mark as Resolved
+                            Mark as Resolved
                           </Button>
                         )}
                       </View>
