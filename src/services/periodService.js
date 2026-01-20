@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   limit,
+  setDoc,
   Timestamp
 } from 'firebase/firestore';
 
@@ -394,84 +395,63 @@ export const getCurrentPhase = async (userId) => {
   }
 };
 
-export const logDailySymptoms = async (userId, date, symptoms) => {
+export const logDailySymptoms = async (userId, dateStr, symptoms) => {
   try {
-    if (!userId || !date) {
-      throw new Error('User ID and date are required');
+    if (!userId || !dateStr) {
+      throw new Error("User ID and date are required");
     }
 
-    const validCramps = ['none', 'mild', 'moderate', 'severe', null];
-    const validMoods = ['happy', 'okay', 'grumpy', 'sad', 'anxious', null];
+     const normalizedDateStr = (() => {
+      const d = new Date(dateStr);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    })();
 
-    if (symptoms.cramps && !validCramps.includes(symptoms.cramps)) {
-      throw new Error('Invalid cramps value');
-    }
-    if (symptoms.mood && !validMoods.includes(symptoms.mood)) {
-      throw new Error('Invalid mood value');
-    }
+    const targetDate = new Date(normalizedDateStr);
+    targetDate.setHours(0,0,0,0);
+    const targetTimestamp = Timestamp.fromDate(targetDate);
 
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-
+    // --- FIND PERIOD ---
     const periodsRef = collection(db, 'periods');
-    const q = query(periodsRef, where('userId', '==', userId));
+    const q = query(periodsRef, where('userId','==', userId));
     const snapshot = await getDocs(q);
-    
+
     let periodId = null;
 
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
       const start = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
       const end = data.endDate.toDate ? data.endDate.toDate() : new Date(data.endDate);
-      
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
+
+      start.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
 
       if (targetDate >= start && targetDate <= end) {
         periodId = docSnap.id;
         break;
       }
     }
+    // --- MERGE SAVE ---
+    const ref = doc(db, "dailySymptoms", `${userId}_${normalizedDateStr}`);
 
-    const symptomsRef = collection(db, 'dailySymptoms');
-    const targetTimestamp = Timestamp.fromDate(targetDate);
+    const cleanSymptoms = {};
+    if (symptoms.cramps !== null) cleanSymptoms.cramps = symptoms.cramps;
+    if (symptoms.mood !== null) cleanSymptoms.mood = symptoms.mood;
 
-    const existingQuery = query(
-      symptomsRef,
-      where('userId', '==', userId),
-      where('date', '==', targetTimestamp)
-    );
+    await setDoc(ref, {
+      userId,
+      periodId,
+      date: targetTimestamp,
+      ...cleanSymptoms,
+      updatedAt: new Date()
+    }, { merge: true });
 
-    
-    const existingSnapshot = await getDocs(existingQuery);
-
-    if (!existingSnapshot.empty) {
-      // Update existing
-      const existingDoc = existingSnapshot.docs[0];
-      await updateDoc(doc(db, 'dailySymptoms', existingDoc.id), {
-        cramps: symptoms.cramps || null,
-        mood: symptoms.mood || null,
-        periodId: periodId,
-        updatedAt: new Date()
-      });
-    } else {
-      // Create new
-      await addDoc(collection(db, 'dailySymptoms'), {
-        userId: userId,
-        periodId: periodId,
-        date: targetTimestamp,
-        cramps: symptoms.cramps || null,
-        mood: symptoms.mood || null,
-        createdAt: new Date()
-      });
-
-    }
-
-    console.log('Daily symptoms logged (with or without period)!');
     return { success: true };
 
   } catch (error) {
-    console.error('Error logging symptoms:', error);
+    console.error("Error logging symptoms:", error);
     return { success: false, error: error.message };
   }
 };
@@ -519,17 +499,21 @@ export const getSymptomsForPeriod = async (userId, periodId) => {
     const symptomsRef = collection(db, 'dailySymptoms');
     const q = query(
       symptomsRef,
-      where('userId', '==', userId),
-      where('periodId', '==', periodId),
-      orderBy('date', 'asc')
+      where('userId','==', userId),
+      where('periodId','==', periodId)
     );
 
     const snapshot = await getDocs(q);
+
     const symptoms = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
-      date: doc.data().date.toDate ? doc.data().date.toDate() : new Date(doc.data().date)
+      date: doc.data().date.toDate 
+        ? doc.data().date.toDate() 
+        : new Date(doc.data().date)
     }));
+
+    symptoms.sort((a, b) => a.date - b.date);
 
     return { success: true, symptoms };
 
@@ -538,6 +522,24 @@ export const getSymptomsForPeriod = async (userId, periodId) => {
     return { success: false, error: error.message };
   }
 };
+
+export const getAllUserSymptoms = async (userId) => {
+  const q = query(
+    collection(db,'dailySymptoms'),
+    where('userId','==', userId)
+  );
+
+  const snap = await getDocs(q);
+
+  const logs = snap.docs.map(d => ({
+    id: d.id,
+    ...d.data(),
+    date: d.data().date.toDate()
+  }));
+
+  logs.sort((a,b)=> b.date - a.date);
+  return logs;
+}
 
 // Get shared calendar for circle
 export const getCircleCalendar = async (circleId) => {

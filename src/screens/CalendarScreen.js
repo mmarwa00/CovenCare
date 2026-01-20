@@ -11,7 +11,7 @@ import { Calendar } from 'react-native-calendars';
 import { db } from '../config/firebaseConfig';
 import { logDailySymptoms } from '../services/periodService';
 import { deleteDoc, doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import { getSymptomsForPeriod } from '../services/periodService';
 
 // Format Firestore Timestamp or JS Date
 const formatDate = (date) => {
@@ -56,7 +56,17 @@ export default function CalendarScreen({ navigation }) {
   const [symptomModalVisible, setSymptomModalVisible] = useState(false);
   const [selectedLogDate, setSelectedLogDate] = useState(null);
   const [tempSymptoms, setTempSymptoms] = useState({ cramps: null, mood: null });
+  const [periodSymptoms, setPeriodSymptoms] = useState({});
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [allLogs, setAllLogs] = useState([]);
 
+  const moodIcons = {
+    happy: '😊',
+    okay: '😐',
+    grumpy: '😠',
+    sad: '😢',
+    anxious: '😰'
+  };
 
   // Load user periods and prediction
   const fetchData = async () => {
@@ -71,6 +81,21 @@ export default function CalendarScreen({ navigation }) {
       setError(historyResult.error);
     }
 
+    if (historyResult.success) {
+      setPeriods(historyResult.periods);
+
+      const symptomMap = {};
+
+      for (let p of historyResult.periods) {
+        const res = await getSymptomsForPeriod(userId, p.id);
+        if (res.success) {
+          symptomMap[p.id] = res.symptoms;
+        }
+      }
+
+      setPeriodSymptoms(symptomMap);
+    }
+
     const predictionResult = await predictNextPeriod(userId);
     if (predictionResult.success) {
       setPrediction(predictionResult);
@@ -79,6 +104,7 @@ export default function CalendarScreen({ navigation }) {
     }
 
     setLoading(false);
+    await fetchAllLogs();
   };
 
   // Load all data on screen open
@@ -136,45 +162,59 @@ export default function CalendarScreen({ navigation }) {
         "Period Day",
         `${formatDate(existing.startDate)} - ${formatDate(existing.endDate)}`,
         [
-          { 
-            text: "Log Symptoms", 
-            onPress: () => handleLogSymptoms(clicked) 
-          },
-          { 
-            text: "Delete Period", 
-            style: "destructive", 
-            onPress: () => deletePeriod(existing) 
-          },
+          { text: "Log Symptoms", onPress: () => handleLogSymptoms(clicked) },
+          { text: "Delete Period", style: "destructive", onPress: () => deletePeriod(existing) },
           { text: "Cancel", style: "cancel" }
         ]
       );
       return;
     }
 
-    if (!startDate) {
-      if (clicked > today) {
-        Alert.alert("Not allowed", "Start date cannot be in the future 😊");
-        return;
-      }
-      setStartDate(dateStr);
-      setEndDate('');
-      return;
-    }
-
-    if (!endDate) {
-      if (clicked < new Date(startDate)) {
-        setStartDate(dateStr);
-        return;
-      }
-      setEndDate(dateStr);
-      return;
-    }
-
-    setStartDate(dateStr);
-    setEndDate('');
+    // allow symptoms even outside period
+    Alert.alert(
+      "Day Selected",
+      formatDate(clicked),
+      [
+        {
+          text: startDate ? "Set as End Date" : "Set as Start Date",
+          onPress: () => {
+            if (!startDate) {
+              if (clicked > today) {
+                Alert.alert("Not allowed", "Start date cannot be in the future 😊");
+                return;
+              }
+              setStartDate(dateStr);
+              setEndDate('');
+            } else {
+              if (clicked < new Date(startDate)) {
+                setStartDate(dateStr);
+              } else {
+                setEndDate(dateStr);
+              }
+            }
+          }
+        },
+        {
+          text: "Log Symptoms",
+          onPress: () => handleLogSymptoms(clicked)
+        },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
   };
   
   const handleLogSymptoms = (date) => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const clicked = new Date(date);
+    clicked.setHours(0,0,0,0);
+
+    if (clicked > today) {
+      Alert.alert("Not allowed", "You cannot log symptoms for future days 💜");
+      return;
+    }
+
     setSelectedLogDate(date);
     setTempSymptoms({ cramps: null, mood: null }); // Reset to fresh draft
     setSymptomModalVisible(true); // Open the One-List Modal!
@@ -224,6 +264,25 @@ export default function CalendarScreen({ navigation }) {
     });
 
     return marks;
+  };
+
+  const fetchAllLogs = async () => {
+    const q = query(
+      collection(db, 'dailySymptoms'),
+      where('userId', '==', userId)
+    );
+
+    const snap = await getDocs(q);
+
+    const logs = snap.docs.map(d => ({
+      id: d.id,
+      ...d.data(),
+      date: d.data().date.toDate()
+    }));
+
+    logs.sort((a,b)=> b.date - a.date);
+
+    setAllLogs(logs);
   };
 
   const getSelectedRangeMarks = () => {
@@ -662,29 +721,26 @@ export default function CalendarScreen({ navigation }) {
           </Card.Content>
         </Card>
 
-        {/* History */}
+        {/* Daily Logs */}
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
-              History ({periods.length} Logged)
-            </Title>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Title style={[styles.cardTitle, isDarkMode && { color: DM_TEXT }]}>
+                Daily Logs ({periods.length})
+              </Title>
 
-            {periods.length === 0 ? (
-              <Paragraph style={[{ color: '#555' }, isDarkMode && { color: DM_TEXT }]}>
-                No past periods logged yet.
-              </Paragraph>
-            ) : (
-              periods.map((p, index) => (
-                <View key={index} style={styles.historyItem}>
-                  <Text style={[styles.historyText, isDarkMode && { color: DM_TEXT }]}>
-                    Flow: {formatDate(p.startDate)} - {formatDate(p.endDate)}
-                  </Text>
-                  <Text style={[styles.detailText, isDarkMode && { color: DM_TEXT }]}>
-                    Cycle Length: {p.cycleLength || 'N/A'} days
-                  </Text>
-                </View>
-              ))
-            )}
+              <Button
+                mode="text"
+                onPress={() => setHistoryModalVisible(true)}
+                labelStyle={{ color: colors.accent }}
+              >
+                View logs
+              </Button>
+            </View>
+
+            <Paragraph style={[{ color: '#555' }, isDarkMode && { color: DM_TEXT }]}>
+              Your full history is available in logs.
+            </Paragraph>
           </Card.Content>
         </Card>
       </ScrollView>
@@ -788,6 +844,87 @@ export default function CalendarScreen({ navigation }) {
           </ScrollView>
         </Modal>
       </Portal>
+
+      <Portal>
+        <Modal
+          visible={historyModalVisible}
+          onDismiss={() => setHistoryModalVisible(false)}
+          contentContainerStyle={[
+            styles.modalContainer,
+            {
+              backgroundColor: isDarkMode ? colors.cardBackground : '#ffffff',
+              borderColor: isDarkMode ? colors.border : '#4a148c',
+              borderWidth: 2,
+            }
+          ]}
+        >
+          <ScrollView>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 10
+            }}>
+              <Title style={[
+                styles.modalTitle,
+                { color: isDarkMode ? DM_TEXT : '#4a148c' }
+              ]}>
+                Daily Log History
+              </Title>
+
+              <TouchableOpacity
+                onPress={() => setHistoryModalVisible(false)}
+                style={{
+                  padding: 4
+                }}
+              >
+                <Text style={{
+                  fontSize: 24,
+                  fontWeight: '900',
+                  color: isDarkMode ? DM_TEXT : '#4a148c'
+                }}>
+                  ✕
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {allLogs.map(l => (
+              <View
+                key={l.id}
+                style={{
+                  backgroundColor: isDarkMode ? colors.background : '#f4e9ff',
+                  borderRadius: 8,
+                  paddingVertical: 6,
+                  paddingHorizontal: 10,
+                  marginBottom: 6,
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? colors.border : '#d4a5ff'
+                }}
+              >
+                <Text
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: 13,
+                    color: isDarkMode ? DM_TEXT : '#4a148c',
+                    marginBottom: 4
+                  }}
+                >
+                  {formatDate(l.date)}
+                </Text>
+
+                <Text style={{ color: isDarkMode ? DM_TEXT : '#4a148c' }}>
+                  Cramps: {l.cramps || '—'}
+                </Text>
+
+                <Text style={{ color: isDarkMode ? DM_TEXT : '#4a148c' }}>
+                  Mood: {l.mood ? `${moodIcons[l.mood]} (${l.mood})` : '—'}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </Modal>
+      </Portal>
+
 
       <Footer navigation={navigation} />
     </View>
